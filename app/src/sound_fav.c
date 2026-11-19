@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT
  * OpenVALive - SOUNDS: which sounds PRESET offers (HOME + white key 14, HOME let go: the screen stays, both hands
  * free). A hidden sound still plays where it is: only PRESET and the family jumps (OCT- / OCT+) leave it out.
- *   on top the chosen sound's place (F4 3/5), its family and ON / HIDDEN; then one line a family, F1 .. F7, its
+ *   on top the chosen sound's place (3/5), its family and ON / HIDDEN; then one line a family, F1 .. F7, its
  *   label and name green (all offered), blue (some), red (none), a square a sound, the chosen line its sound's name
  *   SELECT       the line above / below (the last line: MENU)       PRESET  the sound before / after on the line
  *   SEL          the sound offered (green) or hidden (red)           OCT- / OCT+  the whole family hidden / offered
@@ -134,8 +134,8 @@ static void fav_draw_place(void)
             uint32_t at = fav.row < n ? fav.row : n - 1u;
             int hidden = sound_hidden(list[at]);
             uint16_t fc = fav_colour(fav.family);
-            char pos[7] = { 'F', (char)('1' + fav.family), ' ', (char)('1' + at), '/', (char)('0' + n), 0 };   /* <= 9 */
-            cv_text(6, 4, &FONT_XS, pos, fc);
+            char pos[4] = { (char)('1' + at), '/', (char)('0' + n), 0 };   /* a family: 9 sounds at most */
+            cv_text(26, 4, &FONT_XS, pos, fc);         /* under the family names */
             cv_text(FAV_SQUARES, 4, &FONT_XS, FAMILY_NAME[fav.family], fc);
             cv_text(232 - text_w(&FONT_XS, hidden ? "HIDDEN" : "ON"), 4, &FONT_XS, hidden ? "HIDDEN" : "ON",
                     hidden ? C_RED : C_GREEN);

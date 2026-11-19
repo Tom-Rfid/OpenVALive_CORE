@@ -57,6 +57,7 @@ void app_say(const char *a, const char *b)
     copy_text(ui.msg[1], b, sizeof ui.msg[1]);
     ui.msg_until = plat_ms() + 1200u;
     ui.msg_style = MSG_PLAIN;
+    ui.msg_right = 0;
     ui.redraw = 1;
 
     if (ann_on()) {

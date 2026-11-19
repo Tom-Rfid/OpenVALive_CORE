@@ -85,6 +85,9 @@ static void draw_header(void)
             x = ax + 6;
         }
         cv_text(x + 8, 6, &FONT_B, ui.msg[1], c1);
+        if (ui.msg_right) {                     /* the layer's black-key gesture, far right */
+            cv_text(232 - text_w(&FONT_B, ui.msg_right), 6, &FONT_B, ui.msg_right, avol.on ? C_GREEN : C_MINT);
+        }
     } else {
         char t[4] = "T1";
         t[1] = (char)('1' + mirror.track);

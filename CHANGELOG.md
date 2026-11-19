@@ -6,6 +6,15 @@
 
 
 
+## 19 November 2026 — A VOL, MUTE ALL on a black key
+
+- SEL + the first black key (`KEY_MUTE_ALL`, F#3): MUTE ALL (fast blink while all are out); white key 5 is free.
+- SEL + the fourth black key (`KEY_AVOL`, C#4): **A VOL** (`avol_key` / `avol_tick`): the playing tracks' levels and
+  A's go to one level (4 tracks: the 2 middle ones averaged; 2 or 3: the 2 loudest), linearly over the longest loop
+  playing, then it stops; again or a LEVEL turned by hand stops it. The key: 2 s swell (lit, dim, off, dim). "A VOL"
+  at the right of the SEL title (`ui.msg_right`). `BLACK_KEY[]` for targets. Host expects: level, a_level, avol.
+- SOUNDS: the place line shows "3/5" under the family names.
+
 ## 19 November 2026 — SOUNDS and SETTINGS screens tidied
 
 - SOUNDS: the chosen sound's place (F4 3/5), family and ON / HIDDEN under the title, the name lined up with the

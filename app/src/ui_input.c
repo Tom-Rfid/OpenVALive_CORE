@@ -32,8 +32,9 @@
  *                    BREAK (drums out), SOLO, DRUMS ONLY, ALL OUT, ALL FX OFF. Taken: on, latched (again: off);
  *                    on A: hold the key = while held, tap = latched. SEQ tapped: the loop lets go (A: every loop).
  *                    Tracks taken out come back on the next bar, on the one.
- *   SEL  tracks      MUTE 1 2 3 4, MUTE ALL 4 (A plays on), CLEAR (A: every track), QUANTIZE, CLOCK IN,
- *                    CLOCK OUT, EUCLID 3..8 hits, CONTROLLER
+ *   SEL  tracks      MUTE 1 2 3 4, (free), CLEAR (A: every track), QUANTIZE, CLOCK IN,
+ *                    CLOCK OUT, EUCLID 3..8 hits, CONTROLLER; black keys: 1st MUTE ALL 4 (A plays on), 4th A VOL
+ *                    (the levels brought together over the longest loop)
  *
  * Hold SEL and turn PRESET: MIDI IN channel (ALL, 1..16, CLOCK only: follow a drum machine
  * without playing its notes). Key pressure (aftertouch) opens the filter and deepens the vibrato.
@@ -48,6 +49,11 @@
 
 /* the white keys of the FM-1 (F3 .. G5), as key numbers */
 static const uint8_t WHITE_KEY[WHITE_KEYS] = { 0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26 };
+/* its black keys, the top row from the left (F#3 G#3 A#3 C#4 ...): a target maps its own on these */
+#define BLACK_KEYS 11
+static const uint8_t BLACK_KEY[BLACK_KEYS] = { 1, 3, 5, 8, 10, 13, 15, 17, 20, 22, 25 };
+#define KEY_MUTE_ALL 1u                         /* SEL + the first black key (F#3): every track out / back */
+#define KEY_AVOL 8u                             /* SEL + the fourth (C#4): A VOL, the levels brought together */
 
 /* the Creative Engine on the white keys (ARP held): operation and argument */
 static const struct {
@@ -545,6 +551,88 @@ static void perform_key_released(uint32_t k)
     }
 }
 
+/* A VOL (average volume): the playing tracks' levels (and A's) go to one level, step by step over the longest loop
+ * playing (4 bars: 4 bars), then it stops. The level: with 4 tracks the mean of the 2 middle ones, with 2 or 3 the
+ * mean of the 2 loudest (a quiet one comes up, a loud one down; the outliers do not pull it). Again: stopped. */
+static struct {
+    uint8_t on, n;
+    uint8_t t[TRACKS];
+    float from[TRACKS], a_from, target;
+    uint32_t start, ms, sent;
+} avol;
+
+static void avol_key(void)
+{
+    if (avol.on) {
+        avol.on = 0;
+        app_say("A VOL", "STOPPED");
+        return;
+    }
+    float lv[TRACKS];
+    uint32_t longest = 0, n = 0;
+    for (int t = 0; t < TRACKS; t++) {
+        if (!live.track[t].mute && live.track[t].pat.count) {
+            avol.t[n] = (uint8_t)t;
+            avol.from[n] = ui.level[t];
+            lv[n++] = ui.level[t];
+            longest = live.track[t].pat.length > longest ? live.track[t].pat.length : longest;
+        }
+    }
+    if (n == 0u) {
+        app_say("A VOL", "NO LOOP");
+        return;
+    }
+    for (uint32_t i = 1; i < n; i++) {          /* loudest first */
+        for (uint32_t j = i; j > 0 && lv[j] > lv[j - 1]; j--) {
+            float x = lv[j];
+            lv[j] = lv[j - 1];
+            lv[j - 1] = x;
+        }
+    }
+    avol.target = n >= 4u ? 0.5f * (lv[1] + lv[2]) : (n >= 2u ? 0.5f * (lv[0] + lv[1]) : lv[0]);
+    uint32_t bars = (longest + OLS_TICKS_PER_BAR - 1u) / OLS_TICKS_PER_BAR;
+    bars = bars < 1u ? 1u : bars;
+    float bpm = clock_bpm(&live.clock);
+    bpm = bpm < 20.0f ? 120.0f : bpm;
+    avol.n = (uint8_t)n;
+    avol.a_from = ui.lv_level;
+    avol.ms = (uint32_t)((float)bars * 240000.0f / bpm);   /* 4 beats a bar */
+    avol.start = avol.sent = plat_ms();
+    avol.on = 1;
+    char b[12];
+    int_text((int32_t)bars, b);
+    text_cat(b, bars > 1u ? " BARS" : " BAR");
+    app_say("A VOL", b);
+}
+
+/* each frame while A VOL runs: the levels a step nearer (sent every 40 ms), the LIVE page shows them */
+static void avol_tick(void)
+{
+    if (!avol.on) {
+        return;
+    }
+    uint32_t now = plat_ms(), gone = now - avol.start;
+    int done = gone >= avol.ms;
+    if (!done && now - avol.sent < 40u) {
+        return;
+    }
+    avol.sent = now;
+    float p = done ? 1.0f : (float)gone / (float)avol.ms;
+    for (uint32_t i = 0; i < avol.n; i++) {
+        uint8_t t = avol.t[i];
+        ui.level[t] = avol.from[i] + (avol.target - avol.from[i]) * p;
+        send_live(LIVE_GAIN, 0, 0, ui.level[t], t);
+    }
+    ui.lv_level = avol.a_from + (avol.target - avol.a_from) * p;
+    lv_gain = ui.lv_level;
+    ui.redraw = 1;
+    if (done) {
+        avol.on = 0;
+        mark_dirty();
+        app_say("A VOL", "DONE");
+    }
+}
+
 /* the four tracks muted, or back (A plays on); A is let go, so a key pressed next does not sound by mistake */
 static void mute_all_key(void)
 {
@@ -572,7 +660,7 @@ static void track_key(int w)
         t[0] = (char)('1' + w);
         app_say(live.track[w].mute ? "UNMUTE" : "MUTE", t);   /* state before the toggle */
     } else if (w == 4) {
-        mute_all_key();
+        /* free: MUTE ALL is on the first black key now */
     } else if (w == 5) {
         if (ui.on_a) {
             for (uint8_t t = 0; t < TRACKS; t++) {
@@ -725,6 +813,10 @@ static void key_pressed(uint32_t k, uint32_t buttons)
     if (button_held(buttons, BTN_TRACKS)) {
         if (w >= 0) {
             track_key(w);
+        } else if (k == KEY_MUTE_ALL) {
+            mute_all_key();
+        } else if (k == KEY_AVOL) {
+            avol_key();
         }
         return;
     }
@@ -963,6 +1055,7 @@ static void button_pressed(uint32_t b, uint32_t buttons)
         break;
     case BTN_TRACKS:
         app_say("MUTE", "1 2 3 4 ALL");
+        ui.msg_right = "A VOL";
         break;
     default:
         break;
@@ -1425,6 +1518,7 @@ static void live_knob(uint32_t k, int32_t turn)
             say_int("A LEVEL", (int32_t)(ui.lv_level * (100.0f / 1.5f) + 0.5f), "%");     /* 100 % = the top (x1.5) */
             break;
         }
+        avol.on = 0;                            /* a level turned by hand: A VOL lets go */
         ui.level[t] = fm_clampf(ui.level[t] + (float)turn * ENCODER_STEP, 0.0f, 1.5f);
         send_live(LIVE_GAIN, 0, 0, ui.level[t], t);
         say_int("LEVEL", (int32_t)(ui.level[t] * (100.0f / 1.5f) + 0.5f), "%");
@@ -1578,17 +1672,25 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
             }
         }
     } else if (button_held(buttons, BTN_TRACKS)) {
-        int all_on = 1;
-        *dim = white_mask(0, 16);
+        int all_out = 1;
+        *dim = (white_mask(0, 16) & ~(1u << WHITE_KEY[4])) | (1u << KEY_MUTE_ALL) | (1u << KEY_AVOL);
         for (int t = 0; t < TRACKS; t++) {
             if (!live.track[t].mute) {
                 *lit |= 1u << WHITE_KEY[t];
-            } else {
-                all_on = 0;
+                all_out = 0;
             }
         }
-        if (all_on) {
-            *lit |= 1u << WHITE_KEY[4];
+        if (all_out) {                          /* MUTE ALL: fast blink while every track is out */
+            *lit |= ((plat_ms() / 125u) & 1u) << KEY_MUTE_ALL;
+            *bl |= 1u << KEY_MUTE_ALL;
+        }
+        if (avol.on) {                          /* A VOL running: a slow 2 s swell, lit first (lit, dim, off, dim) */
+            uint32_t ph = (plat_ms() - avol.start) % 2000u;
+            if (ph < 800u) {
+                *lit |= 1u << KEY_AVOL;
+            } else if (ph >= 1000u && ph < 1800u) {
+                *dim &= ~(1u << KEY_AVOL);
+            }
         }
         if (live.quantize) {
             *lit |= 1u << WHITE_KEY[6];
@@ -1731,6 +1833,7 @@ static void input(void)
     uint32_t keys = touch_keys();
 
     scan_buttons(buttons);
+    avol_tick();
     scan_keys(keys, buttons);
     scan_pressure(keys);
     scan_track_encoder(buttons);

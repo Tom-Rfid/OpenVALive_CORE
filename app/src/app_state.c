@@ -312,6 +312,7 @@ enum { KEY_NOTE, KEY_FX, KEY_NONE, KEY_ARMED_ARP, KEY_ARMED_SEQ, KEY_ARMED_GLO, 
 
 static struct {
     char msg[2][24];                            /* short message over the header */
+    const char *msg_right;                      /* and at its right (SEL held: "A VOL"), 0 none */
     uint32_t msg_until;
     uint8_t msg_style;                          /* MSG_*: how the header message shows */
     uint8_t punch;                              /* EDIT held + a note: a punch records (EDIT let go stops it) */

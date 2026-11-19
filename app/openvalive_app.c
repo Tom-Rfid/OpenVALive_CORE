@@ -236,6 +236,12 @@ int app_expect(const char *what, int *got)
         *got = (int)(tr->pat.length / OLS_TICKS_PER_STEP);
     } else if (!strcmp(what, "muted")) {
         *got = (live.track[0].mute) | (live.track[1].mute << 1) | (live.track[2].mute << 2) | (live.track[3].mute << 3);
+    } else if (!strcmp(what, "level")) {
+        *got = (int)(ui.level[mirror.track] * 100.0f + 0.5f);   /* the selected track's level, % of unity */
+    } else if (!strcmp(what, "a_level")) {
+        *got = (int)(ui.lv_level * 100.0f + 0.5f);
+    } else if (!strcmp(what, "avol")) {
+        *got = avol.on;                         /* A VOL running */
     } else if (!strcmp(what, "scenes")) {
         int n = 0;
         for (int s = 0; s < OLS_SCENES; s++) {
