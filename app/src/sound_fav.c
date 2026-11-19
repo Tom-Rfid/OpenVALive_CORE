@@ -145,7 +145,12 @@ static void fav_draw(void)
             ft[1] = (char)('1' + f);
             cv_text(6, y + 4, &FONT_XS, ft, lc);
             cv_text(7, y + 4, &FONT_XS, ft, lc);
-            cv_text(26, y + 4, &FONT_XS, FAMILY_NAME[f], shown == 0u ? C_RED : C_HI);
+            if (sel && n) {                                    /* the chosen line: the chosen sound's name */
+                int32_t s = list[fav.row < n ? fav.row : n - 1u];
+                cv_text(26, y + 4, &FONT_XS, ols_sound_name((uint32_t)s), sound_hidden(s) ? C_RED : C_WHITE);
+            } else {
+                cv_text(26, y + 4, &FONT_XS, FAMILY_NAME[f], shown == 0u ? C_RED : C_HI);
+            }
             for (uint32_t i = 0; i < n; i++) {                 /* a square a sound, the chosen one framed */
                 int32_t x = 104 + (int32_t)i * 14;
                 int empty = list[i] >= OLS_SOUND_FIRST_USER && !user_sounds[list[i] - OLS_SOUND_FIRST_USER].valid;
@@ -167,9 +172,12 @@ static void fav_draw(void)
     } else {
         uint32_t n = fav_list(fav.family + 1, list);
         if (n) {
-            int32_t s = list[fav.row < n ? fav.row : n - 1u];
+            uint32_t at = fav.row < n ? fav.row : n - 1u;
+            int32_t s = list[at];
             int hidden = sound_hidden(s);
-            cv_text(8, 6, &FONT_XS, ols_sound_name((uint32_t)s), hidden ? C_RED : C_GREEN);
+            char pos[7] = { 'F', (char)('1' + fav.family), ' ', (char)('1' + at), '/', (char)('0' + n), 0 };   /* <= 9 */
+            cv_text(8, 6, &FONT_XS, pos, C_GRAY);
+            cv_text(8 + text_w(&FONT_XS, "F1 9/9  "), 6, &FONT_XS, FAMILY_NAME[fav.family], C_HI);
             cv_text(232 - text_w(&FONT_XS, hidden ? "HIDDEN" : "ON"), 6, &FONT_XS, hidden ? "HIDDEN" : "ON",
                     hidden ? C_RED : C_GREEN);
         }

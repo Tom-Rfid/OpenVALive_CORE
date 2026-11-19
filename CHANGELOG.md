@@ -10,7 +10,7 @@
 
 - `src/sound_fav.c`: families F1–F7 on lines (label green / blue / red line = all / some / none offered, a square a
   sound), SELECT the line, PRESET the sound; the last line MENU goes to SETTINGS with PRESET or OCT, and SETTINGS
-  has a MENU line back. Any menu button (HOME FX ARP SEQ GLO SAVE, `MENU_BUTTONS`) closes a set-up screen and saves.
+  has a MENU line back. The chosen line shows the chosen sound's name; below, its position (F4 3/5). Any menu button (HOME FX ARP SEQ GLO SAVE, `MENU_BUTTONS`) closes a set-up screen and saves.
 
 ## 19 November 2026 — SOUNDS (favourites)
 
