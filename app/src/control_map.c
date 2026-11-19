@@ -62,11 +62,15 @@ static float map_value[MAP_ALL_SLOTS];  /* where each control last put its targe
 static struct {
     uint8_t open, row, top, dirty, conf_dirty, drawn;
     uint32_t buttons;
+    uint8_t to_sounds;                          /* MENU row turned: SOUNDS next */
 } mapui;
 
 /* the settings rows, after the slots */
-enum { CONF_DRUM_MAP, CONF_DRUM_DS, CONF_DRUM_GS, CONF_KEYS_SCREEN, CONF_ROWS };
-static const char *const CONF_NAME[CONF_ROWS] = { "DRUM KEYS", "DRUM D#", "DRUM G#", "KEYS ON SCREEN" };
+enum { CONF_DRUM_MAP, CONF_DRUM_DS, CONF_DRUM_GS, CONF_KEYS_SCREEN, CONF_MENU, CONF_ROWS };
+static const char *const CONF_NAME[CONF_ROWS] = { "DRUM KEYS", "DRUM D#", "DRUM G#", "KEYS ON SCREEN", "MENU" };
+/* the menu buttons: one pressed leaves a set-up screen (what it changed is kept) */
+#define MENU_BUTTONS ((1u << B_HOME) | (1u << B_GLO) | (1u << BTN_PAGES) | (1u << B_ARP) | (1u << BTN_PERFORM) \
+                      | (1u << B_SAVE))
 #define MAP_ROWS (APP_MAP_SLOTS + CONF_ROWS)
 #define MAP_VISIBLE 9u
 
@@ -76,6 +80,7 @@ static const char *conf_text(uint32_t c)
     case CONF_DRUM_MAP: return set.drum_map == DRUM_MAP_GM ? "GM" : "ORIGINAL";
     case CONF_DRUM_DS: return DRUM_PERC[set.drum_ds % DRUM_PERCS].name;
     case CONF_DRUM_GS: return DRUM_PERC[set.drum_gs % DRUM_PERCS].name;
+    case CONF_MENU: return "SOUNDS >";           /* the other set-up screen: turn or OCT to go */
     default: return set.keys_screen ? "ON" : "OFF";
     }
 }
@@ -87,6 +92,7 @@ static void conf_turn(uint32_t c, int32_t turn)
     case CONF_DRUM_MAP: set.drum_map = (uint8_t)!set.drum_map; break;
     case CONF_DRUM_DS: set.drum_ds = (uint8_t)((set.drum_ds + DRUM_PERCS + step) % DRUM_PERCS); break;
     case CONF_DRUM_GS: set.drum_gs = (uint8_t)((set.drum_gs + DRUM_PERCS + step) % DRUM_PERCS); break;
+    case CONF_MENU: mapui.to_sounds = 1; return;
     default: set.keys_screen = (uint8_t)!set.keys_screen; break;
     }
     mapui.conf_dirty = 1;
@@ -432,9 +438,12 @@ static void map_input(void)
     uint32_t buttons = plat_buttons();
     uint32_t pressed = buttons & ~mapui.buttons;
     mapui.buttons = buttons;
-    if (pressed & ((1u << B_HOME) | (1u << BTN_VALIDATE) | (1u << B_GLO))) {
+    if (pressed & (MENU_BUTTONS | (1u << BTN_VALIDATE))) {
         map_close();
         return;
+    }
+    if (mapui.row == APP_MAP_SLOTS + CONF_MENU && (pressed & ((1u << B_OCTDN) | (1u << B_OCTUP)))) {
+        mapui.to_sounds = 1;                    /* the MENU row: OCT- / OCT+ go to SOUNDS too */
     }
     if (pressed & (1u << B_PLAY)) {
         send_live(LIVE_PLAY_TOGGLE, 0, 0, 0.0f, 0);
@@ -453,6 +462,12 @@ static void map_input(void)
             mapui.drawn = 0;
         }
         turn = option = 0;
+    }
+    if (mapui.to_sounds) {                      /* MENU: on to SOUNDS */
+        mapui.to_sounds = 0;
+        map_close();
+        fav_open();
+        return;
     }
     if (turn) {
         map_change_target(turn);
@@ -525,6 +540,6 @@ static void map_draw(void)
     }
     cv_begin(240, 36, C_BLACK);
     cv_text(6, 4, &FONT_XS, "SELECT row  PRESET target", C_GRAY);
-    cv_text(6, 20, &FONT_XS, "ALGO option  HOME close", C_GRAY);
+    cv_text(6, 20, &FONT_XS, "ALGO option  MENU BTN: OUT", C_GRAY);
     cv_blit(0, 240 - 36);
 }

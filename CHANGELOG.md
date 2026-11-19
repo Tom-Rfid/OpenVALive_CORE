@@ -6,6 +6,12 @@
 
 
 
+## 19 November 2026 — SOUNDS: one line a family, a MENU line
+
+- `src/sound_fav.c`: families F1–F7 on lines (label green / blue / red line = all / some / none offered, a square a
+  sound), SELECT the line, PRESET the sound; the last line MENU goes to SETTINGS with PRESET or OCT, and SETTINGS
+  has a MENU line back. Any menu button (HOME FX ARP SEQ GLO SAVE, `MENU_BUTTONS`) closes a set-up screen and saves.
+
 ## 19 November 2026 — SOUNDS (favourites)
 
 - `src/sound_fav.c`: HOME + key 14, the sounds PRESET offers (`set.hidden`, settings OLSA; older ones keep everything
