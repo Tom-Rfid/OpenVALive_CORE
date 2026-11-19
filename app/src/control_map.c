@@ -1,15 +1,15 @@
 /*
- * OpenVALive - FM-1 app: the CONTROL MAP, controls the player assigns to what they want.
+ * OpenVALive - FM-1 app: MAP CONTROL and OPTION CONTROL, the set-up screens next to SOUNDS.
  *
- * Slots: the four knobs of the USER page (K1..K4) on every target; a target with more controls adds its own
- * (APP_MAP_SLOTS: the SMK-37's 4 faders in their USER bank, its pitch and mod wheels). Each slot has a target
- * (a level, a macro, an effect, a sound knob, the tempo, bend, aftertouch, a MIDI CC...) and an option (which
- * track, which CC).
- *
- * The menu: GLO + SEL (the SMK-37: a long press on its Bluetooth button too). SELECT chooses the row, PRESET the
- * target, ALGO the option; moving a mapped control jumps to its row. HOME, SEL or GLO closes it; the map is kept in
- * the flash when it closes (and with SAVE). Under the slots, the settings rows (HOME + white key 16 opens the menu on
- * them): the drum keys' map, the original map's D# and G#, the keys on screen; kept when the menu closes.
+ * MAP CONTROL (GLO + SEL; the SMK-37: a long press on its Bluetooth button too):
+ *   - the knob pages FX goes through, in their order: PRESET moves one up / down, ALGO shows / hides it;
+ *   - what the four knobs of MACRO, LIVE, EQ and USER do (a target's faders and wheels follow USER's): each slot
+ *     has a target (a level, a macro, an effect, a sound knob, the EQ, the tempo, bend, a MIDI CC...) and an option
+ *     (which track, which CC). PRESET the target, ALGO the option; moving a control jumps to its row.
+ * OPTION CONTROL (HOME + white key 16): the drum keys' map, each D# / G# key's percussion, the keys on screen,
+ *   and for each line the page a new sound brings (KEEP: none).
+ * Both: SELECT the row, EDIT puts the row back to its default, the MENU row (last) goes to the next screen with
+ * PRESET or OCT (SOUNDS, MAP CONTROL, OPTION CONTROL in turn), a menu button closes; what changed is kept.
  *
  * Effects (FILTER, RESO, DRIVE, DELAY, CHORUS, CRUSH, DECAY) hold the role's value on the chosen tracks while the
  * control is up; all the way down (under 2 %), the sounds are back as they are stored.
@@ -19,16 +19,24 @@
 #define APP_MAP_SLOTS 4u            /* the FM-1: the USER page's four knobs */
 #endif
 
-enum { MAP_K1, MAP_K2, MAP_K3, MAP_K4, MAP_F1, MAP_F2, MAP_F3, MAP_F4, MAP_PITCH, MAP_MOD, MAP_ALL_SLOTS };
+/* the slots: USER's knobs and a target's own controls first (their numbers are kept in the flash), then the
+ * knobs of the other mapped pages */
+enum {
+    MAP_K1, MAP_K2, MAP_K3, MAP_K4, MAP_F1, MAP_F2, MAP_F3, MAP_F4, MAP_PITCH, MAP_MOD,
+    MAP_MACRO1 = 10, MAP_LIVE1 = 14, MAP_EQ1 = 18, MAP_ALL_SLOTS = 22
+};
 static const char *const MAP_SLOT_NAME[MAP_ALL_SLOTS] = {
-    "K1", "K2", "K3", "K4", "FADER 1", "FADER 2", "FADER 3", "FADER 4", "PITCH", "MOD"
+    "USER K1", "USER K2", "USER K3", "USER K4", "FADER 1", "FADER 2", "FADER 3", "FADER 4", "PITCH", "MOD",
+    "MACRO K1", "MACRO K2", "MACRO K3", "MACRO K4", "LIVE K1", "LIVE K2", "LIVE K3", "LIVE K4",
+    "EQ K1", "EQ K2", "EQ K3", "EQ K4",
 };
 
 enum { ARG_NONE, ARG_TRACK, ARG_SCOPE, ARG_KNOB, ARG_CC };
 enum {
     MAP_NONE, MAP_LEVEL, MAP_ENERGY, MAP_SPACE, MAP_TENSION, MAP_DENSITY, MAP_MORPH, MAP_SWING, MAP_PUMP,
     MAP_FILTER, MAP_RESO, MAP_DRIVE, MAP_DELAY, MAP_CHORUS, MAP_CRUSH, MAP_DECAY,
-    MAP_SOUND, MAP_TEMPO, MAP_BEND, MAP_PRESSURE, MAP_CC, MAP_TARGETS
+    MAP_SOUND, MAP_TEMPO, MAP_BEND, MAP_PRESSURE, MAP_CC,
+    MAP_EQ_BASS, MAP_EQ_MID, MAP_EQ_TREBLE, MAP_EQ_FREQ, MAP_TARGETS     /* (new ones at the end: numbers kept) */
 };
 static const struct {
     const char *name;
@@ -46,33 +54,71 @@ static const struct {
     { "DECAY", ARG_SCOPE, OLS_ROLE_DECAY },
     { "SOUND", ARG_KNOB, 0 },       { "TEMPO", ARG_NONE, 0 },
     { "BEND", ARG_NONE, 0 },        { "AFTER", ARG_NONE, 0 },       { "MIDI CC", ARG_CC, 0 },
+    { "BASS", ARG_NONE, 0 },        { "MID", ARG_NONE, 0 },         { "TREBLE", ARG_NONE, 0 },
+    { "MID FREQ", ARG_NONE, 0 },
 };
 #define SCOPE_ALL 0u                /* ARG_SCOPE: 0 every track, 1..4 one track, 5 the selected one */
 #define SCOPE_SELECTED 5u
 
-#define MAP_MAGIC 0x4F4C4D31u       /* "OLM1" */
+#define MAP_MAGIC 0x4F4C4D32u       /* "OLM2" */
+#define MAP_MAGIC_V1 0x4F4C4D31u    /* "OLM1": USER's knobs and the target's controls only */
+#define MAP_V1_SLOTS 10u
 typedef struct {
     uint32_t magic;
     uint8_t target[MAP_ALL_SLOTS];
     uint8_t arg[MAP_ALL_SLOTS];
+    uint8_t order[PAGE_COUNT];      /* the knob pages in the order FX goes through them */
+    uint8_t page_off;               /* the pages hidden from FX (bit = page) */
 } control_map_t;
+typedef struct {
+    uint32_t magic;
+    uint8_t target[MAP_V1_SLOTS];
+    uint8_t arg[MAP_V1_SLOTS];
+} control_map_v1_t;
+static const uint8_t PAGE_ORDER_DEFAULT[PAGE_COUNT] = {
+    PAGE_SOUND, PAGE_MACRO, PAGE_LIVE, PAGE_SETUP, PAGE_USER, PAGE_EQ, PAGE_DRUM
+};
 
 static control_map_t cmap;
 static float map_value[MAP_ALL_SLOTS];  /* where each control last put its target, 0..1 */
+enum { SCREEN_SOUNDS, SCREEN_MAP, SCREEN_OPTION, SCREENS };   /* the set-up screens, in the MENU row's turn */
 static struct {
-    uint8_t open, row, top, dirty, conf_dirty, drawn;
+    uint8_t open, screen, row, top, dirty, conf_dirty, drawn;
     uint32_t buttons;
-    uint8_t to_sounds;                          /* MENU row turned: SOUNDS next */
+    int8_t go;                                  /* the MENU row moved: -1 the screen before, 1 the one after */
 } mapui;
 
-/* the settings rows, after the slots */
-enum { CONF_DRUM_MAP, CONF_DRUM_DS, CONF_DRUM_GS, CONF_KEYS_SCREEN, CONF_MENU, CONF_ROWS };
-static const char *const CONF_NAME[CONF_ROWS] = { "DRUM KEYS", "DRUM D#", "DRUM G#", "KEYS ON SCREEN", "MENU" };
+#ifndef APP_PERC_FIRST
+#define APP_PERC_FIRST 1u           /* the FM-1: G#3 D#4 G#4 D#5 (PERC_KEYS 1..4) */
+#define APP_PERC_COUNT 4u
+#endif
+
+/* OPTION CONTROL's rows */
+enum { CONF_DRUM_MAP, CONF_PERC, CONF_KEYS_SCREEN = CONF_PERC + APP_PERC_COUNT, CONF_NEW_PAGE,
+       CONF_MENU = CONF_NEW_PAGE + TRACKS + 1, CONF_ROWS };
 /* the menu buttons: one pressed leaves a set-up screen (what it changed is kept) */
 #define MENU_BUTTONS ((1u << B_HOME) | (1u << B_GLO) | (1u << BTN_PAGES) | (1u << B_ARP) | (1u << BTN_PERFORM) \
                       | (1u << B_SAVE))
-#define MAP_ROWS (APP_MAP_SLOTS + CONF_ROWS)
 #define MAP_VISIBLE 9u
+
+/* MAP CONTROL's rows: the pages, then the slots (MACRO, LIVE, EQ, USER, the target's controls), then MENU */
+static const uint8_t SLOT_ROW[] = {
+    MAP_MACRO1, MAP_MACRO1 + 1, MAP_MACRO1 + 2, MAP_MACRO1 + 3, MAP_LIVE1, MAP_LIVE1 + 1, MAP_LIVE1 + 2, MAP_LIVE1 + 3,
+    MAP_EQ1, MAP_EQ1 + 1, MAP_EQ1 + 2, MAP_EQ1 + 3, MAP_K1, MAP_K2, MAP_K3, MAP_K4,
+    MAP_F1, MAP_F2, MAP_F3, MAP_F4, MAP_PITCH, MAP_MOD,
+};
+#define MAP_SLOT_ROWS (12u + APP_MAP_SLOTS)
+#define MAP_MENU_ROW (PAGE_COUNT + MAP_SLOT_ROWS)
+
+static uint32_t menu_rows(void)
+{
+    return mapui.screen == SCREEN_MAP ? MAP_MENU_ROW + 1u : (uint32_t)CONF_ROWS;
+}
+
+static int menu_on_last(void)
+{
+    return mapui.row + 1u == menu_rows();
+}
 
 /* a key as the screen keyboard draws it: violet (the one in use), else half filled in mint with a mint outline */
 static void key_chip(int32_t x, int32_t y, int32_t w, int32_t h, int on)
@@ -100,56 +146,183 @@ static void help_menu_out(int32_t y, uint16_t c)
     cv_text(x + 10, y, &FONT_XS, "MENU: OUT", c);
 }
 
+static const char *const NEW_PAGE_LINE[TRACKS + 1] = { "T1 NEW SOUND", "T2 NEW SOUND", "T3 NEW SOUND",
+                                                         "T4 NEW SOUND", "A NEW SOUND" };
+
+/* a PERC row's key: "PERC 1 G#3" */
+static void perc_row_name(uint32_t i, char *t)
+{
+    uint32_t j = APP_PERC_FIRST + i;
+    copy_text(t, "PERC ", 16);
+    int_text((int32_t)(i + 1u), t + 5);
+    text_cat(t, (j & 1u) ? " G#" : " D#");
+    char o[4];
+    int_text((int32_t)(3u + j / 2u), o);
+    text_cat(t, o);
+}
+
+static void conf_name(uint32_t c, char *t)
+{
+    if (c >= CONF_PERC && c < CONF_PERC + APP_PERC_COUNT) {
+        perc_row_name(c - CONF_PERC, t);
+    } else if (c >= CONF_NEW_PAGE && c < CONF_MENU) {
+        copy_text(t, NEW_PAGE_LINE[c - CONF_NEW_PAGE], 16);
+    } else {
+        copy_text(t, c == CONF_DRUM_MAP ? "DRUM KEYS" : (c == CONF_KEYS_SCREEN ? "KEYS ON SCREEN" : "MENU"), 16);
+    }
+}
+
 static const char *conf_text(uint32_t c)
 {
-    switch (c) {
-    case CONF_DRUM_MAP: return set.drum_map == DRUM_MAP_GM ? "GM" : "ORIGINAL";
-    case CONF_DRUM_DS: return DRUM_PERC[set.drum_ds % DRUM_PERCS].name;
-    case CONF_DRUM_GS: return DRUM_PERC[set.drum_gs % DRUM_PERCS].name;
-    case CONF_MENU: return "SOUNDS >";           /* the other set-up screen: turn or OCT to go */
-    default: return set.keys_screen ? "ON" : "OFF";
+    if (c >= CONF_PERC && c < CONF_PERC + APP_PERC_COUNT) {
+        return DRUM_PERC[set.perc[APP_PERC_FIRST + c - CONF_PERC] % DRUM_PERCS].name;
     }
+    if (c >= CONF_NEW_PAGE && c < CONF_MENU) {
+        uint8_t p = set.new_page[c - CONF_NEW_PAGE];
+        return p ? PAGE_NAME[(p - 1u) % PAGE_COUNT] : "KEEP";
+    }
+    if (c == CONF_DRUM_MAP) {
+        return set.drum_map == DRUM_MAP_GM ? "GM" : "ORIGINAL";
+    }
+    return c == CONF_KEYS_SCREEN ? (set.keys_screen ? "ON" : "OFF") : "";
 }
 
 static void conf_turn(uint32_t c, int32_t turn)
 {
     int32_t step = turn > 0 ? 1 : -1;
-    switch (c) {
-    case CONF_DRUM_MAP: set.drum_map = (uint8_t)!set.drum_map; break;
-    case CONF_DRUM_DS: set.drum_ds = (uint8_t)((set.drum_ds + DRUM_PERCS + step) % DRUM_PERCS); break;
-    case CONF_DRUM_GS: set.drum_gs = (uint8_t)((set.drum_gs + DRUM_PERCS + step) % DRUM_PERCS); break;
-    case CONF_MENU: mapui.to_sounds = 1; return;
-    default: set.keys_screen = (uint8_t)!set.keys_screen; break;
+    if (c >= CONF_PERC && c < CONF_PERC + APP_PERC_COUNT) {
+        uint8_t *p = &set.perc[APP_PERC_FIRST + c - CONF_PERC];
+        *p = (uint8_t)((*p + DRUM_PERCS + (uint32_t)(step + (int32_t)DRUM_PERCS)) % DRUM_PERCS);
+    } else if (c >= CONF_NEW_PAGE && c < CONF_MENU) {
+        uint8_t *p = &set.new_page[c - CONF_NEW_PAGE];
+        *p = (uint8_t)((*p + PAGE_COUNT + 1u + (uint32_t)step) % (PAGE_COUNT + 1u));   /* KEEP, SOUND .. EQ */
+    } else if (c == CONF_DRUM_MAP) {
+        set.drum_map = (uint8_t)!set.drum_map;
+    } else if (c == CONF_KEYS_SCREEN) {
+        set.keys_screen = (uint8_t)!set.keys_screen;
+    } else {
+        return;
     }
     mapui.conf_dirty = 1;
 }
 
+/* EDIT on an OPTION row: its default */
+static void conf_default(uint32_t c)
+{
+    if (c >= CONF_PERC && c < CONF_PERC + APP_PERC_COUNT) {
+        uint32_t j = APP_PERC_FIRST + c - CONF_PERC;
+        set.perc[j] = (j & 1u) ? 2u : 0u;           /* G#: TRIANGLE, D#: COWBELL */
+    } else if (c >= CONF_NEW_PAGE && c < CONF_MENU) {
+        set.new_page[c - CONF_NEW_PAGE] = 0;
+    } else if (c == CONF_DRUM_MAP) {
+        set.drum_map = DRUM_MAP_ORIGINAL;
+    } else if (c == CONF_KEYS_SCREEN) {
+        set.keys_screen = APP_KEYS_SCREEN;
+    } else {
+        return;
+    }
+    mapui.conf_dirty = 1;
+}
+
+/* each slot's default: USER the selected track's effects, the faders effects on the mix, the wheels bend and Morph,
+ * MACRO the four macros, LIVE MORPH SWING PUMP LEVEL, EQ BASS MID TREBLE MID FREQ */
+static const uint8_t SLOT_TARGET[MAP_ALL_SLOTS] = {
+    MAP_FILTER, MAP_RESO, MAP_DELAY, MAP_CHORUS, MAP_FILTER, MAP_DELAY, MAP_DRIVE, MAP_CRUSH, MAP_BEND, MAP_MORPH,
+    MAP_ENERGY, MAP_SPACE, MAP_TENSION, MAP_DENSITY, MAP_MORPH, MAP_SWING, MAP_PUMP, MAP_LEVEL,
+    MAP_EQ_BASS, MAP_EQ_MID, MAP_EQ_TREBLE, MAP_EQ_FREQ,
+};
+static const uint8_t SLOT_ARG[MAP_ALL_SLOTS] = {
+    SCOPE_SELECTED, SCOPE_SELECTED, SCOPE_SELECTED, SCOPE_SELECTED, SCOPE_ALL, SCOPE_ALL, SCOPE_ALL, SCOPE_ALL, 0, 0,
+};
+
+static void slot_default(uint32_t s)
+{
+    cmap.target[s] = SLOT_TARGET[s];
+    cmap.arg[s] = SLOT_ARG[s];
+    map_value[s] = SLOT_TARGET[s] == MAP_BEND ? 0.5f : 0.0f;
+}
+
+static void pages_default(void)
+{
+    for (uint32_t i = 0; i < PAGE_COUNT; i++) {
+        cmap.order[i] = PAGE_ORDER_DEFAULT[i];
+    }
+    cmap.page_off = 0;
+}
+
 static void map_defaults(void)
 {
-    static const uint8_t TARGET[MAP_ALL_SLOTS] = {
-        MAP_FILTER, MAP_RESO, MAP_DELAY, MAP_CHORUS,        /* USER knobs: the selected track's effects */
-        MAP_FILTER, MAP_DELAY, MAP_DRIVE, MAP_CRUSH,        /* USER faders: effects on the whole mix */
-        MAP_BEND, MAP_MORPH                                 /* the wheels */
-    };
-    static const uint8_t ARG[MAP_ALL_SLOTS] = {
-        SCOPE_SELECTED, SCOPE_SELECTED, SCOPE_SELECTED, SCOPE_SELECTED, SCOPE_ALL, SCOPE_ALL, SCOPE_ALL, SCOPE_ALL, 0, 0
-    };
     cmap.magic = MAP_MAGIC;
     for (uint32_t s = 0; s < MAP_ALL_SLOTS; s++) {
-        cmap.target[s] = TARGET[s];
-        cmap.arg[s] = ARG[s];
-        map_value[s] = TARGET[s] == MAP_BEND ? 0.5f : 0.0f;
+        slot_default(s);
+    }
+    pages_default();
+}
+
+/* the page FX goes to after `p`: MAP CONTROL's order, the hidden pages (and DRUM EQ off a drum line) skipped */
+static uint32_t page_after(uint32_t p)
+{
+    uint32_t at = 0;
+    while (at < PAGE_COUNT && cmap.order[at] != p) {
+        at++;
+    }
+    for (uint32_t i = 1; i <= PAGE_COUNT; i++) {
+        uint32_t q = cmap.order[(at + i) % PAGE_COUNT];
+        if (!((cmap.page_off >> q) & 1u) && (q != PAGE_DRUM || drum_line())) {
+            return q;
+        }
+    }
+    return PAGE_SOUND;
+}
+
+/* the slot as it was at first (a page's own knobs: its own behaviour, A's level and all) */
+static int slot_is_default(uint32_t s)
+{
+    return cmap.target[s] == SLOT_TARGET[s] && cmap.arg[s] == SLOT_ARG[s];
+}
+
+/* the slot a page's knob k turns, or -1 (SOUND, SETUP, DRUM EQ: their own) */
+static int32_t page_slot(uint32_t page, uint32_t k)
+{
+    switch (page) {
+    case PAGE_MACRO: return (int32_t)(MAP_MACRO1 + k);
+    case PAGE_LIVE: return (int32_t)(MAP_LIVE1 + k);
+    case PAGE_EQ: return (int32_t)(MAP_EQ1 + k);
+    case PAGE_USER: return (int32_t)(MAP_K1 + k);
+    default: return -1;
     }
 }
 
 static int map_valid(int size)
 {
-    if (size != (int)sizeof cmap || cmap.magic != MAP_MAGIC) {
+    if (size != (int)sizeof cmap || cmap.magic != MAP_MAGIC || cmap.page_off & (1u << PAGE_SOUND)) {
         return 0;
     }
     for (uint32_t s = 0; s < MAP_ALL_SLOTS; s++) {
         if (cmap.target[s] >= MAP_TARGETS || cmap.arg[s] > 127u) {
             return 0;
+        }
+    }
+    uint32_t seen = 0;
+    for (uint32_t i = 0; i < PAGE_COUNT; i++) {
+        seen |= cmap.order[i] < PAGE_COUNT ? 1u << cmap.order[i] : 0u;
+    }
+    return seen == (1u << PAGE_COUNT) - 1u;     /* every page once */
+}
+
+/* OLM1: USER's knobs and the target's controls as they were, the rest by default */
+static int map_migrate_v1(void)
+{
+    static control_map_v1_t old;
+    int size = plat_store_load(OBJ_MAP, &old, sizeof old);
+    if (size != (int)sizeof old || old.magic != MAP_MAGIC_V1) {
+        return 0;
+    }
+    map_defaults();
+    for (uint32_t s = 0; s < MAP_V1_SLOTS; s++) {
+        if (old.target[s] < MAP_TARGETS && old.arg[s] <= 127u) {
+            cmap.target[s] = old.target[s];
+            cmap.arg[s] = old.arg[s];
         }
     }
     return 1;
@@ -158,7 +331,7 @@ static int map_valid(int size)
 static void map_load(void)
 {
     int size = plat_store_load(OBJ_MAP, &cmap, sizeof cmap);
-    if (!map_valid(size)) {
+    if (!map_valid(size) && !map_migrate_v1()) {
         map_defaults();
     }
     for (uint32_t s = 0; s < MAP_ALL_SLOTS; s++) {
@@ -230,6 +403,8 @@ static float map_current(uint32_t slot)
         return live.pump;
     case MAP_TEMPO:
         return (live.clock.bpm - 60.0f) * (1.0f / 120.0f);
+    case MAP_EQ_BASS: case MAP_EQ_MID: case MAP_EQ_TREBLE: case MAP_EQ_FREQ:
+        return (float)set.eq[cmap.target[slot] - MAP_EQ_BASS] * (1.0f / 255.0f);
     case MAP_SOUND: {
         const ols_engine_api_t *api = track_api(mirror.track);
         return ui.shadow[mirror.track][api->macros[(cmap.arg[slot] - 1u) % KNOB_COUNT]];
@@ -242,8 +417,8 @@ static float map_current(uint32_t slot)
 /* the slot's control moved to v (0..1): its target follows */
 static void map_set(uint32_t slot, float v)
 {
-    if (slot >= APP_MAP_SLOTS) {
-        return;
+    if (slot >= APP_MAP_SLOTS && slot < MAP_MACRO1) {
+        return;                                 /* a control this target does not have */
     }
     v = fm_clampf(v, 0.0f, 1.0f);
     map_value[slot] = v;
@@ -291,6 +466,16 @@ static void map_set(uint32_t slot, float v)
         name = api->macro_names[k];
         break;
     }
+    case MAP_EQ_BASS: case MAP_EQ_MID: case MAP_EQ_TREBLE: {   /* the master EQ (the audio side follows) */
+        set.eq[target - MAP_EQ_BASS] = (uint8_t)(v * 255.0f + 0.5f);
+        int32_t db = (int32_t)((v - 0.5f) * 24.0f + (v >= 0.5f ? 0.5f : -0.5f));
+        say_int(name, db, " DB");
+        return;
+    }
+    case MAP_EQ_FREQ:
+        set.eq[3] = (uint8_t)(v * 255.0f + 0.5f);
+        say_int(name, (int32_t)(dsp_expmap(v, 250.0f, 4000.0f) + 0.5f), " HZ");
+        return;
     case MAP_TEMPO: {
         float bpm = 60.0f + v * 120.0f;
         mirror.bpm = bpm;
@@ -332,13 +517,13 @@ static void map_set(uint32_t slot, float v)
     say_int(name, pct, "%");
 }
 
-/* a knob of the USER page turned: from where its target is */
+/* a mapped page's knob turned: from where its target is */
 static void map_turn(uint32_t slot, int32_t turn)
 {
     map_set(slot, map_current(slot) + (float)turn * ENCODER_STEP);
 }
 
-/* the USER page's knobs as drawn: the target's name and where it is */
+/* a mapped page's knob as drawn: the target's name and where it is */
 static void map_knob_value(uint32_t k, float *bar, int32_t *shown, const char **label)
 {
     uint8_t target = cmap.target[k];
@@ -348,25 +533,35 @@ static void map_knob_value(uint32_t k, float *bar, int32_t *shown, const char **
     }
     *bar = map_current(k);
     *shown = target == MAP_TEMPO ? (int32_t)(live.clock.bpm + 0.5f) : (int32_t)(*bar * 100.0f + 0.5f);
+    if (target >= MAP_EQ_BASS && target <= MAP_EQ_TREBLE) {
+        *shown = (int32_t)((*bar - 0.5f) * 24.0f + (*bar >= 0.5f ? 0.5f : -0.5f));     /* dB */
+    } else if (target == MAP_EQ_FREQ) {
+        *shown = (int32_t)(dsp_expmap(*bar, 250.0f, 4000.0f) + 0.5f);                 /* Hz */
+    }
 }
 
 /* ------------------------------------------------------------ the menu */
 
 static int map_is_open(void) { return mapui.open; }
 
-static void map_open(void)
+static void fav_open(void);
+static uint16_t colour_of_page(uint32_t page);
+
+/* MAP CONTROL or OPTION CONTROL, on its first row */
+static void map_open_screen(uint32_t screen)
 {
     mapui.open = 1;
+    mapui.screen = (uint8_t)screen;
+    mapui.row = 0;
+    mapui.top = 0;
+    mapui.go = 0;
     mapui.drawn = 0;
     mapui.buttons = plat_buttons();             /* what is held now does not count as a press */
     lcd_fill(0, 0, 240, 240, C_BLACK);
 }
 
-static void map_open_settings(void)
-{
-    map_open();
-    mapui.row = APP_MAP_SLOTS;                  /* the first settings row */
-}
+static void map_open(void) { map_open_screen(SCREEN_MAP); }
+static void map_open_settings(void) { map_open_screen(SCREEN_OPTION); }
 
 static void map_close(void)
 {
@@ -376,27 +571,54 @@ static void map_close(void)
         mapui.conf_dirty = 0;
     }
     if (mapui.dirty && !map_save()) {
-        app_say("CONTROL MAP", "NOT SAVED");
+        app_say("MAP CONTROL", "NOT SAVED");
     } else {
-        app_say("CONTROL MAP", "KEPT");
+        app_say(mapui.screen == SCREEN_MAP ? "MAP CONTROL" : "OPTIONS", "KEPT");
     }
     ui.buttons = plat_buttons();                /* the app does not see the closing press again */
     lcd_fill(0, 0, 240, 240, C_BLACK);
     ui.redraw = 1;
 }
 
-/* a mapped control moved while the menu is open: its row is chosen */
+/* the set-up screen `dir` away from `from` (SOUNDS, MAP CONTROL, OPTION CONTROL in turn), on its MENU row, so the
+ * same move comes straight back */
+static void menu_go(uint32_t from, int32_t dir)
+{
+    uint32_t to = (from + SCREENS + (dir < 0 ? SCREENS - 1u : 1u)) % SCREENS;
+    if (to == SCREEN_SOUNDS) {
+        fav_open();
+        fav.family = FAMILIES;                  /* (its MENU row) */
+        return;
+    }
+    map_open_screen(to);
+    mapui.row = (uint8_t)(menu_rows() - 1u);
+}
+
+static const char *const SCREEN_NAME[SCREENS] = { "SOUNDS", "MAP", "OPTIONS" };
+
+/* MAP CONTROL's row of a slot (MAP_MENU_ROW: none on this target) */
+static uint32_t map_row_of(uint32_t slot)
+{
+    for (uint32_t i = 0; i < MAP_SLOT_ROWS; i++) {
+        if (SLOT_ROW[i] == slot) {
+            return PAGE_COUNT + i;
+        }
+    }
+    return MAP_MENU_ROW;
+}
+
+/* a mapped control moved while MAP CONTROL is open: its row is chosen */
 static void map_touch(uint32_t slot)
 {
-    if (mapui.open && slot < APP_MAP_SLOTS && mapui.row != slot) {
-        mapui.row = (uint8_t)slot;
+    uint32_t row = map_row_of(slot);
+    if (mapui.open && mapui.screen == SCREEN_MAP && row != MAP_MENU_ROW && mapui.row != row) {
+        mapui.row = (uint8_t)row;
         mapui.drawn = 0;
     }
 }
 
-static void map_change_target(int32_t turn)
+static void map_change_target(uint32_t s, int32_t turn)
 {
-    uint32_t s = mapui.row;
     int32_t t = ((int32_t)cmap.target[s] + (turn > 0 ? 1 : -1) + MAP_TARGETS) % MAP_TARGETS;
     if (cmap.target[s] >= MAP_FILTER && cmap.target[s] <= MAP_DECAY) {
         send_live(LIVE_OVERRIDE, 0, MAP_TARGET[cmap.target[s]].role, 0.0f, map_scope(s));   /* let the old one go */
@@ -422,9 +644,8 @@ static void map_change_target(int32_t turn)
     map_value[s] = t == MAP_BEND ? 0.5f : 0.0f;
 }
 
-static void map_change_arg(int32_t turn)
+static void map_change_arg(uint32_t s, int32_t turn)
 {
-    uint32_t s = mapui.row;
     int32_t step = turn > 0 ? 1 : -1;
     int32_t a = cmap.arg[s];
     switch (MAP_TARGET[cmap.target[s]].arg) {
@@ -458,6 +679,37 @@ static void menu_keys(void)
     ui.keys = keys;
 }
 
+/* a page row: PRESET moves the page one place up / down, ALGO shows / hides it (SOUND always shown) */
+static void page_row_turn(uint32_t i, int32_t move, int32_t show)
+{
+    if (move) {
+        int32_t j = (int32_t)i + (move > 0 ? 1 : -1);
+        if (j >= 0 && j < (int32_t)PAGE_COUNT) {
+            uint8_t x = cmap.order[i];
+            cmap.order[i] = cmap.order[j];
+            cmap.order[j] = x;
+            mapui.row = (uint8_t)j;             /* the row goes with the page */
+        }
+    }
+    if (show && cmap.order[mapui.row] != PAGE_SOUND) {
+        cmap.page_off = (uint8_t)(cmap.page_off ^ (1u << cmap.order[mapui.row]));
+    }
+}
+
+/* EDIT: the row back to its default (a page row: the pages' default order, all shown) */
+static void map_row_default(uint32_t row)
+{
+    if (row < PAGE_COUNT) {
+        pages_default();
+    } else if (row < MAP_MENU_ROW) {
+        uint32_t s = SLOT_ROW[row - PAGE_COUNT];
+        if (cmap.target[s] >= MAP_FILTER && cmap.target[s] <= MAP_DECAY) {
+            send_live(LIVE_OVERRIDE, 0, MAP_TARGET[cmap.target[s]].role, 0.0f, map_scope(s));   /* let it go */
+        }
+        slot_default(s);
+    }
+}
+
 /* the menu's input, in place of the app's (keys still play on a target whose keys go straight to the sound) */
 static void map_input(void)
 {
@@ -468,53 +720,125 @@ static void map_input(void)
         map_close();
         return;
     }
-    if (mapui.row == APP_MAP_SLOTS + CONF_MENU && (pressed & ((1u << B_OCTDN) | (1u << B_OCTUP)))) {
-        mapui.to_sounds = 1;                    /* the MENU row: OCT- / OCT+ go to SOUNDS too */
-    }
     if (pressed & (1u << B_PLAY)) {
         send_live(LIVE_PLAY_TOGGLE, 0, 0, 0.0f, 0);
     }
     menu_keys();
     int32_t turn = plat_enc(EN_SELECT);
     if (turn) {
-        mapui.row = (uint8_t)clamp((int32_t)mapui.row + (turn > 0 ? 1 : -1), 0, (int32_t)MAP_ROWS - 1);
+        mapui.row = (uint8_t)clamp((int32_t)mapui.row + (turn > 0 ? 1 : -1), 0, (int32_t)menu_rows() - 1);
         mapui.drawn = 0;
     }
     turn = plat_enc(EN_PRESET);
     int32_t option = plat_enc(EN_ALGO);
-    if (mapui.row >= APP_MAP_SLOTS) {           /* a settings row: either knob changes it */
-        if (turn + option) {
-            conf_turn(mapui.row - APP_MAP_SLOTS, turn + option);
-            mapui.drawn = 0;
+    int32_t oct = (pressed >> B_OCTUP) & 1u ? 1 : ((pressed >> B_OCTDN) & 1u ? -1 : 0);
+    for (uint32_t k = 0; k < KNOB_COUNT; k++) {
+        if (plat_enc((int)(EN_K1 + k)) && page_slot(set.page, k) >= 0) {
+            map_touch((uint32_t)page_slot(set.page, k));    /* a knob turned: its row */
         }
-        turn = option = 0;
     }
-    if (mapui.to_sounds) {                      /* MENU: on to SOUNDS */
-        mapui.to_sounds = 0;
-        map_close();
-        fav_open();
+    if (menu_on_last()) {                       /* MENU: PRESET, ALGO or OCT, the next / previous screen */
+        int32_t go = turn + option + oct;
+        if (go) {
+            uint32_t from = mapui.screen;
+            map_close();
+            menu_go(from, go);
+        }
         return;
     }
-    if (turn) {
-        map_change_target(turn);
-        mapui.dirty = 1;
-        mapui.drawn = 0;
-    }
-    turn = option;
-    if (turn) {
-        map_change_arg(turn);
-        mapui.dirty = 1;
-        mapui.drawn = 0;
-    }
-    for (uint32_t k = 0; k < KNOB_COUNT; k++) {
-        if (plat_enc((int)(EN_K1 + k))) {
-            map_touch(k);                       /* a knob turned: its row */
+    if (pressed & (1u << B_EDIT)) {
+        if (mapui.screen == SCREEN_MAP) {
+            map_row_default(mapui.row);
+            mapui.dirty = 1;
+        } else {
+            conf_default(mapui.row);
         }
+        mapui.drawn = 0;
+    }
+    if (!(turn || option)) {
+        return;
+    }
+    mapui.drawn = 0;
+    if (mapui.screen == SCREEN_OPTION) {        /* an option: either knob changes it */
+        conf_turn(mapui.row, turn + option);
+        return;
+    }
+    mapui.dirty = 1;
+    if (mapui.row < PAGE_COUNT) {
+        page_row_turn(mapui.row, turn, option);
+        return;
+    }
+    uint32_t s = SLOT_ROW[mapui.row - PAGE_COUNT];
+    if (turn) {
+        map_change_target(s, turn);
+    }
+    if (option) {
+        map_change_arg(s, option);
     }
 }
 
 #define MAP_ROW_H 18
 #define MAP_TOP 34
+
+/* the MENU row: where PRESET / OCT go, before and after */
+static void draw_menu_row(int32_t y, int sel, uint32_t screen)
+{
+    char t[32] = "< ";
+    text_cat(t, SCREEN_NAME[(screen + SCREENS - 1u) % SCREENS]);
+    text_cat(t, "   ");
+    text_cat(t, SCREEN_NAME[(screen + 1u) % SCREENS]);
+    text_cat(t, " >");
+    cv_text(6, y, &FONT_XS, "MENU", sel ? C_WHITE : C_GRAY);
+    cv_text(234 - text_w(&FONT_XS, t), y, &FONT_XS, t, sel ? C_PINK : C_GRAY);
+}
+
+static void map_draw_row(uint32_t row, int32_t y, int sel)
+{
+    if (row == MAP_MENU_ROW) {
+        draw_menu_row(y + 3, sel, SCREEN_MAP);
+        return;
+    }
+    if (row < PAGE_COUNT) {                     /* a page: its place, its name in its colour, ON / OFF */
+        char n[8] = "PAGE ";
+        int_text((int32_t)(row + 1u), n + 5);
+        uint32_t page = cmap.order[row];
+        int off = (cmap.page_off >> page) & 1u;
+        cv_text(6, y + 3, &FONT_XS, n, sel ? C_WHITE : C_GRAY);
+        cv_text(70, y + 3, &FONT_XS, PAGE_NAME[page], off ? C_DIM : colour_of_page(page));
+        cv_text(234 - text_w(&FONT_XS, off ? "OFF" : "ON"), y + 3, &FONT_XS, off ? "OFF" : "ON", off ? C_RED : C_GREEN);
+        return;
+    }
+    uint32_t s = SLOT_ROW[row - PAGE_COUNT];
+    char arg[12];
+    map_arg_text(s, arg);
+    const char *name = MAP_TARGET[cmap.target[s]].name;
+    cv_text(6, y + 3, &FONT_XS, MAP_SLOT_NAME[s], sel ? C_WHITE : C_GRAY);
+    cv_text(70, y + 3, &FONT_XS, name, slot_is_default(s) ? (sel ? C_WHITE : C_HI) : C_CYAN);   /* changed: cyan */
+    cv_text(234 - text_w(&FONT_XS, arg), y + 3, &FONT_XS, arg, sel ? C_WHITE : C_AMB);
+}
+
+static void conf_draw_row(uint32_t c, int32_t y, int sel)
+{
+    if (c == CONF_MENU) {
+        draw_menu_row(y + 3, sel, SCREEN_OPTION);
+        return;
+    }
+    char name[16];
+    conf_name(c, name);
+    const char *v = conf_text(c);
+    uint16_t vc = sel ? C_WHITE : C_AMB;
+    if (c == CONF_KEYS_SCREEN) {
+        vc = set.keys_screen ? C_GREEN : C_RED;             /* ON green, OFF red */
+    } else if (c == CONF_DRUM_MAP) {                        /* the two FX keys, as the keyboard shows them */
+        key_chip(124, y + 3, 9, 11, set.drum_map != DRUM_MAP_GM);
+        key_chip(136, y + 3, 9, 11, set.drum_map == DRUM_MAP_GM);
+    } else if (c >= CONF_NEW_PAGE) {
+        uint8_t p = set.new_page[c - CONF_NEW_PAGE];
+        vc = p ? colour_of_page(p - 1u) : C_GRAY;
+    }
+    cv_text(6, y + 3, &FONT_XS, name, sel ? C_WHITE : C_PINK);
+    cv_text(234 - text_w(&FONT_XS, v), y + 3, &FONT_XS, v, vc);
+}
 
 static void map_draw(void)
 {
@@ -522,9 +846,10 @@ static void map_draw(void)
         return;
     }
     mapui.drawn = 1;
+    int map = mapui.screen == SCREEN_MAP;
     cv_begin(240, MAP_TOP, C_BLACK);
-    cv_text(8, 6, &FONT_B, "CONTROL MAP", C_HI);
-    {
+    cv_text(8, 6, &FONT_B, map ? "MAP CONTROL" : "OPTION CONTROL", C_HI);
+    if (map) {
         char v[32] = "OpenVALive ";                      /* the firmware and its version, in the logo's orange */
         app_version_text(v + 11, sizeof v - 11u);
         cv_text(234 - text_w(&FONT_XS, v), 9, &FONT_XS, v, RGB(238, 90, 36));
@@ -540,41 +865,28 @@ static void map_draw(void)
     for (uint32_t first = 0; first < MAP_VISIBLE; first += 3u) {
         cv_begin(240, 3 * MAP_ROW_H, C_BLACK);
         for (uint32_t i = first; i < first + 3u && i < MAP_VISIBLE; i++) {
-            uint32_t s = mapui.top + i;
-            if (s >= MAP_ROWS) {
+            uint32_t row = mapui.top + i;
+            if (row >= menu_rows()) {
                 break;
             }
             int32_t y = (int32_t)(i - first) * MAP_ROW_H;
-            int sel = s == mapui.row;
+            int sel = row == mapui.row;
             if (sel) {
                 cv_rect(0, y, 240, MAP_ROW_H - 1, C_LINE);
             }
-            if (s >= APP_MAP_SLOTS) {                       /* a setting: its name in pink (SETUP's colour) */
-                uint32_t c = s - APP_MAP_SLOTS;
-                const char *v = conf_text(c);
-                uint16_t vc = sel ? C_WHITE : C_AMB;
-                if (c == CONF_KEYS_SCREEN) {
-                    vc = set.keys_screen ? C_GREEN : C_RED;     /* ON green, OFF red */
-                } else if (c == CONF_DRUM_MAP) {                /* the two FX keys, as the keyboard shows them */
-                    key_chip(124, y + 3, 9, 11, set.drum_map != DRUM_MAP_GM);
-                    key_chip(136, y + 3, 9, 11, set.drum_map == DRUM_MAP_GM);
-                }
-                cv_text(6, y + 3, &FONT_XS, CONF_NAME[c], sel ? C_WHITE : C_PINK);
-                cv_text(234 - text_w(&FONT_XS, v), y + 3, &FONT_XS, v, vc);
-                continue;
+            if (map) {
+                map_draw_row(row, y, sel);
+            } else {
+                conf_draw_row(row, y, sel);
             }
-            char arg[12];
-            map_arg_text(s, arg);
-            const char *name = MAP_TARGET[cmap.target[s]].name;
-            cv_text(6, y + 3, &FONT_XS, MAP_SLOT_NAME[s], sel ? C_WHITE : C_GRAY);
-            cv_text(70, y + 3, &FONT_XS, name, sel ? C_WHITE : C_HI);
-            cv_text(234 - text_w(&FONT_XS, arg), y + 3, &FONT_XS, arg, sel ? C_WHITE : C_AMB);
         }
         cv_blit(0, MAP_TOP + first * MAP_ROW_H);
     }
     cv_begin(240, 36, C_BLACK);
-    cv_text(6, 4, &FONT_XS, "SELECT row  PRESET target", C_GRAY);
-    cv_text(6, 20, &FONT_XS, "ALGO option", C_GRAY);
+    int on_page = map && mapui.row < PAGE_COUNT;
+    cv_text(6, 4, &FONT_XS, map ? (on_page ? "PRESET move  ALGO on/off" : "PRESET target  ALGO option")
+                                : "PRESET or ALGO: change", C_GRAY);
+    cv_text(6, 20, &FONT_XS, "EDIT default", C_GRAY);
     help_menu_out(20, C_GRAY);
     cv_blit(0, 240 - 36);
 }

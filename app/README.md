@@ -1,7 +1,7 @@
 # The OpenVALive app (`app/`)
 
 The instrument's UI and its audio side, shared by every device: 4 tracks, the knob pages (SOUND, MACRO, LIVE,
-SETUP, USER), the layers on the white keys (ARP creative, GLO scenes, FX perform, SEQ tracks), the CONTROL MAP and
+SETUP, USER, EQ, DRUM EQ), the layers on the white keys (ARP creative, GLO scenes, FX perform, SEQ tracks), the MAP CONTROL and
 SOUND EDIT pages, saving, MIDI. It is written for a **240 × 240 screen** and the FM-1's panel (27 keys, 14 buttons,
 7 encoders), on **fm1-base's platform API** (`plat.h`).
 
@@ -15,7 +15,7 @@ SOUND EDIT pages, saving, MIDI. It is written for a **240 × 240 screen** and th
 | the platform | fm1-base (the FM-1), or the target's own implementation of `plat.h`, `lcd_*`, `touch_*` (the SMK-37) |
 
 Optional hooks a target defines before including `openvalive_app.c`: `APP_KEY_LAYER(k)` (a key stands for a layer:
-the SMK-37's pads), `APP_MAP_SLOTS` (more CONTROL MAP slots: faders, wheels), `DSP_SAMPLE_RATE` / `DSP_SR_F`.
+the SMK-37's pads), `APP_MAP_SLOTS` (more MAP CONTROL slots: faders, wheels), `DSP_SAMPLE_RATE` / `DSP_SR_F`.
 
 ## Rules
 

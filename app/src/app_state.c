@@ -60,23 +60,26 @@ static const uint8_t VOICE_LIMIT[TRACKS] = { 4, 1, 2, 4 };
 #define LIVE_VOICES 3u
 #define LIVE_DEFAULT_SOUND VA_PRESET_LEAD
 
-/* the order PRESET shows the factory sounds in (their numbers, kept in saves, do not change): the acid first, the
- * basses, the drum kits close, then leads and keys, pads, textures; INIT last. The USER sounds follow. */
+/* the order PRESET shows the factory sounds in (their numbers, kept in saves, do not change): the most played first
+ * (acid, basses, drums, leads, keys, pads), the more particular ones last (textures, the weather and sound
+ * effects); the USER sounds follow. */
 static const uint8_t SOUND_ORDER[OLS_SOUND_COUNT] = {
     VA_PRESET_ACID, VA_PRESET_ACID_SQUARE, VA_PRESET_ACID_SCREAM, VA_PRESET_ACID_DEEP,
     VA_PRESET_BASS, VA_PRESET_SUB, VA_PRESET_REESE, VA_PRESET_WOBBLE, VA_PRESET_DEEP_SUB,
     OLS_SOUND_FIRST_DRUM + DR_KIT_808, OLS_SOUND_FIRST_DRUM + DR_KIT_909, OLS_SOUND_FIRST_DRUM + DR_KIT_TIGHT,
     OLS_SOUND_FIRST_DRUM + DR_KIT_LOFI, OLS_SOUND_FIRST_DRUM + DR_KIT_IRON,
-    VA_PRESET_LEAD, VA_PRESET_PLUCK, VA_PRESET_STAB, VA_PRESET_BRASS, VA_PRESET_ORGAN,
-    VA_PRESET_POLY, VA_PRESET_PAD, VA_PRESET_STRINGS, VA_PRESET_SWEEP,
-    VA_PRESET_GRUNGE, VA_PRESET_SCREECH, VA_PRESET_DRONE, VA_PRESET_WIND, VA_PRESET_HOLD, VA_PRESET_WHALE,
-    VA_PRESET_DUB_SIREN, VA_PRESET_INIT,
+    VA_PRESET_LEAD, VA_PRESET_PLUCK, VA_PRESET_STAB, VA_PRESET_BRASS, VA_PRESET_SCREECH,
+    VA_PRESET_ORGAN, VA_PRESET_POLY, VA_PRESET_VKEYS,
+    VA_PRESET_PAD, VA_PRESET_STRINGS, VA_PRESET_STRINGS70, VA_PRESET_SWEEP,
+    VA_PRESET_GRUNGE, VA_PRESET_DRONE, VA_PRESET_HOLD, VA_PRESET_INIT,
+    VA_PRESET_THUNDER, VA_PRESET_RAIN, VA_PRESET_WIND, VA_PRESET_CREAK, VA_PRESET_WHALE, VA_PRESET_DUB_SIREN,
 };
-/* the families, by their first place in SOUND_ORDER: F1 acid, F2 basses, F3 drums, F4 leads and keys, F5 pads,
- * F6 textures (and INIT); the USER sounds are F7. OCT- / OCT+ while a sound is chosen jump between them. */
-static const uint8_t FAMILY_AT[] = { 0, 4, 9, 14, 19, 23 };
-#define FAMILIES 7
-typedef char sound_order_complete[(OLS_SOUND_COUNT == 31) ? 1 : -1];   /* a sound added: put it in SOUND_ORDER */
+/* the families, by their first place in SOUND_ORDER: F1 acid, F2 basses, F3 drums, F4 leads, F5 keys, F6 pads,
+ * F7 textures (and INIT), F8 sound effects; the USER sounds are F9. OCT- / OCT+ while a sound is chosen jump
+ * between them. */
+static const uint8_t FAMILY_AT[] = { 0, 4, 9, 14, 19, 22, 26, 30 };
+#define FAMILIES 9
+typedef char sound_order_complete[(OLS_SOUND_COUNT == 36) ? 1 : -1];   /* a sound added: put it in SOUND_ORDER */
 
 static engine_va_t lv PLAT_POOL;               /* the live voice: a VA engine without delay (the RAM goes to the loops);
                                                 * it renders into the Live Core's chunk buffers, free once it has rendered */
@@ -126,10 +129,11 @@ enum { MSG_PLAIN, MSG_ARMED, MSG_TAKEN, MSG_NOT_TAKEN };   /* armed: "LET GO .."
 /* ------------------------------------------------------------ knob pages */
 
 /* SEL cycles the pages of the four encoders K1..K4. */
-enum { PAGE_SOUND, PAGE_MACRO, PAGE_LIVE, PAGE_SETUP, PAGE_USER, PAGE_DRUM, PAGE_COUNT };   /* DRUM EQ: drum lines only */
-static const char *const PAGE_NAME[PAGE_COUNT] = { "SOUND", "MACRO", "LIVE", "SETUP", "USER", "DRUM EQ" };
+enum { PAGE_SOUND, PAGE_MACRO, PAGE_LIVE, PAGE_SETUP, PAGE_USER, PAGE_DRUM, PAGE_EQ, PAGE_COUNT };   /* DRUM EQ: drum
+                                                 * lines only; EQ: the master tone (numbers kept: new ones last) */
+static const char *const PAGE_NAME[PAGE_COUNT] = { "SOUND", "MACRO", "LIVE", "SETUP", "USER", "DRUM EQ", "EQ" };
 
-/* the CONTROL MAP (src/control_map.c, after the UI it serves): USER page, menu, the map in flash */
+/* MAP CONTROL and OPTION CONTROL (src/control_map.c, after the UI it serves): the mapped pages, the menus */
 static int map_is_open(void);
 static void map_open(void);
 static void map_open_settings(void);
@@ -137,6 +141,10 @@ static void map_input(void);
 static void map_draw(void);
 static void map_turn(uint32_t slot, int32_t turn);
 static void map_knob_value(uint32_t k, float *bar, int32_t *shown, const char **label);
+static int32_t page_slot(uint32_t page, uint32_t k);
+static int slot_is_default(uint32_t s);
+static uint32_t page_after(uint32_t p);
+static void new_sound_page(uint32_t line, int32_t sound);
 static void map_load(void);
 static int map_save(void);
 /* SOUND EDIT (src/sound_edit.c) */
@@ -186,7 +194,9 @@ static const uint8_t XFADE_BARS[4] = { 0, 1, 2, 4 };      /* a scene change: a c
 
 /* ------------------------------------------------------------ settings */
 
-#define SET_MAGIC 0x4F4C5341u                   /* "OLSA": settings format; any other value loads defaults */
+#define SET_MAGIC 0x4F4C5342u                   /* "OLSB": settings format; any other value loads defaults */
+#define SET_MAGIC_VA 0x4F4C5341u                /* "OLSA": 31 sounds (the drum kits and USER 5 lower), no PERC keys,
+                                                 * EQ or page per line */
 #define SET_MAGIC_V9 0x4F4C5339u                /* "OLS9": the same without the sounds hidden from PRESET */
 #define SET_MAGIC_V8 0x4F4C5338u                /* "OLS8": the same, the drum kits and USER sounds 2 lower */
 #define SET_MAGIC_V7 0x4F4C5337u                /* "OLS7": the same, the drum kits and USER sounds 7 lower */
@@ -196,6 +206,9 @@ static const uint8_t XFADE_BARS[4] = { 0, 1, 2, 4 };      /* a scene change: a c
 #define SET_MAGIC_V3 0x4F4C5333u                /* "OLS3": one octave for every line */
 #define SET_MAGIC_V2 0x4F4C5332u                /* "OLS2" (0.0.3 and before): no live line */
 #define SET_MAGIC_V1 0x4F4C5331u                /* "OLS1" (0.1): one sound, moved to track 1 */
+
+#define PERC_KEYS 6u                            /* D#3 G#3 D#4 G#4 D#5 G#5: the FM-1 has the middle four */
+#define EQ_BANDS 4u
 
 typedef struct {
     uint32_t magic;
@@ -211,7 +224,22 @@ typedef struct {
     uint8_t keys_screen;                        /* 1: a layer button held shows its keys in place of the scope */
     uint8_t wheel_pan;                          /* 1: a target's pitch wheel pans the selected track (APP_WHEEL) */
     uint8_t hidden[(OLS_SOUND_TOTAL + 7) / 8];  /* sounds PRESET does not offer (the SOUNDS screen); 0: all offered */
+    uint8_t perc[PERC_KEYS];                    /* the original drum map's D# and G# keys, each its own (DRUM_PERC) */
+    uint8_t eq[EQ_BANDS];                       /* the master EQ: BASS MID TREBLE (128 flat) and the MID's frequency */
+    uint8_t new_page[TRACKS + 1];               /* a new sound taken on a line: 0 the page stays, else page + 1 */
 } settings_t;
+
+/* OLSA's settings: the same up to `hidden`, 31 sounds then */
+typedef struct {
+    uint32_t magic;
+    int8_t octave[TRACKS + 1];
+    uint8_t page;
+    uint8_t preset[TRACKS];
+    uint8_t controller, midi_ch, live_sound, arp_mode, drum_map, drum_ds, drum_gs, keys_screen, wheel_pan;
+    uint8_t hidden[5];
+} settings_va_t;
+typedef char settings_va_size[(sizeof(settings_va_t) == 28u) ? 1 : -1];
+#define VA_SOUNDS_VA 26u                        /* OLSA's synth sounds: its drum kits and USER sounds from there */
 
 /* OLS7 .. OLS9's settings: the same without `hidden` (24 bytes) */
 typedef struct {
@@ -235,11 +263,14 @@ typedef struct {
 /* The drum keys (General MIDI note numbers, so a computer and MIDI OUT see the right instruments): the original map
  * is made to be played (D# and G# chosen, the toms high to low), GM's is the computers' 36..47, every octave. */
 enum { DRUM_MAP_ORIGINAL, DRUM_MAP_GM };
-#define DRUM_PERCS 5u
+#define DRUM_PERCS 10u
 static const struct {
     uint8_t note;
     const char *name;
-} DRUM_PERC[DRUM_PERCS] = { { 56, "COWBELL" }, { 39, "CLAP" }, { 81, "TRIANGLE" }, { 37, "RIM" }, { 44, "PEDAL HAT" } };
+} DRUM_PERC[DRUM_PERCS] = {                    /* (numbers kept in the settings: new ones at the end) */
+    { 56, "COWBELL" }, { 39, "CLAP" }, { 81, "TRIANGLE" }, { 37, "RIM" }, { 44, "PEDAL HAT" },
+    { 67, "BELL HIGH" }, { 68, "BELL LOW" }, { 80, "TRI MUTE" }, { 54, "TAMBOURINE" }, { 75, "CLAVES" },
+};
 #ifndef APP_KEYS_SCREEN
 #define APP_KEYS_SCREEN 0u                      /* a target without key lights (SMK-37) turns it on */
 #endif

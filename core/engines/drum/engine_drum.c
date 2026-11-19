@@ -224,7 +224,8 @@ void engine_drum_pitch_bend(void *ctx, float semitones)
 /* ---------------------------------------------------------------- notes */
 
 /* General MIDI's drum map (channel 10), on our voices: six toms on four voices by their pitch, the cymbals on the
- * open hat. A note GM does not name plays as its place in the GM octave 36..47. *pitch: the tom's ratio. */
+ * open hat. A note GM does not name plays as its place in the GM octave 36..47. *pitch: the tom's or the bell's
+ * ratio (a triangle: < 0 muted). */
 static dr_inst_t gm_instrument(uint8_t note, float *pitch)
 {
     static const uint8_t OCTAVE[12] = {           /* 36 .. 47 */
@@ -241,8 +242,11 @@ static dr_inst_t gm_instrument(uint8_t note, float *pitch)
     case 49: case 51: case 52: case 53: case 55: case 57: case 59: return DR_OH;   /* cymbals */
     case 54: return DR_CH;                        /* tambourine */
     case 56: return DR_COWBELL;
+    case 67: *pitch = 1.5f; return DR_COWBELL;    /* high agogo: a higher bell */
+    case 68: *pitch = 1.22f; return DR_COWBELL;   /* low agogo */
     case 75: return DR_RIM;                       /* claves */
-    case 80: case 81: return DR_TRIANGLE;
+    case 80: *pitch = -1.0f; return DR_TRIANGLE;  /* mute triangle: (< 0) a short ring */
+    case 81: return DR_TRIANGLE;
     default: break;
     }
     dr_inst_t inst = (dr_inst_t)OCTAVE[note % 12];

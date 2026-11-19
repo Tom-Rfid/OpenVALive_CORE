@@ -13,6 +13,18 @@
 /* a full live set (every pattern full) must fit the two objects: more engine parameters need a third one */
 typedef char project_fits_two_objects[(OLS_PROJECT_MAX <= CHUNK_A_DATA + PLAT_STORE_MAX) ? 1 : -1];
 
+/* the settings OLSB added, from an older format: each D# / G# key as its D# / G# was, the EQ flat, the page kept */
+static void settings_fill_new(void)
+{
+    for (uint32_t j = 0; j < PERC_KEYS; j++) {
+        set.perc[j] = (j & 1u) ? set.drum_gs : set.drum_ds;
+    }
+    for (uint32_t b = 0; b < EQ_BANDS; b++) {
+        set.eq[b] = 128u;
+    }
+    ols_zero(set.new_page, sizeof set.new_page);
+}
+
 static void conf_defaults(void)
 {
     set.drum_map = DRUM_MAP_ORIGINAL;
@@ -21,6 +33,7 @@ static void conf_defaults(void)
     set.keys_screen = APP_KEYS_SCREEN;
     set.wheel_pan = 0;
     ols_zero(set.hidden, sizeof set.hidden);  /* every sound offered */
+    settings_fill_new();
 }
 
 static void settings_defaults(void)
@@ -52,6 +65,21 @@ static void apply_midi_channel(void)
     }
 }
 
+static int new_valid(void)
+{
+    for (uint32_t j = 0; j < PERC_KEYS; j++) {
+        if (set.perc[j] >= DRUM_PERCS) {
+            return 0;
+        }
+    }
+    for (int l = 0; l <= TRACKS; l++) {
+        if (set.new_page[l] > PAGE_COUNT) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static int settings_valid(int loaded_size)
 {
     if (loaded_size != (int)sizeof set || set.magic != SET_MAGIC || set.page >= PAGE_COUNT) {
@@ -69,7 +97,7 @@ static int settings_valid(int loaded_size)
     }
     return set.controller <= 1u && set.midi_ch <= MIDI_CH_CLOCK && set.arp_mode < ARP_MODES
            && live_sound_ok(set.live_sound) && set.drum_map <= DRUM_MAP_GM && set.drum_ds < DRUM_PERCS
-           && set.drum_gs < DRUM_PERCS && set.keys_screen <= 1u && set.wheel_pan <= 1u;
+           && set.drum_gs < DRUM_PERCS && set.keys_screen <= 1u && set.wheel_pan <= 1u && new_valid();
 }
 
 /* Before OLS8 the 17 synth sounds came first, the drum kits and USER sounds right after: 7 synth sounds were added
@@ -89,6 +117,30 @@ static void sounds_from(uint32_t first)
 }
 static void sounds_v7(void) { sounds_from(OLD_VA_SOUNDS); }
 
+/* OLSA: 31 sounds (THUNDER .. VINTAGE KEYS came after), its hidden sounds by those numbers too */
+static int settings_migrate_va(void)
+{
+    static settings_va_t old;
+    int size = plat_store_load(OBJ_SETTINGS, &old, sizeof old);
+    if (size != (int)sizeof old || old.magic != SET_MAGIC_VA) {
+        return 0;
+    }
+    ols_zero(&set, sizeof set);
+    for (uint32_t i = 0; i < sizeof(settings_v9_t); i++) {  /* the same up to `hidden` */
+        ((uint8_t *)&set)[i] = ((const uint8_t *)&old)[i];
+    }
+    for (uint32_t s = 0; s < 8u * sizeof old.hidden; s++) {
+        uint32_t now = s < VA_SOUNDS_VA ? s : s + (VA_PRESET_COUNT - VA_SOUNDS_VA);
+        if (((old.hidden[s >> 3] >> (s & 7u)) & 1u) && now < OLS_SOUND_TOTAL) {
+            set.hidden[now >> 3] = (uint8_t)(set.hidden[now >> 3] | (1u << (now & 7u)));
+        }
+    }
+    set.magic = SET_MAGIC;
+    settings_fill_new();
+    sounds_from(VA_SOUNDS_VA);
+    return settings_valid((int)sizeof set);
+}
+
 /* OLS8: 24 synth sounds (STAB and POLY came after); its padding byte is now the wheel's mode */
 /* OLS9: the same without `hidden` */
 static int settings_migrate_v9(void)
@@ -99,6 +151,8 @@ static int settings_migrate_v9(void)
         return 0;
     }
     set.magic = SET_MAGIC;
+    settings_fill_new();
+    sounds_from(VA_SOUNDS_VA);
     return settings_valid((int)sizeof set);
 }
 
@@ -111,6 +165,7 @@ static int settings_migrate_v8(void)
     }
     set.magic = SET_MAGIC;
     set.wheel_pan = 0;
+    settings_fill_new();
     sounds_from(24u);
     return settings_valid((int)sizeof set);
 }
@@ -125,6 +180,7 @@ static int settings_migrate_v7(void)
     }
     set.magic = SET_MAGIC;
     set.wheel_pan = 0;
+    settings_fill_new();
     sounds_v7();
     return settings_valid((int)sizeof set);
 }
@@ -374,7 +430,7 @@ static int project_save(void)
 static void settings_load(void)
 {
     int size = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
-    if (!settings_valid(size) && !settings_migrate_v9() && !settings_migrate_v8() && !settings_migrate_v7() && !settings_migrate_v6() && !settings_migrate_v5() && !settings_migrate_v4()
+    if (!settings_valid(size) && !settings_migrate_va() && !settings_migrate_v9() && !settings_migrate_v8() && !settings_migrate_v7() && !settings_migrate_v6() && !settings_migrate_v5() && !settings_migrate_v4()
         && !settings_migrate_v3() && !settings_migrate_v2() && !settings_migrate_v1()) {
         settings_defaults();
     }

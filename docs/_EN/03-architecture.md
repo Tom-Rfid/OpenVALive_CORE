@@ -153,7 +153,7 @@ OpenVALive today (real build): flash 100 KB, RAM 36 KB, pool 100 KB (32 KB delay
 | `src/app_events.c` | UI → audio events, USB-MIDI out |
 | `src/app_settings.c` | load / save in flash |
 | `src/ui_text.c` · `ui_input.c` · `ui_draw.c` | text helpers, controls, screen |
-| `src/control_map.c` · `src/sound_edit.c` | the CONTROL MAP and SOUND EDIT pages |
+| `src/control_map.c` · `src/sound_edit.c` | MAP CONTROL, OPTION CONTROL and SOUND EDIT |
 | `ols_dsp.c` · `ols_config.h` | the core compiled at -O2, fastmath, fixed sample rate |
 
 The device repositories add the rest: [OpenVALive_FM-1](https://github.com/Tom-Rfid/OpenVALive_FM-1) (`targets/fm1`:

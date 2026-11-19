@@ -157,6 +157,11 @@ typedef enum {
     VA_PRESET_DUB_SIREN,
     VA_PRESET_STAB,
     VA_PRESET_POLY,
+    VA_PRESET_THUNDER,      /* the weather and a door: noise and resonance */
+    VA_PRESET_RAIN,
+    VA_PRESET_CREAK,
+    VA_PRESET_STRINGS70,    /* vintage: a 70s string machine, an electric piano */
+    VA_PRESET_VKEYS,
     VA_PRESET_COUNT
 } va_preset_t;
 

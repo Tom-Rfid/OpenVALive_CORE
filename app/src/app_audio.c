@@ -190,6 +190,25 @@ static void live_voice_render(uint32_t n)
     }
 }
 
+/* The master EQ (EQ page): the knobs are bytes of the settings the UI writes (one store each, no tearing); the
+ * filters follow when one moves (control rate), and cost nothing while all is flat. */
+static eq3_t master_eq = { .flat = 1 };
+static uint8_t eq_applied[EQ_BANDS] = { 128, 128, 128, 128 };
+
+static void master_eq_render(uint32_t n)
+{
+    int moved = 0;
+    for (uint32_t b = 0; b < EQ_BANDS; b++) {
+        moved |= set.eq[b] != eq_applied[b];
+        eq_applied[b] = set.eq[b];
+    }
+    if (moved) {
+        eq3_set(&master_eq, (float)eq_applied[0] * (1.0f / 255.0f), (float)eq_applied[1] * (1.0f / 255.0f),
+                (float)eq_applied[2] * (1.0f / 255.0f), (float)eq_applied[3] * (1.0f / 255.0f), (float)DSP_SAMPLE_RATE);
+    }
+    eq3_process(&master_eq, buf_l, buf_r, n);
+}
+
 /* A <-> a synth track: every parameter of the two sounds (filter, envelopes, delay, chorus...) changes place */
 static void swap_with_a(int t)
 {
@@ -343,6 +362,7 @@ void app_render(int32_t *lr, uint32_t n, uint32_t master_q12)
     }
     ols_live_render(&live, buf_l, buf_r, (int)n);
     live_voice_render(n);
+    master_eq_render(n);
     write_output(lr, n, master_q12);
 
     audio_clock += n;

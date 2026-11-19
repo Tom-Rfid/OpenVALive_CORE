@@ -153,7 +153,7 @@ RAM 5 Ko sur 32. CPU sur l'appareil : 4 % à vide, ~5 % par voix, 26 % au pire.
 | `src/app_events.c` | événements UI → audio, sortie USB-MIDI |
 | `src/app_settings.c` | chargement / sauvegarde en flash |
 | `src/ui_text.c` · `ui_input.c` · `ui_draw.c` | texte, contrôles, écran |
-| `src/control_map.c` · `src/sound_edit.c` | les pages CONTROL MAP et SOUND EDIT |
+| `src/control_map.c` · `src/sound_edit.c` | MAP CONTROL, OPTION CONTROL et SOUND EDIT |
 | `ols_dsp.c` · `ols_config.h` | le cœur compilé à -O2, fastmath, fréquence fixe |
 
 Les dépôts des appareils ajoutent le reste : [OpenVALive_FM-1](https://github.com/Tom-Rfid/OpenVALive_FM-1)

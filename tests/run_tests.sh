@@ -38,6 +38,15 @@ else
     fail "live core"
 fi
 
+# 1c. Every synth sound: a held note plays (no NaN, not silent, not blowing up) and ends quiet
+if $CC -std=c99 -O2 -Wall -Wextra -Wno-unused-parameter -o $B/presets_test tests/presets_test.c $CORE core/api/ols_synth.c -lm \
+   && out=$($B/presets_test); then
+    pass "$out"
+else
+    echo "$out"
+    fail "synth sounds"
+fi
+
 # 2. Simulator: full demo, no NaN, no clipping
 if make -s build/ols_sim >/dev/null 2>&1; then
     out=$(build/ols_sim demo $B/demo.wav)

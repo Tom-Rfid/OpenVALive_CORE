@@ -6,6 +6,21 @@
 
 
 
+## 19 November 2026 — 5 sounds, 9 families, MAP CONTROL / OPTION CONTROL, master EQ, PERC keys
+
+- Sounds: THUNDER, RAIN, CREAK, STRINGS 70, VINTAGE KEYS (36). Families F1 acid, F2 basses, F3 drums, F4 leads,
+  F5 keys, F6 pads, F7 textures, F8 SFX, F9 USER (SCREECH moved to leads). Settings OLSB (older ones moved: the
+  drum kits and USER sounds 5 up, hidden sounds too). `tests/presets_test.c`: every synth sound plays and ends.
+- Drums: the original map's D# / G# keys each their own percussion (`set.perc`, PERC_KEYS 6, `APP_PERC_FIRST` /
+  `APP_PERC_COUNT`); new BELL HIGH / BELL LOW (agogo: the cowbell higher), TRI MUTE, TAMBOURINE, CLAVES.
+- Master EQ (`core/dsp/eq3.h`: low shelf, peak, high shelf, ±12 dB; nothing while flat), the EQ page (orange).
+- MAP CONTROL (`control_map.c`, map OLM2): the knob pages' order and which are shown; MACRO, LIVE, EQ, USER knobs
+  mappable (a default slot keeps its page's own behaviour); EDIT: a row's default. OPTION CONTROL: DRUM KEYS,
+  PERC, KEYS ON SCREEN, the page a new sound brings per line (`new_sound_page`). MENU rows go SOUNDS → MAP →
+  OPTIONS in turn.
+- The playhead is green over a red (loop) or pink (recording) line. SEQ tapped lets a loop go even from another
+  track (it could stay stuck).
+
 ## 19 November 2026 — A VOL, MUTE ALL on a black key
 
 - SEL + the first black key (`KEY_MUTE_ALL`, F#3): MUTE ALL (fast blink while all are out); white key 5 is free.

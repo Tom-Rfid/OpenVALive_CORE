@@ -12,7 +12,7 @@
  *   src/app_version.c   the version as text (V_0.0.03)
  *   src/ui_text.c       text helpers, on-screen messages
  *   src/ui_input.c      keys, buttons, encoders
- *   src/control_map.c   the CONTROL MAP: what the USER page's knobs (and a target's faders, wheels) control
+ *   src/control_map.c   MAP CONTROL (pages, knobs of MACRO LIVE EQ USER, faders, wheels), OPTION CONTROL
  *   src/sound_edit.c    SOUND EDIT: every parameter of the selected track's sound (the modulation matrix too)
  *   src/ui_draw.c       screen
  *   src/splash.c        the boot screen (logo and version), for a target that defines APP_SPLASH
@@ -28,6 +28,7 @@
 #include "../core/live/event_queue.h"
 #include "../core/live/live.h"
 #include "../core/live/project.h"
+#include "../core/dsp/eq3.h"
 
 #include "src/app_state.c"
 #include "src/app_audio.c"
@@ -172,7 +173,7 @@ void app_frame(void)
         ui.redraw = 1;
     }
 
-    if (map_is_open()) {                          /* the CONTROL MAP menu has the screen */
+    if (map_is_open()) {                          /* MAP / OPTION CONTROL have the screen */
         map_draw();
         return;
     }
@@ -284,6 +285,18 @@ int app_expect(const char *what, int *got)
         *got = live.hold_mute;              /* tracks taken out by a break */
     } else if (!strcmp(what, "looping")) {
         *got = live.stutter;
+    } else if (!strcmp(what, "page")) {
+        *got = set.page;                        /* PAGE_*: SOUND 0 MACRO 1 LIVE 2 SETUP 3 USER 4 DRUM EQ 5 EQ 6 */
+    } else if (!strcmp(what, "eq_bass")) {
+        *got = set.eq[0];                       /* 0..255, 128 flat */
+    } else if (!strcmp(what, "perc_g#4")) {
+        *got = drum_key_note(68);               /* G#4: PERC 3 on the FM-1 */
+    } else if (!strcmp(what, "perc_g#3")) {
+        *got = drum_key_note(56);
+    } else if (!strcmp(what, "map_menu")) {
+        *got = mapui.open ? mapui.screen : 0;   /* 1 MAP CONTROL, 2 OPTION CONTROL */
+    } else if (!strcmp(what, "fav_open")) {
+        *got = fav.open;
     } else if (!strcmp(what, "energy")) {
         *got = (int)(live.macro[OLS_MACRO_ENERGY] * 100.0f + 0.5f);
     } else if (!strcmp(what, "pump")) {

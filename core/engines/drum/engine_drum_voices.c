@@ -121,18 +121,18 @@ DR_COLD void dr_trigger(engine_drum_t *e, dr_inst_t inst, float velocity)
         if (triangle) {                        /* a struck triangle: two high inharmonic partials, a long ring */
             v->level = velocity * 0.4f * param(e, DR_P_LEVEL_PERC);    /* (-20 %) */
             v->freq = tune;
-            v->amp_coef = decay_coef(1.1f * decay);
+            v->amp_coef = decay_coef((e->hit_pitch < 0.0f ? 0.12f : 1.1f) * decay);   /* muted: held by the hand */
             v->noise = 0.0f;
             v->sweep = 1.0f;                   /* (marks the triangle for the render) */
             break;
         }
         v->sweep = 0.0f;
         v->level = velocity * 0.96f * param(e, DR_P_LEVEL_PERC);   /* the cowbell (-20 %) */
-        v->freq = tune;
+        v->freq = tune * (e->hit_pitch > 0.0f ? e->hit_pitch : 1.0f);   /* the agogos: higher bells */
         v->amp_coef = decay_coef(0.35f * decay);
         v->noise = 1.0f;                                       /* the bright first part */
         v->noise_coef = decay_coef(0.04f);
-        svf_set(&v->svf, 2600.0f * tune, 0.5f);
+        svf_set(&v->svf, 2600.0f * v->freq, 0.5f);
         break;
     }
 }

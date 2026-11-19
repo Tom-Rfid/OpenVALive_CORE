@@ -18,7 +18,7 @@ incluent celui-ci comme sous-module git.
 | Moteur VA | `core/engines/va/` | 2 oscillateurs + sub + bruit, filtre multimode avec drive, 2 enveloppes, 2 LFO (libres ou calés sur le tempo, retrig, un cycle), **matrice de modulation** (4 entrées), delay, chorus façon Juno, phaser, bitcrusher, 17 presets |
 | Moteur batterie | `core/engines/drum/` | famille 808 synthétisée : grosse caisse, caisse claire, clap, charlestons, toms, rim, cowbell ; 4 kits |
 | Live Core | `core/live/` | horloge (MIDI clock entrée / sortie), 4 pistes en boucle, REC, CAPTURE, undo, scènes, Morph, effets de jeu, Creative Engine, macros, sidechain, chaîne de scènes, live sets |
-| L'app | `app/` | l'interface de l'instrument pour un écran 240 × 240 et le panneau du FM-1 (pages, couches, CONTROL MAP, SOUND EDIT), sur l'API `plat.h` de fm1-base |
+| L'app | `app/` | l'interface de l'instrument pour un écran 240 × 240 et le panneau du FM-1 (pages, couches, MAP CONTROL, SOUND EDIT), sur l'API `plat.h` de fm1-base |
 | Connecteurs | `connectors/` | app bureau (Windows / Linux), simulateur PC, API C, modèles Daisy / Teensy |
 
 Comment c'est câblé : [03 — Architecture](03-architecture-technique.md). Le Live Core : [16](16-le-live-core.md).

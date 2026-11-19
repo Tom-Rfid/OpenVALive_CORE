@@ -8,7 +8,7 @@
  *   FX               next knob page (on release): SOUND (the track's 4 macros) / MACRO (ENERGY SPACE TENSION DENSITY,
  *                    on every track) / LIVE (MORPH SWING PUMP LEVEL) / SETUP (MIDI IN, XFADE, QUANTIZE, BARS) / USER
  *   GLO + PLAY       scene chain on / off (the stored scenes in turn)   GLO + ALGO   bars per scene 4 / 8 / 16
- *   GLO + SEL        the CONTROL MAP: what the USER page's knobs control (src/control_map.c)
+ *   GLO + SEL        MAP CONTROL: the pages, what the knobs of MACRO LIVE EQ USER control
  *   ARP + SEL        SOUND EDIT: every parameter of the track's sound, the modulation matrix (src/sound_edit.c)
  *   ARP tapped (A)   A's arpeggio: OFF, UP, DOWN, UP/DOWN, RANDOM
  *   PLAY             play / stop               REC            record into the track (starts playing)
@@ -403,7 +403,7 @@ static void home_key(int w)
         return;
     }
     if (w == 15) {
-        map_open_settings();                    /* the settings rows of the CONTROL MAP menu */
+        map_open_settings();                    /* OPTION CONTROL */
         return;
     }
     if (w == 1) {
@@ -501,7 +501,8 @@ static int running_loop(void)
     return -1;
 }
 
-/* SEQ tapped (no key, no OCT) while a loop runs: on a track, its loop lets go; on A, every loop */
+/* SEQ tapped (no key, no OCT) while a loop runs: on a track, its loop lets go (none there: every loop); on A, every
+ * loop */
 static void seq_released(void)
 {
     if (ui.seq_used) {
@@ -515,8 +516,17 @@ static void seq_released(void)
             any = 1;
         }
     }
+    if (!any) {                                 /* none on this line (a loop left running on another track, then
+                                                 * another line selected): SEQ tapped still lets every loop go */
+        for (int w = 0; w < FX_KEYS; w++) {
+            if (ui.fx_on[w] && PERFORM_KEY[w].type == FX_LOOP) {
+                fx_release(w);
+                any = 2;
+            }
+        }
+    }
     if (any) {
-        app_say("LOOP", ui.on_a ? "ALL LET GO" : "LET GO");
+        app_say("LOOP", ui.on_a || any == 2 ? "ALL LET GO" : "LET GO");
     }
 }
 
@@ -713,6 +723,16 @@ static int8_t *line_octave(void)
     return &set.octave[ui.on_a ? TRACKS : mirror.track];
 }
 
+/* a D# or G# key of the keyboard (the line's octave taken off: the key itself): its PERC setting, 0 = D#3, 1 = G#3,
+ * 2 = D#4 .. 5 = G#5 (the FM-1 has G#3 .. D#5, the SMK-37 all six); lower and higher ones take the nearest */
+static uint32_t perc_key(uint32_t note)
+{
+    int32_t key = (int32_t)note - 12 * *line_octave();
+    int32_t j = (key - 51) / 12 * 2 + (key % 12 == 8);
+    j = key < 51 ? (key % 12 == 8) : j;
+    return (uint32_t)clamp(j, (key % 12 == 8) ? 1 : 0, (key % 12 == 8) ? (int32_t)PERC_KEYS - 1 : (int32_t)PERC_KEYS - 2);
+}
+
 /* A key on a drum track: the General MIDI note of its instrument in the chosen map (every octave the same), so the
  * loop, MIDI OUT and a computer all see the right drum. Other tracks: the note itself. */
 static uint8_t drum_key_note(uint32_t note)
@@ -722,11 +742,8 @@ static uint8_t drum_key_note(uint32_t note)
     if (set.drum_map == DRUM_MAP_GM) {
         return (uint8_t)(36u + n);
     }
-    if (n == 3u) {
-        return DRUM_PERC[set.drum_ds % DRUM_PERCS].note;
-    }
-    if (n == 8u) {
-        return DRUM_PERC[set.drum_gs % DRUM_PERCS].note;
+    if (n == 3u || n == 8u) {
+        return DRUM_PERC[set.perc[perc_key(note)] % DRUM_PERCS].note;
     }
     return ORIGINAL[n];
 }
@@ -943,6 +960,7 @@ static void button_pressed(uint32_t b, uint32_t buttons)
             mark_dirty();
             send_preset(mirror.track, set.preset[mirror.track]);
             ui.turned_at = 0;
+            new_sound_page(mirror.track, set.preset[mirror.track]);
             app_say("SOUND", ols_sound_name(set.preset[mirror.track]));
             ui.msg_style = MSG_TAKEN;
             return;
@@ -1127,14 +1145,6 @@ static int drum_line(void)
     return !ui.on_a && live.track[mirror.track].kind == OLS_KIND_DRUM;
 }
 
-static uint32_t page_after(uint32_t p)
-{
-    p = (p + 1u) % PAGE_COUNT;
-    if (p == PAGE_DRUM && !drum_line()) {
-        p = (p + 1u) % PAGE_COUNT;
-    }
-    return p;
-}
 
 /* FX let go: the next knob page (DRUM EQ only on a drum line) */
 static void pages_released(void)
@@ -1422,6 +1432,23 @@ static void scan_preset_encoder(uint32_t buttons)
     preset_turn(turn > 0 ? 1 : -1, 0);
 }
 
+/* a new sound taken on a line (0..3, TRACKS = A): the page OPTION CONTROL chose for it (KEEP: none), so the same
+ * routine follows each new sound (DRUM EQ only for a drum sound) */
+static void new_sound_page(uint32_t line, int32_t sound)
+{
+    uint8_t p = set.new_page[line];
+    if (!p) {
+        return;
+    }
+    int kind = sound >= OLS_SOUND_FIRST_USER ? user_sounds[(sound - OLS_SOUND_FIRST_USER) % OLS_USER_SOUNDS].kind
+                                              : ols_sound_kind(sound);
+    if (p - 1u == PAGE_DRUM && (kind != OLS_KIND_DRUM || line == TRACKS)) {
+        return;
+    }
+    set.page = (uint8_t)(p - 1u);
+    ui.redraw = 1;
+}
+
 /* PRESET turned (family 0), or OCT- / OCT+ while a sound is chosen (family 1: the next family's first sound) */
 static void preset_turn(int32_t step, int family)
 {
@@ -1433,6 +1460,7 @@ static void preset_turn(int32_t step, int family)
         mark_dirty();
         send_preset(T_LIVE, set.live_sound);
         ui.turned_at = 0;
+        new_sound_page(TRACKS, sound);
         app_say("A SOUND", sound_label(set.live_sound));
         return;
     }
@@ -1451,6 +1479,7 @@ static void preset_turn(int32_t step, int family)
     mark_dirty();
     send_preset(t, set.preset[t]);
     ui.turned_at = 0;                           /* next knob turn re-reads the new sound */
+    new_sound_page(t, sound);
     app_say("SOUND", sound_label(set.preset[t]));
 }
 
@@ -1606,10 +1635,11 @@ static void scan_knobs(void)
             sound_knob(k, turn);
         } else if (set.page == PAGE_SETUP) {
             setup_knob(k, turn);
+        } else if (page_slot(set.page, k) >= 0 && (set.page == PAGE_USER || set.page == PAGE_EQ
+                                                   || !slot_is_default((uint32_t)page_slot(set.page, k)))) {
+            map_turn((uint32_t)page_slot(set.page, k), turn);   /* a knob MAP CONTROL changed (EQ, USER: always) */
         } else if (set.page == PAGE_MACRO) {
             macro_knob(k, turn);
-        } else if (set.page == PAGE_USER) {
-            map_turn(k, turn);
         } else if (set.page == PAGE_DRUM) {
             drum_eq_knob(k, turn);
         } else {
@@ -1811,7 +1841,7 @@ static void show_lights(uint32_t keys, uint32_t buttons)
 
 static void input(void)
 {
-    if (map_is_open()) {                    /* the CONTROL MAP menu takes the buttons and encoders */
+    if (map_is_open()) {                    /* MAP / OPTION CONTROL take the buttons and encoders */
         map_input();
         return;
     }

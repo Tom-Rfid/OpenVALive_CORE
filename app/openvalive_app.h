@@ -12,7 +12,7 @@
 
 /* what the app keeps in flash: settings, the platform's panel object (the FM-1's calibration; a target without one
  * stores nothing there), the live set (sounds, loops, scenes) in two objects of up to 3840 bytes, the 8 user sounds,
- * the CONTROL MAP */
+ * the MAP CONTROL */
 enum { OBJ_SETTINGS, OBJ_PANEL, OBJ_PROJECT_A, OBJ_PROJECT_B, OBJ_USER_SOUNDS, OBJ_MAP, OBJ_NOBJ };
 
 /* the buttons with a role of their own (the FM-1's labels): SEL holds the tracks layer (mutes, clear, clock...),

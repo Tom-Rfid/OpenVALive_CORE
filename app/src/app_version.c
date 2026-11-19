@@ -1,4 +1,4 @@
-/* The firmware's version as people read it: on the boot screen, in the CONTROL MAP. */
+/* The firmware's version as people read it: on the boot screen, in MAP CONTROL. */
 #ifndef APP_VERSION
 #define APP_VERSION "DEV"
 #endif

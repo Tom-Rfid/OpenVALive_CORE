@@ -1,14 +1,15 @@
 /* SPDX-License-Identifier: MIT
  * OpenVALive - SOUNDS: which sounds PRESET offers (HOME + white key 14, HOME let go: the screen stays, both hands
  * free). A hidden sound still plays where it is: only PRESET and the family jumps (OCT- / OCT+) leave it out.
- *   on top the chosen sound's place (3/5), its family and ON / HIDDEN; then one line a family, F1 .. F7, its
+ *   on top the chosen sound's place (3/5), its family and ON / HIDDEN; then one line a family, F1 .. F9, its
  *   label and name green (all offered), blue (some), red (none), a square a sound, the chosen line its sound's name
  *   SELECT       the line above / below (the last line: MENU)       PRESET  the sound before / after on the line
  *   SEL          the sound offered (green) or hidden (red)           OCT- / OCT+  the whole family hidden / offered
- *   MENU line    PRESET or OCT: to the SETTINGS screen               a menu button (HOME FX ARP SEQ GLO SAVE): back,
+ *   MENU line    PRESET or OCT: MAP CONTROL / OPTIONS               a menu button (HOME FX ARP SEQ GLO SAVE): back,
  *                                                                    what changed kept past a power cycle */
 
-static const char *const FAMILY_NAME[FAMILIES] = { "ACID", "BASSES", "DRUMS", "LEADS", "PADS", "TEXTURES", "USER" };
+static const char *const FAMILY_NAME[FAMILIES] = { "ACID", "BASSES", "DRUMS", "LEADS", "KEYS", "PADS", "TEXTURES",
+                                                   "SFX", "USER" };
 #define FAV_MENU_ROW FAMILIES                    /* the line under the families */
 
 static int fav_is_open(void) { return fav.open; }
@@ -53,13 +54,6 @@ static void fav_set(int32_t sound, int hide)
     fav.drawn = 0;
 }
 
-static void fav_to_settings(void)
-{
-    fav_close();
-    map_open_settings();
-    mapui.row = (uint8_t)(APP_MAP_SLOTS + CONF_MENU);   /* on its MENU line, to come straight back */
-}
-
 static void fav_input(void)
 {
     int32_t list[OLS_SOUND_TOTAL];
@@ -80,9 +74,11 @@ static void fav_input(void)
         return;
     }
     turn = plat_enc(EN_PRESET);
-    if (on_menu) {
-        if (turn || (pressed & ((1u << B_OCTDN) | (1u << B_OCTUP)))) {
-            fav_to_settings();
+    if (on_menu) {                              /* MENU: the next screen (MAP CONTROL) or the one before (OPTIONS) */
+        int32_t go = turn + plat_enc(EN_ALGO) + ((pressed >> B_OCTUP) & 1u) - ((pressed >> B_OCTDN) & 1u);
+        if (go) {
+            fav_close();
+            menu_go(SCREEN_SOUNDS, go);
         }
         return;
     }
@@ -108,7 +104,7 @@ static void fav_input(void)
 }
 
 #define FAV_TOP 30
-#define FAV_ROW 20
+#define FAV_ROW 16
 #define FAV_SQUARES 104                          /* where a line's squares start (the place line's name too) */
 
 static uint16_t fav_colour(int f)               /* a family: green all offered, blue some, red none */
@@ -127,7 +123,7 @@ static void fav_draw_place(void)
     int32_t list[OLS_SOUND_TOTAL];
     cv_begin(240, FAV_ROW, C_BLACK);
     if (fav.family == FAV_MENU_ROW) {
-        cv_text(6, 4, &FONT_XS, "PRESET OR OCT: SETTINGS", C_HI);
+        cv_text(6, 2, &FONT_XS, "PRESET OR OCT: THE NEXT SCREEN", C_HI);
     } else {
         uint32_t n = fav_list(fav.family + 1, list);
         if (n) {
@@ -135,9 +131,9 @@ static void fav_draw_place(void)
             int hidden = sound_hidden(list[at]);
             uint16_t fc = fav_colour(fav.family);
             char pos[4] = { (char)('1' + at), '/', (char)('0' + n), 0 };   /* a family: 9 sounds at most */
-            cv_text(26, 4, &FONT_XS, pos, fc);         /* under the family names */
-            cv_text(FAV_SQUARES, 4, &FONT_XS, FAMILY_NAME[fav.family], fc);
-            cv_text(232 - text_w(&FONT_XS, hidden ? "HIDDEN" : "ON"), 4, &FONT_XS, hidden ? "HIDDEN" : "ON",
+            cv_text(26, 2, &FONT_XS, pos, fc);         /* under the family names */
+            cv_text(FAV_SQUARES, 2, &FONT_XS, FAMILY_NAME[fav.family], fc);
+            cv_text(232 - text_w(&FONT_XS, hidden ? "HIDDEN" : "ON"), 2, &FONT_XS, hidden ? "HIDDEN" : "ON",
                     hidden ? C_RED : C_GREEN);
         }
     }
@@ -153,21 +149,21 @@ static void fav_draw_family(int f, int32_t y, int sel)
     uint16_t lc = fav_colour(f);
     char ft[3] = "F1";
     ft[1] = (char)('1' + f);
-    cv_text(6, y + 4, &FONT_XS, ft, lc);
-    cv_text(7, y + 4, &FONT_XS, ft, lc);
+    cv_text(6, y + 2, &FONT_XS, ft, lc);
+    cv_text(7, y + 2, &FONT_XS, ft, lc);
     if (sel && n) {                                     /* the chosen line: the chosen sound's name */
         int32_t s = list[fav.row < n ? fav.row : n - 1u];
-        cv_text(26, y + 4, &FONT_XS, ols_sound_name((uint32_t)s), sound_hidden(s) ? C_RED : C_WHITE);
+        cv_text(26, y + 2, &FONT_XS, ols_sound_name((uint32_t)s), sound_hidden(s) ? C_RED : C_WHITE);
     } else {
-        cv_text(26, y + 4, &FONT_XS, FAMILY_NAME[f], lc);
+        cv_text(26, y + 2, &FONT_XS, FAMILY_NAME[f], lc);
     }
     for (uint32_t i = 0; i < n; i++) {                  /* a square a sound, the chosen one framed */
         int32_t x = FAV_SQUARES + (int32_t)i * 14;
         int empty = list[i] >= OLS_SOUND_FIRST_USER && !user_sounds[list[i] - OLS_SOUND_FIRST_USER].valid;
         if (sel && i == fav.row) {
-            cv_rect(x - 2, y + 3, 14, 14, C_WHITE);
+            cv_rect(x - 2, y + 1, 14, 14, C_WHITE);
         }
-        cv_rect(x, y + 5, 10, 10, sound_hidden(list[i]) ? C_RED : (empty ? C_DIM : C_GREEN));
+        cv_rect(x, y + 3, 10, 10, sound_hidden(list[i]) ? C_RED : (empty ? C_DIM : C_GREEN));
     }
 }
 
@@ -195,8 +191,7 @@ static void fav_draw(void)
                 cv_rect(0, y, 240, FAV_ROW - 1, C_VIO_BG);
             }
             if (f == FAV_MENU_ROW) {
-                cv_text(6, y + 4, &FONT_XS, "MENU", sel ? C_WHITE : C_GRAY);
-                cv_text(232 - text_w(&FONT_XS, "SETTINGS >"), y + 4, &FONT_XS, "SETTINGS >", sel ? C_PINK : C_GRAY);
+                draw_menu_row(y + 2, sel, SCREEN_SOUNDS);
             } else {
                 fav_draw_family(f, y, sel);
             }

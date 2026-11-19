@@ -363,7 +363,9 @@ static void draw_track(int t)
     if (live.clock.running) {
         uint32_t pos = ols_live_step(&live, t) * OLS_TICKS_PER_STEP;
         int32_t x = STRIP_X + (int32_t)(pos * STRIP_W / length);
-        cv_rect(x, y0 + 1, 2, TRACK_ROW_H - 2, selected ? C_WHITE : C_GRAY);
+        int coloured = (live.stutter && tr->stutter) || (live.recording && !ui.on_a && t == mirror.track);
+        cv_rect(x, y0 + 1, 2, TRACK_ROW_H - 2, coloured ? C_GREEN : (selected ? C_WHITE : C_GRAY));   /* green over
+                                                 * a red (loop) or pink (recording) line, seen at once */
     }
 
     cv_rect(0, y0 + TRACK_ROW_H - 1, 240, 1, C_LINE);
@@ -437,8 +439,10 @@ static void knob_value(uint32_t k, float *bar, int32_t *shown, const char **labe
         }
         return;
     }
-    if (set.page == PAGE_USER) {
-        map_knob_value(k, bar, shown, label);
+    int32_t slot = page_slot(set.page, k);      /* a mapped page (MACRO, LIVE, EQ, USER) whose knob was changed in MAP
+                                                 * CONTROL, or EQ and USER always: the target's name and value */
+    if (slot >= 0 && (set.page == PAGE_USER || set.page == PAGE_EQ || !slot_is_default((uint32_t)slot))) {
+        map_knob_value((uint32_t)slot, bar, shown, label);
         return;
     }
     if (set.page == PAGE_DRUM) {                    /* DRUM EQ: BASS TREBLE KICK HATS */
@@ -499,7 +503,7 @@ static void knob_value(uint32_t k, float *bar, int32_t *shown, const char **labe
 
 /* each page its colour, on its knob names, bars and name (bottom right): SOUND the accent, MACRO cyan,
  * LIVE mint (as A), SETUP pink, USER violet. Every bar white on grey, its value centred, bold, black: readable. */
-static const uint16_t PAGE_COLOUR[PAGE_COUNT] = { 0, C_CYAN, C_MINT, C_PINK, C_VIO, C_RED };
+static const uint16_t PAGE_COLOUR[PAGE_COUNT] = { 0, C_CYAN, C_MINT, C_PINK, C_VIO, C_RED, C_ORANGE };
 
 static uint16_t colour_of_page(uint32_t page)
 {

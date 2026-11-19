@@ -32,7 +32,8 @@ const char *const VA_PRESET_NAMES[VA_PRESET_COUNT] = {
     [VA_PRESET_WHALE] = "WHALE", [VA_PRESET_INIT] = "INIT", [VA_PRESET_ACID_SQUARE] = "ACID SQUARE",
     [VA_PRESET_ACID_SCREAM] = "ACID SCREAM", [VA_PRESET_ACID_DEEP] = "ACID DEEP", [VA_PRESET_REESE] = "REESE",
     [VA_PRESET_WOBBLE] = "WOBBLE", [VA_PRESET_DEEP_SUB] = "DEEP SUB", [VA_PRESET_DUB_SIREN] = "DUB SIREN",
-    [VA_PRESET_STAB] = "STAB", [VA_PRESET_POLY] = "POLY",
+    [VA_PRESET_STAB] = "STAB", [VA_PRESET_POLY] = "POLY", [VA_PRESET_THUNDER] = "THUNDER", [VA_PRESET_RAIN] = "RAIN",
+    [VA_PRESET_CREAK] = "CREAK", [VA_PRESET_STRINGS70] = "STRINGS 70", [VA_PRESET_VKEYS] = "VINTAGE KEYS",
 };
 
 /* Choices are spread over 0..1: these values land in the middle of each one. */
@@ -416,6 +417,69 @@ static const va_change_t DRONE[] = {
     {VA_P_VOLUME, 0.6f},
 };
 
+/* the modulation matrix's choices, in the middle of their range */
+#define MOD_SRC(s) (((float)(s) + 0.5f) / (float)VA_SRC_COUNT)
+#define MOD_DST(d) (((float)(d) + 0.5f) / (float)VA_DST_COUNT)
+
+/* Thunder: noise through a closed low-pass that swells in, rumbles (slow random cutoff) and dies away; low notes
+ * add the boom of the sub, a hard hit cracks (velocity opens the filter). Hold it for a long roll. */
+static const va_change_t THUNDER[] = {
+    {VA_P_MIX_OSC1, 0.0f}, {VA_P_MIX_OSC2, 0.0f}, {VA_P_MIX_SUB, 0.35f}, {VA_P_MIX_NOISE, 1.0f},
+    {VA_P_CUTOFF, 0.16f}, {VA_P_RESO, 0.25f}, {VA_P_KEYTRACK, 0.3f}, {VA_P_FENV_AMT, 0.75f},
+    {VA_P_F_ATTACK, 0.05f}, {VA_P_F_DECAY, 0.6f}, {VA_P_F_SUSTAIN, 0.25f}, {VA_P_F_RELEASE, 0.75f},
+    {VA_P_A_ATTACK, 0.25f}, {VA_P_A_DECAY, 0.75f}, {VA_P_A_SUSTAIN, 0.6f}, {VA_P_A_RELEASE, 0.85f},
+    {VA_P_LFO2_RATE, 0.4f}, {VA_P_LFO2_WAVE, LFO_SH}, {VA_P_LFO2_CUTOFF, 0.3f},
+    {VA_P_MOD1_SRC, MOD_SRC(VA_SRC_LFO2)}, {VA_P_MOD1_DST, MOD_DST(VA_DST_LEVEL)}, {VA_P_MOD1_AMT, 0.68f},
+    {VA_P_DRIVE, 0.5f}, {VA_P_VEL_FILTER, 0.5f}, {VA_P_DELAY_TIME, 0.8f}, {VA_P_DELAY_FB, 0.45f},
+    {VA_P_DELAY_TONE, 0.15f}, {VA_P_DELAY_MIX, 0.2f}, {VA_P_VOLUME, 0.75f},
+};
+
+/* Rain: bright noise in a band-pass, drops from a fast random level and cutoff; the note sets the drops' pitch,
+ * the higher the lighter. Chorus spreads it wide. */
+static const va_change_t RAIN[] = {
+    {VA_P_MIX_OSC1, 0.0f}, {VA_P_MIX_OSC2, 0.0f}, {VA_P_MIX_NOISE, 0.9f}, {VA_P_FILTER_MODE, FILTER_BP},
+    {VA_P_CUTOFF, 0.62f}, {VA_P_RESO, 0.45f}, {VA_P_KEYTRACK, 0.8f}, {VA_P_FENV_AMT, 0.5f},
+    {VA_P_A_ATTACK, 0.2f}, {VA_P_A_SUSTAIN, 1.0f}, {VA_P_A_RELEASE, 0.6f},
+    {VA_P_LFO2_RATE, 0.88f}, {VA_P_LFO2_WAVE, LFO_SH}, {VA_P_LFO2_CUTOFF, 0.35f},
+    {VA_P_MOD1_SRC, MOD_SRC(VA_SRC_LFO2)}, {VA_P_MOD1_DST, MOD_DST(VA_DST_LEVEL)}, {VA_P_MOD1_AMT, 0.8f},
+    {VA_P_MOD2_SRC, MOD_SRC(VA_SRC_LFO2)}, {VA_P_MOD2_DST, MOD_DST(VA_DST_RESO)}, {VA_P_MOD2_AMT, 0.7f},
+    {VA_P_CHORUS_MODE, CHORUS_BOTH}, {VA_P_CHORUS_MIX, 0.7f}, {VA_P_VOLUME, 0.65f},
+};
+
+/* Creak: a door or a hull, a low saw through a sharp band-pass, its level cut into grains by a fast random
+ * (the "crrrk"), the pitch slowly bending; slow notes groan, hard ones crack. */
+static const va_change_t CREAK[] = {
+    {VA_P_MONO, 1.0f}, {VA_P_OSC1_WAVE, WAVE_SAW}, {VA_P_MIX_OSC2, 0.0f}, {VA_P_MIX_NOISE, 0.25f},
+    {VA_P_FILTER_MODE, FILTER_BP}, {VA_P_CUTOFF, 0.5f}, {VA_P_RESO, 0.88f}, {VA_P_KEYTRACK, 0.7f},
+    {VA_P_FENV_AMT, 0.5f}, {VA_P_A_ATTACK, 0.15f}, {VA_P_A_SUSTAIN, 0.9f}, {VA_P_A_RELEASE, 0.35f},
+    {VA_P_LFO1_RATE, 0.25f}, {VA_P_LFO1_WAVE, LFO_TRIANGLE}, {VA_P_LFO1_PITCH, 0.3f},
+    {VA_P_LFO2_RATE, 0.78f}, {VA_P_LFO2_WAVE, LFO_SH}, {VA_P_LFO2_CUTOFF, 0.2f},
+    {VA_P_MOD1_SRC, MOD_SRC(VA_SRC_LFO2)}, {VA_P_MOD1_DST, MOD_DST(VA_DST_LEVEL)}, {VA_P_MOD1_AMT, 0.92f},
+    {VA_P_MOD2_SRC, MOD_SRC(VA_SRC_VELOCITY)}, {VA_P_MOD2_DST, MOD_DST(VA_DST_LFO2_RATE)}, {VA_P_MOD2_AMT, 0.7f},
+    {VA_P_DRIVE, 0.35f}, {VA_P_GLIDE, 0.5f}, {VA_P_DELAY_MIX, 0.15f}, {VA_P_VOLUME, 0.65f},
+};
+
+/* A 70s string machine: two saws close together, no resonance, a gentle attack and both choruses deep (the
+ * ensemble), a slow phaser over it. */
+static const va_change_t STRINGS70[] = {
+    {VA_P_OSC2_FINE, 0.56f}, {VA_P_MIX_OSC2, 0.75f}, {VA_P_CUTOFF, 0.6f}, {VA_P_RESO, 0.0f}, {VA_P_FENV_AMT, 0.5f},
+    {VA_P_A_ATTACK, 0.45f}, {VA_P_A_SUSTAIN, 1.0f}, {VA_P_A_RELEASE, 0.6f},
+    {VA_P_CHORUS_MODE, CHORUS_BOTH}, {VA_P_CHORUS_MIX, 0.9f},
+    {VA_P_PHASER_RATE, 0.12f}, {VA_P_PHASER_DEPTH, 0.5f}, {VA_P_PHASER_MIX, 0.45f}, {VA_P_VOLUME, 0.55f},
+};
+
+/* An electric piano of the 70s: triangle and a quiet one an octave up, a bell-like start that fades, the softer
+ * the darker, a slow tremolo and chorus I. */
+static const va_change_t VKEYS[] = {
+    {VA_P_OSC1_WAVE, WAVE_TRIANGLE}, {VA_P_OSC2_WAVE, WAVE_TRIANGLE}, {VA_P_OSC2_COARSE, SEMITONES(12)},
+    {VA_P_MIX_OSC2, 0.3f}, {VA_P_CUTOFF, 0.5f}, {VA_P_FENV_AMT, 0.68f}, {VA_P_F_DECAY, 0.45f},
+    {VA_P_F_SUSTAIN, 0.2f}, {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.65f}, {VA_P_A_SUSTAIN, 0.35f},
+    {VA_P_A_RELEASE, 0.45f}, {VA_P_VEL_SENS, 0.85f}, {VA_P_VEL_FILTER, 0.4f},
+    {VA_P_LFO1_RATE, 0.45f}, {VA_P_LFO1_WAVE, LFO_TRIANGLE},
+    {VA_P_MOD1_SRC, MOD_SRC(VA_SRC_LFO1)}, {VA_P_MOD1_DST, MOD_DST(VA_DST_LEVEL)}, {VA_P_MOD1_AMT, 0.58f},
+    {VA_P_CHORUS_MODE, CHORUS_I}, {VA_P_CHORUS_MIX, 0.5f}, {VA_P_VOLUME, 0.65f},
+};
+
 #define CHANGES(t) { t, (uint8_t)(sizeof t / sizeof t[0]) }
 static const struct {
     const va_change_t *c;
@@ -446,6 +510,11 @@ static const struct {
     [VA_PRESET_DUB_SIREN] = CHANGES(DUB_SIREN),
     [VA_PRESET_STAB] = CHANGES(STAB),
     [VA_PRESET_POLY] = CHANGES(POLY),
+    [VA_PRESET_THUNDER] = CHANGES(THUNDER),
+    [VA_PRESET_RAIN] = CHANGES(RAIN),
+    [VA_PRESET_CREAK] = CHANGES(CREAK),
+    [VA_PRESET_STRINGS70] = CHANGES(STRINGS70),
+    [VA_PRESET_VKEYS] = CHANGES(VKEYS),
 };
 
 void engine_va_load_preset(engine_va_t *e, va_preset_t preset)
