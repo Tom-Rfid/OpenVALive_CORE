@@ -74,6 +74,32 @@ static const char *const CONF_NAME[CONF_ROWS] = { "DRUM KEYS", "DRUM D#", "DRUM 
 #define MAP_ROWS (APP_MAP_SLOTS + CONF_ROWS)
 #define MAP_VISIBLE 9u
 
+/* a key as the screen keyboard draws it: violet (the one in use), else half filled in mint with a mint outline */
+static void key_chip(int32_t x, int32_t y, int32_t w, int32_t h, int on)
+{
+    if (on) {
+        cv_rect(x, y, w, h, C_VIO);
+        return;
+    }
+    cv_rect(x, y, w, h, RGB(18, 18, 22));
+    cv_rect(x, y + h / 2, w, h - h / 2, C_MINT);
+    cv_rect(x, y, w, 1, C_MINT);
+    cv_rect(x, y, 1, h, C_MINT);
+    cv_rect(x + w - 1, y, 1, h, C_MINT);
+}
+
+/* "(arrow down) MENU: OUT" at the right of a help line: press a menu button to leave (the arrow: press, as the
+ * arrow up of the layers says let go) */
+static void help_menu_out(int32_t y, uint16_t c)
+{
+    int32_t x = 234 - text_w(&FONT_XS, "MENU: OUT") - 10;
+    cv_rect(x + 2, y + 2, 3, 4, c);                 /* the shaft, then the head */
+    for (int32_t i = 0; i < 4; i++) {
+        cv_rect(x + i, y + 6 + i, 7 - 2 * i, 1, c);
+    }
+    cv_text(x + 10, y, &FONT_XS, "MENU: OUT", c);
+}
+
 static const char *conf_text(uint32_t c)
 {
     switch (c) {
@@ -500,7 +526,7 @@ static void map_draw(void)
     cv_text(8, 6, &FONT_B, "CONTROL MAP", C_HI);
     {
         char v[32] = "OpenVALive ";                      /* the firmware and its version, in the logo's orange */
-        app_version_text(v + 9, sizeof v - 9u);
+        app_version_text(v + 11, sizeof v - 11u);
         cv_text(234 - text_w(&FONT_XS, v), 9, &FONT_XS, v, RGB(238, 90, 36));
     }
     cv_rect(0, MAP_TOP - 2, 240, 1, C_LINE);
@@ -524,9 +550,17 @@ static void map_draw(void)
                 cv_rect(0, y, 240, MAP_ROW_H - 1, C_LINE);
             }
             if (s >= APP_MAP_SLOTS) {                       /* a setting: its name in pink (SETUP's colour) */
-                const char *v = conf_text(s - APP_MAP_SLOTS);
-                cv_text(6, y + 3, &FONT_XS, CONF_NAME[s - APP_MAP_SLOTS], sel ? C_WHITE : C_PINK);
-                cv_text(234 - text_w(&FONT_XS, v), y + 3, &FONT_XS, v, sel ? C_WHITE : C_AMB);
+                uint32_t c = s - APP_MAP_SLOTS;
+                const char *v = conf_text(c);
+                uint16_t vc = sel ? C_WHITE : C_AMB;
+                if (c == CONF_KEYS_SCREEN) {
+                    vc = set.keys_screen ? C_GREEN : C_RED;     /* ON green, OFF red */
+                } else if (c == CONF_DRUM_MAP) {                /* the two FX keys, as the keyboard shows them */
+                    key_chip(124, y + 3, 9, 11, set.drum_map != DRUM_MAP_GM);
+                    key_chip(136, y + 3, 9, 11, set.drum_map == DRUM_MAP_GM);
+                }
+                cv_text(6, y + 3, &FONT_XS, CONF_NAME[c], sel ? C_WHITE : C_PINK);
+                cv_text(234 - text_w(&FONT_XS, v), y + 3, &FONT_XS, v, vc);
                 continue;
             }
             char arg[12];
@@ -540,6 +574,7 @@ static void map_draw(void)
     }
     cv_begin(240, 36, C_BLACK);
     cv_text(6, 4, &FONT_XS, "SELECT row  PRESET target", C_GRAY);
-    cv_text(6, 20, &FONT_XS, "ALGO option  MENU BTN: OUT", C_GRAY);
+    cv_text(6, 20, &FONT_XS, "ALGO option", C_GRAY);
+    help_menu_out(20, C_GRAY);
     cv_blit(0, 240 - 36);
 }

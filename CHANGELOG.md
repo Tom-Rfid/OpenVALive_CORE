@@ -6,6 +6,13 @@
 
 
 
+## 19 November 2026 — SOUNDS and SETTINGS screens tidied
+
+- SOUNDS: the chosen sound's place (F4 3/5), family and ON / HIDDEN under the title, the name lined up with the
+  squares; family names in their colour; help line SEL ON (green) / OFF (red), OCT + (green) / - (red), arrow down
+  MENU: OUT (`help_menu_out`). SETTINGS: DRUM KEYS shows the two FX keys as the screen keyboard does (violet the one
+  in use, `key_chip`), KEYS ON SCREEN ON green / OFF red; CONTROL MAP title shows "OpenVALive" whole again.
+
 ## 19 November 2026 — SOUNDS: one line a family, a MENU line
 
 - `src/sound_fav.c`: families F1–F7 on lines (label green / blue / red line = all / some / none offered, a square a
