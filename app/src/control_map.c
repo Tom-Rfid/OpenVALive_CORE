@@ -6,7 +6,7 @@
  *   - what the four knobs of MACRO, LIVE, EQ and USER do (a target's faders and wheels follow USER's): each slot
  *     has a target (a level, a macro, an effect, a sound knob, the EQ, the tempo, bend, a MIDI CC...) and an option
  *     (which track, which CC). PRESET the target, ALGO the option; moving a control jumps to its row.
- * OPTION CONTROL (HOME + white key 16): the drum keys' map, each D# / G# key's percussion, the keys on screen,
+ * OPTION CONTROL (HOME + white key 10): the drum keys' map, each D# / G# key's percussion, the keys on screen,
  *   and for each line the page a new sound brings (KEEP: none).
  * Both: SELECT the row, EDIT puts the row back to its default, the MENU row (last) goes to the next screen with
  * PRESET or OCT (SOUNDS, MAP CONTROL, OPTION CONTROL in turn), a menu button closes; what changed is kept.
@@ -907,9 +907,15 @@ static void map_draw(void)
     }
     cv_begin(240, 36, C_BLACK);
     int on_page = map && mapui.row < PAGE_COUNT;
-    cv_text(6, 4, &FONT_XS, map ? (on_page ? "PRESET move  ALGO on/off" : "PRESET target  ALGO option")
-                                : "PRESET or ALGO: change", C_GRAY);
-    cv_text(6, 20, &FONT_XS, "EDIT default", C_GRAY);
+    char h[40];                                 /* the target's names for PRESET, ALGO, EDIT */
+    copy_text(h, APP_PRESET_NAME, sizeof h);
+    text_cat(h, map ? (on_page ? " move  " : " target  ") : " or ");
+    text_cat(h, APP_ALGO_NAME);
+    text_cat(h, map ? (on_page ? " on/off" : " option") : ": change");
+    cv_text(6, 4, &FONT_XS, h, C_GRAY);
+    copy_text(h, BTN_NAME[B_EDIT], sizeof h);
+    text_cat(h, " default");
+    cv_text(6, 20, &FONT_XS, h, C_GRAY);
     help_menu_out(20, C_GRAY);
     cv_blit(0, 240 - 36);
 }

@@ -294,6 +294,16 @@ static const struct {
 #ifndef APP_KEYS_SCREEN
 #define APP_KEYS_SCREEN 0u                      /* a target without key lights (SMK-37) turns it on */
 #endif
+
+/* the buttons and knobs as the panel prints them (the screen says these): the FM-1's, or a target's own (the
+ * SMK-37: SEL is NOTE, EDIT GLOBE, SAVE PARA...). In the order of plat.h's B_* */
+#ifndef APP_BUTTON_NAMES
+#define APP_BUTTON_NAMES { "FX", "SEL", "ENV", "LFO", "EDIT", "GLO", "HOME", "SAVE", "ARP", "SEQ", "PLAY", "REC", \
+                           "OCT-", "OCT+" }
+#define APP_ALGO_NAME "ALGO"
+#define APP_PRESET_NAME "PRESET"
+#endif
+static const char *const BTN_NAME[NB] = APP_BUTTON_NAMES;
 #ifndef APP_WHEEL
 #define APP_WHEEL 0                             /* 1: the target has a pitch wheel (SMK-37): FX + key 14 makes it pan */
 #endif

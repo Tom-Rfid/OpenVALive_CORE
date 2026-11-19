@@ -83,10 +83,10 @@ static void draw_header(void)
 
     if (plat_ms() < ui.msg_until) {
         uint16_t c0 = C_WHITE, c1 = C_HI;
-        if (ui.msg_style == MSG_NOT_TAKEN) {    /* a gesture given up: its name in red, 0.5 s */
+        if (ui.msg_style == MSG_NOT_TAKEN) {    /* a gesture given up: its name in red, 0.7 s */
             c0 = C_RED;
-        } else if (ui.msg_style == MSG_TAKEN) { /* taken: mint, 0.5 s */
-            c0 = c1 = C_MINT;
+        } else if (ui.msg_style == MSG_TAKEN) { /* taken: green, with a check mark when it stands alone, 0.7 s */
+            c0 = c1 = C_GREEN;
         } else if (ui.msg_style == MSG_ARMED) { /* "LET GO SEQ": green, it says how to take it */
             c1 = C_GREEN;
         }
@@ -99,7 +99,17 @@ static void draw_header(void)
             cv_rect(ax + 3, 13, 5, 9, C_GREEN);
             x = ax + 6;
         }
-        cv_text(x + 8, 6, &FONT_B, ui.msg[1], c1);
+        if (ui.msg_style == MSG_TAKEN && !ui.msg[1][0]) {
+            int32_t cx = x + 10;                /* a check mark: the short stroke down, the long one up */
+            for (int32_t i = 0; i < 5; i++) {
+                cv_rect(cx + i, 12 + i, 3, 3, C_GREEN);
+            }
+            for (int32_t i = 0; i < 10; i++) {
+                cv_rect(cx + 5 + i, 16 - i, 3, 3, C_GREEN);
+            }
+        } else {
+            cv_text(x + 8, 6, &FONT_B, ui.msg[1], c1);
+        }
         if (ui.msg_right) {                     /* the layer's black-key gesture, far right */
             cv_text(232 - text_w(&FONT_B, ui.msg_right), 6, &FONT_B, ui.msg_right, avol.on ? C_GREEN : C_MINT);
         }
@@ -122,7 +132,9 @@ static void draw_header(void)
             cv_text(x + 8, 6, &FONT_B, sound_label(set.live_sound), C_MINT);
         } else if (pending) {
             x = cv_text(x + 8, 6, &FONT_B, sound_label(ui.pend_sound), C_DARK_ORANGE);
-            cv_text(x + 6, 6, &FONT_B, "+SEL", blink ? C_GREEN : C_BLACK);
+            char plus[8] = "+";
+            text_cat(plus, BTN_NAME[B_SEL]);
+            cv_text(x + 6, 6, &FONT_B, plus, blink ? C_GREEN : C_BLACK);
         } else if (set.controller) {
             char ch[8] = "MIDI ";
             int_text(mirror.track + 1, ch + 5);
@@ -243,7 +255,7 @@ static int draw_layer_keys(void)
             uint32_t bit = k >= 0 ? 1u << k : 0u;
             if (!black) {
                 screen_key(x0 + white * ww, top, ww - 1, kh, lit & bit, dim & bit, blink & bit,
-                           (ui.keys_conf & bit) ? C_RED : C_MINT);   /* set-up keys red */
+                           (ui.keys_conf & bit) ? C_VIO : C_MINT);   /* set-up keys violet */
                 white++;
             } else {
                 int32_t bw = ww * 3 / 5 | 1;

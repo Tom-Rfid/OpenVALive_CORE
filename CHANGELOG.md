@@ -6,6 +6,16 @@
 
 
 
+## 20 November 2026 — names per target, HOME set-up keys moved, titles, REC / CAPTURE while playing
+
+- `APP_BUTTON_NAMES`, `APP_ALGO_NAME`, `APP_PRESET_NAME`: the screen names the target's buttons (SMK-37: NOTE,
+  GLOBE, PARA, PATCH, BT, SCALE, CHORD, PAGE, PRESETS) in the menus' help, the layers' "let go" and "+SEL".
+- HOME + white keys 8 / 9 / 10 (from the 2nd F): SOUNDS, LOOP EDIT, OPTIONS (were 14–16); HOME's keys lit, the
+  set-up ones blinking slowly, violet on a screen keyboard.
+- Titles: a gesture taken shows its name in green with a check mark (0.7 s), given up in red (0.7 s); any key
+  pressed clears the title shown.
+- REC and CAPTURE only while playing ("PLAY FIRST" at STOP). SOUNDS help: OCT -/+.
+
 ## 19 November 2026 — valid on release on SEL, lights, drum levels, the infinity sign
 
 - SEL layer: CLEAR .. CONTROLLER (white keys 6–16) valid on release (`KEY_ARMED_SEL`), the mutes stay at once.

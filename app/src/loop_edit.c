@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MIT
- * OpenVALive - LOOP EDIT: the notes of the selected track's loop, one at a time (HOME + key 15).
+ * OpenVALive - LOOP EDIT: the notes of the selected track's loop, one at a time (HOME + key 9).
  *   SELECT       the note before / after (it sounds)        a key   its pitch becomes that key's note
  *   K1 position (1/16)   K2 length   K3 velocity   K4 pitch (a semitone)
  *   REC          take the note out                          EDIT    a note one 1/16 after it
@@ -244,9 +244,15 @@ static void ledit_draw(void)
         int_text(n->note, v);
         cv_text(172, 22, &FONT_B, v, C_HI);
     } else {
-        cv_text(8, 16, &FONT_B, "EMPTY: EDIT ADDS", C_GRAY);
+        char e[24] = "EMPTY: ";
+        text_cat(e, BTN_NAME[B_EDIT]);
+        text_cat(e, " ADDS");
+        cv_text(8, 16, &FONT_B, e, C_GRAY);
     }
-    cv_text(8, 46, &FONT_XS, "REC DEL  EDIT ADD", C_GRAY);
+    char h[24] = "REC DEL  ";
+    text_cat(h, BTN_NAME[B_EDIT]);
+    text_cat(h, " ADD");
+    cv_text(8, 46, &FONT_XS, h, C_GRAY);
     help_menu_out(46, C_GRAY);
     cv_blit(0, LEDIT_TOP + LEDIT_ROLL);
 }

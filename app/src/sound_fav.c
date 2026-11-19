@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MIT
- * OpenVALive - SOUNDS: which sounds PRESET offers (HOME + white key 14, HOME let go: the screen stays, both hands
+ * OpenVALive - SOUNDS: which sounds PRESET offers (HOME + white key 8, HOME let go: the screen stays, both hands
  * free). A hidden sound still plays where it is: only PRESET and the family jumps (OCT- / OCT+) leave it out.
  *   on top the chosen sound's place (3/5), its family and ON / HIDDEN; then one line a family, F1 .. F9, its
  *   label and name green (all offered), blue (some), red (none), a square a sound, the chosen line its sound's name
@@ -124,7 +124,10 @@ static void fav_draw_place(void)
     int32_t list[OLS_SOUND_TOTAL];
     cv_begin(240, FAV_ROW, C_BLACK);
     if (fav.family == FAV_MENU_ROW) {
-        cv_text(6, 2, &FONT_XS, "PRESET OR OCT: THE NEXT SCREEN", C_HI);
+        char h[40];
+        copy_text(h, APP_PRESET_NAME, sizeof h);
+        text_cat(h, " OR OCT: THE NEXT SCREEN");
+        cv_text(6, 2, &FONT_XS, h, C_HI);
     } else {
         uint32_t n = fav_list(fav.family + 1, list);
         if (n) {
@@ -204,14 +207,18 @@ static void fav_draw(void)
     int32_t y0 = top + (FAV_MENU_ROW + 1) * FAV_ROW;
     cv_begin(240, 240 - y0, C_BLACK);
     cv_rect(0, 0, 240, 1, C_LINE);
-    int32_t ty = (240 - y0) / 2 - 4, x = cv_text(6, ty, &FONT_XS, "SEL ", C_GRAY);
+    char sel[12];
+    copy_text(sel, BTN_NAME[B_SEL], sizeof sel);
+    text_cat(sel, " ");
+    int32_t ty = (240 - y0) / 2 - 4, x = cv_text(6, ty, &FONT_XS, sel, C_GRAY);
     x = cv_text(x, ty, &FONT_XS, "ON", C_GREEN);
     x = cv_text(x, ty, &FONT_XS, "/", C_GRAY);
     cv_text(x, ty, &FONT_XS, "OFF", C_RED);
-    x = cv_text(120 - text_w(&FONT_XS, "OCT +/-") / 2, ty, &FONT_XS, "OCT ", C_GRAY);   /* in the middle */
-    x = cv_text(x, ty, &FONT_XS, "+", C_GREEN);
+    x = cv_text(120 - text_w(&FONT_XS, "OCT -/+") / 2, ty, &FONT_XS, "OCT ", C_GRAY);   /* in the middle, as the
+                                                 * buttons sit: OCT- left (hide), OCT+ right (offer) */
+    x = cv_text(x, ty, &FONT_XS, "-", C_RED);
     x = cv_text(x, ty, &FONT_XS, "/", C_GRAY);
-    cv_text(x, ty, &FONT_XS, "-", C_RED);
+    cv_text(x, ty, &FONT_XS, "+", C_GREEN);
     help_menu_out(ty, C_GRAY);
     cv_blit(0, (uint32_t)y0);
 }

@@ -211,8 +211,13 @@ static void sedit_draw(void)
         cv_blit(0, SEDIT_TOP + band * SEDIT_ROW_H);
     }
     cv_begin(240, 36, C_BLACK);
-    cv_text(6, 4, &FONT_XS, "SELECT param  PRESET value", C_GRAY);
-    cv_text(6, 20, &FONT_XS, "ALGO fine", C_GRAY);
+    char h[32] = "SELECT param  ";
+    text_cat(h, APP_PRESET_NAME);
+    text_cat(h, " value");
+    cv_text(6, 4, &FONT_XS, h, C_GRAY);
+    copy_text(h, APP_ALGO_NAME, sizeof h);
+    text_cat(h, " fine");
+    cv_text(6, 20, &FONT_XS, h, C_GRAY);
     help_menu_out(20, C_GRAY);
     cv_blit(0, 240 - 36);
 }

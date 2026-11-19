@@ -19,7 +19,8 @@
  *   SEL + PLAY       tap tempo                 SEL + REC      metronome on / off (REC from stop then counts in)
  *   SEL pressed      takes a sound waiting (PRESET on a track whose loop plays: red in the header, +SEL)
  *   SEL + SELECT     points at a line (violet); SEL let go selects it (from A, SEL lit: A swaps with that track)
- *   HOME held while switching on: safe start (the saved set is not loaded)
+ *   HOME held while switching on: safe start (the saved set is not loaded); HOME + white key 1 / 2 / 3: PANIC /
+ *                    RESTART / STOP, 8 / 9 / 10 (from F4): SOUNDS / LOOP EDIT / OPTIONS (valid on release)
  *   OCT- / OCT+      octave of the line; a loop running: twice as long / half as long   HOME   panic
  *
  * Hold a layer button and play the white keys (the 16 white keys, F3 to G5). On a track, ARP / SEQ / GLO + key only
@@ -46,6 +47,11 @@
 #define FIRST_KEY_NOTE 53           /* key 0 is F3 */
 #define ENCODER_STEP (1.0f / 64.0f) /* one detent = 1/64 of the range */
 #define WHITE_KEYS 16
+/* HOME + white key, HOME let go first: the set-up screens, from the 2nd F (white key 8: F4 on the FM-1), clear of the
+ * right hand on the buttons */
+#define HOME_SOUNDS 7
+#define HOME_LOOP_EDIT 8
+#define HOME_OPTIONS 9
 
 /* the white keys of the FM-1 (F3 .. G5), as key numbers */
 static const uint8_t WHITE_KEY[WHITE_KEYS] = { 0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26 };
@@ -197,7 +203,8 @@ static const char *armed_name(uint8_t role, int w)
         return PERFORM_KEY[w].name;
     }
     if (role == KEY_ARMED_HOME) {
-        return w == 0 ? "PANIC" : (w == 1 ? "RESTART" : (w == 2 ? "STOP ALL" : (w == 13 ? "SOUNDS" : (w == 14 ? "LOOP EDIT" : "SETTINGS"))));
+        return w == 0 ? "PANIC" : (w == 1 ? "RESTART" : (w == 2 ? "STOP ALL" : (w == HOME_SOUNDS ? "SOUNDS"
+               : (w == HOME_LOOP_EDIT ? "LOOP EDIT" : "OPTIONS"))));
     }
     if (role == KEY_ARMED_FX && w == 13) {
         return set.wheel_pan ? "WHEEL BEND" : "WHEEL PAN";   /* what letting go switches the wheel to */
@@ -215,6 +222,26 @@ static const char *armed_name(uint8_t role, int w)
     return t;
 }
 
+/* a gesture that needs the loops playing, at STOP: "REC  PLAY FIRST", in red */
+static void say_not_now(const char *what)
+{
+    char t[16];
+    copy_text(t, BTN_NAME[B_PLAY], sizeof t);
+    text_cat(t, " FIRST");
+    app_say(what, t);
+    ui.msg_style = MSG_NOT_TAKEN;
+    ui.msg_until = plat_ms() + 700u;
+}
+
+/* "CLEAR  ENV: UNDO" (the target's name for ENV) */
+static void say_undo(const char *what)
+{
+    char t[16];
+    copy_text(t, BTN_NAME[B_ENV], sizeof t);
+    text_cat(t, ": UNDO");
+    app_say(what, t);
+}
+
 static void arm_key(uint32_t k, int w, uint8_t role)
 {
     ui.key_role[k] = role;
@@ -224,8 +251,8 @@ static void arm_key(uint32_t k, int w, uint8_t role)
     if (role == KEY_ARMED_ARP) {
         ui.arp_pend = 0;                        /* a new tap replaces the one chosen before */
     }
-    static const char *const LET_GO[] = { "ARP", "SEQ", "GLO", "HOME", "FX", "SEL" };   /* drawn after an arrow: let go */
-    app_say(armed_name(role, w), LET_GO[role - KEY_ARMED_ARP]);
+    static const uint8_t LET_GO[] = { B_ARP, B_SEQ, B_GLO, B_HOME, B_FX, B_SEL };   /* drawn after an arrow: let go */
+    app_say(armed_name(role, w), BTN_NAME[LET_GO[role - KEY_ARMED_ARP]]);
     ui.msg_style = MSG_ARMED;
 }
 
@@ -399,15 +426,15 @@ static int8_t *line_octave(void);
  * from its start, now; with a MIDI clock in, the clock keeps them), STOP ALL */
 static void home_key(int w)
 {
-    if (w == 13) {
+    if (w == HOME_SOUNDS) {
         fav_open();                             /* SOUNDS: which sounds PRESET offers */
         return;
     }
-    if (w == 14) {
+    if (w == HOME_LOOP_EDIT) {
         ledit_open();                           /* LOOP EDIT: the selected track's notes */
         return;
     }
-    if (w == 15) {
+    if (w == HOME_OPTIONS) {
         map_open_settings();                    /* OPTION CONTROL */
         return;
     }
@@ -450,6 +477,14 @@ static void line_reset(void)
     send_live(LIVE_GAIN, 0, 0, 1.0f, t);
 }
 
+/* a gesture taken (valid on release): its name alone in green with a check mark, 0.7 s (another key: gone at once) */
+static void say_taken(void)
+{
+    ui.msg[1][0] = 0;
+    ui.msg_style = MSG_TAKEN;
+    ui.msg_until = plat_ms() + 700u;
+}
+
 /* ARP or SEQ let go: the armed keys still held apply their gesture */
 static void layer_released(uint8_t role)
 {
@@ -477,22 +512,20 @@ static void layer_released(uint8_t role)
             set.drum_map = ui.key_fx[k] == 15 ? DRUM_MAP_GM : DRUM_MAP_ORIGINAL;
             settings_keep();                    /* kept at once, past a power cycle (no SAVE needed) */
         }
-        ui.msg_style = MSG_TAKEN;               /* taken: the message turns mint, shown 0.5 s (unless another comes) */
-        ui.msg_until = plat_ms() + 500u;
+        say_taken();
         ui.given_up = 0;
         ui.arp_pend = 0;
     }
     if (role == KEY_ARMED_ARP && ui.arp_pend) { /* ARP: the last key tapped, already let go, is taken */
         ui.arp_pend = 0;
         creative_gesture(ui.arp_pend_w, ui.arp_pend_vel);
-        ui.msg_style = MSG_TAKEN;
-        ui.msg_until = plat_ms() + 500u;
+        say_taken();
         ui.given_up = 0;
     }
-    if (ui.given_up == role) {                  /* a key let go first, nothing taken: said now, its name red for 1 s */
+    if (ui.given_up == role) {                  /* a key let go first, nothing taken: its name red for 0.7 s */
         app_say(armed_name(role, ui.given_up_w), "");
         ui.msg_style = MSG_NOT_TAKEN;
-        ui.msg_until = plat_ms() + 1000u;
+        ui.msg_until = plat_ms() + 700u;
     }
     ui.given_up = 0;
 }
@@ -683,10 +716,10 @@ static void track_key(int w)
             for (uint8_t t = 0; t < TRACKS; t++) {
                 send_live(LIVE_CLEAR, 0, 0, 0.0f, t);
             }
-            app_say("CLEAR ALL", "UNDO: ENV");
+            say_undo("CLEAR ALL");
         } else {
             send_live(LIVE_CLEAR, 0, 0, 0.0f, mirror.track);
-            app_say("CLEAR", "UNDO: ENV");
+            say_undo("CLEAR");
         }
     } else if (w == 6) {
         mirror.quantize = (uint8_t)!mirror.quantize;
@@ -793,6 +826,8 @@ static void preset_turn(int32_t step, int family);
 
 static void key_pressed(uint32_t k, uint32_t buttons)
 {
+    ui.msg_until = 0;                           /* another key: the title shown goes at once (a new one may follow) */
+    ui.msg_right = 0;
     int w = white_index(k);
     uint32_t held = buttons;
     ui.sound_at = 0;                            /* a key played: OCT is the octave again */                    /* the buttons really held (a pad's own layer is not: it acts at once) */
@@ -859,7 +894,7 @@ static void key_pressed(uint32_t k, uint32_t buttons)
     }
     if (button_held(held, B_HOME)) {            /* HOME + white key 1 / 2 / 3 / 16, HOME let go first: PANIC / RESTART /
                                                  * STOP / the settings */
-        if ((w >= 0 && w < 3) || (w >= 13 && w <= 15)) {
+        if ((w >= 0 && w < 3) || (w >= HOME_SOUNDS && w <= HOME_OPTIONS)) {
             arm_key(k, w, KEY_ARMED_HOME);
         }
         return;
@@ -880,7 +915,10 @@ static void key_pressed(uint32_t k, uint32_t buttons)
     if (button_held(buttons, B_EDIT) && !ui.on_a && !ui.punch && live.clock.running && !live.recording) {
         send_live(LIVE_PUNCH, 1, 0, 0.0f, 0);   /* EDIT held + a note: record over, until EDIT is let go */
         ui.punch = 1;
-        app_say("PUNCH", "LET GO EDIT: STOP");
+        char t[24] = "LET GO ";
+        text_cat(t, BTN_NAME[B_EDIT]);
+        text_cat(t, ": STOP");
+        app_say("PUNCH", t);
         ui.msg_style = MSG_ARMED;
     }
     ui.key_role[k] = KEY_NOTE;
@@ -1034,6 +1072,10 @@ static void button_pressed(uint32_t b, uint32_t buttons)
         }
         break;
     case B_REC:
+        if (!live.clock.running && !live.recording) {
+            say_not_now("REC");                 /* a take is made while the loops play (PLAY first) */
+            break;
+        }
         send_live(LIVE_RECORD_TOGGLE, 0, 0, 0.0f, 0);
         break;
     case B_EDIT:                                /* on release: CAPTURE, or the end of a punch */
@@ -1077,7 +1119,7 @@ static void button_pressed(uint32_t b, uint32_t buttons)
         break;
     case B_SAVE:
         ui.save_used = 0;                       /* the set is saved on release, unless a key kept a sound */
-        app_say("SAVE", "TAP: SET  KEY: USER");
+        app_say(BTN_NAME[B_SAVE], "TAP: SET  KEY: USER");
         break;
     case B_ARP:
         ui.arp_down_at = plat_ms();
@@ -1156,8 +1198,12 @@ static void edit_released(void)
         ui.msg_until = plat_ms() + 500u;
         return;
     }
+    if (!live.clock.running) {
+        say_not_now("CAPTURE");                 /* a loop is made while playing (PLAY first) */
+        return;
+    }
     send_live(LIVE_CAPTURE, 0, 0, 0.0f, 0);
-    app_say("CAPTURE", "ENV: UNDO");     /* not right? ENV undoes it at once */
+    say_undo("CAPTURE");                    /* not right? ENV undoes it at once */
 }
 
 /* the page after `p`: DRUM EQ only when the selected line is a drum track */
@@ -1773,12 +1819,14 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
             }
         }
     } else if (button_held(buttons, B_HOME)) {
-        *dim = white_mask(0, 3) | white_mask(13, 16);       /* PANIC, RESTART, STOP; SOUNDS, LOOP EDIT, the settings */
-        ui.keys_conf = (1u << WHITE_KEY[13]) | (1u << WHITE_KEY[15]);   /* the set-up ones: slow blink / red on screen */
+        /* PANIC, RESTART, STOP lit; the three set-up screens (SOUNDS, LOOP EDIT, OPTIONS) blink slowly, violet on a
+         * screen keyboard; a key held: lit */
+        ui.keys_conf = white_mask(HOME_SOUNDS, HOME_OPTIONS + 1);
+        *lit |= white_mask(0, 3);
         if ((plat_ms() / 500u) & 1u) {
-            *dim &= ~ui.keys_conf;
+            *lit |= ui.keys_conf;
         }
-        *bl |= ui.keys_conf;
+        *dim = white_mask(0, 3) | ui.keys_conf;
     } else if (button_held(buttons, BTN_PAGES)) {
         *dim = white_mask(0, 1) | white_mask(APP_WHEEL ? 13 : 14, 16);   /* the line's reset; the wheel; the drum keys */
         *lit |= 1u << WHITE_KEY[set.drum_map == DRUM_MAP_GM ? 15 : 14];

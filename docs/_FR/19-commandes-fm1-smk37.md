@@ -14,12 +14,12 @@ pédale, plus de touches).
 | `B_SEL` (`BTN_TRACKS`, `BTN_VALIDATE`) | SEL | NOTE REPEAT | prend un son en attente | couche pistes : mutes (tout de suite), puis CLEAR, QUANTIZE, CLOCK, EUCLID, CONTROLLER (validés au relâché) ; touches noires MUTE ALL, A VOL ; clignote vite quand un son l'attend (+SEL) |
 | `B_SEQ` (`BTN_PERFORM`) | SEQ | SEQ | tapé : la boucle se relâche | couche jeu (16 effets) |
 | `B_ARP` | ARP | ARP | sur A : mode d'arpège | couche créative |
-| `B_GLO` | GLO | GLO | — | couche scènes ; GLO + SEL : MAP CONTROL ; GLO + PLAY : chaîne |
-| `B_HOME` | HOME | HOME | panic | PANIC / RESTART / STOP, SOUNDS (14), LOOP EDIT (15), OPTION CONTROL (16) |
+| `B_GLO` | GLO | BT | — | couche scènes ; GLO + SEL : MAP CONTROL ; GLO + PLAY : chaîne |
+| `B_HOME` | HOME | PATCH | panic | PANIC / RESTART / STOP, SOUNDS (8), LOOP EDIT (9), OPTION CONTROL (10) : validés au relâché |
 | `B_SAVE` | SAVE | PARA | enregistre le live set | SAVE + touche : son perso |
-| `B_ENV` / `B_LFO` | ENV / LFO | ENV / LFO | UNDO / REDO | — |
+| `B_ENV` / `B_LFO` | ENV / LFO | SCALE / CHORD | UNDO / REDO | — |
 | `B_EDIT` | EDIT | GLOBE | CAPTURE (ENV l'annule) ; dans un menu : valeur par défaut de la ligne ; clignote pendant l'enregistrement | EDIT + note : punch ; LOOP EDIT : EDIT + touches = accord |
-| `B_PLAY` / `B_REC` | PLAY / REC | PLAY / REC | transport / enregistrement | SEL + PLAY tap tempo, SEL + REC métronome |
+| `B_PLAY` / `B_REC` | PLAY / REC | PLAY / REC | transport / enregistrement (REC et CAPTURE seulement en lecture) | SEL + PLAY tap tempo, SEL + REC métronome |
 | `B_OCTDN` / `B_OCTUP` | OCT− / OCT+ | OCT− / OCT+ | octave ; saut de famille ; boucle ×2 / ÷2 | — |
 | — | — | KNOB BANK = SHIFT | — | SHIFT + K1–K4 : page LIVE ; SHIFT + SELECT : SOUND EDIT ; SHIFT + pads 1–8 : mémoriser les scènes |
 | — | — | FADER BANK | faders : volumes → macros → USER | — |
