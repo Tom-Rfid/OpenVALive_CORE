@@ -3,6 +3,7 @@
  *   SELECT       the note before / after (it sounds)        a key   its pitch becomes that key's note
  *   K1 position (1/16)   K2 length   K3 velocity   K4 pitch (a semitone)
  *   REC          take the note out                          EDIT    a note one 1/16 after it
+ *   EDIT held + a key: a note of that pitch at the same place (a chord), as many as wanted
  *   a menu button or SEL: back (one UNDO step)   PLAY    play / stop, still editing
  * The Live Core does the change (LIVE_NOTE_EDIT): it may be playing. */
 
@@ -81,6 +82,7 @@ static void ledit_input(void)
     const ols_pattern_t *p = ledit_pat();
     uint32_t buttons = plat_buttons();
     uint32_t pressed = buttons & ~ledit.buttons;
+    uint32_t released = ledit.buttons & ~buttons;
     ledit.buttons = buttons;
     if (ledit.sounding && (int32_t)(plat_ms() - ledit.sound_off) >= 0) {
         send_note_off(mirror.track, ledit.sound_note);
@@ -109,17 +111,24 @@ static void ledit_input(void)
         ledit.drawn = 0;
     }
     menu_keys();                                         /* keys play (and give the note its pitch) */
+    const ols_note_t *n = ledit.cursor < p->count ? &p->n[ledit.cursor] : 0;
+    if (pressed & (1u << B_EDIT)) {
+        ledit.chord = 0;
+    }
     if (ledit.heard) {
         ledit.heard = 0;
-        if (ledit.cursor < p->count) {
+        if ((buttons >> B_EDIT) & 1u) {                 /* EDIT held: the key adds a note where this one starts */
+            ledit.add_note = ledit.key;
+            ledit_send(NOTE_EDIT_ADD, n ? (float)n->tick : 0.0f);
+            ledit.chord = 1;
+        } else if (ledit.cursor < p->count) {
             ledit_send(NOTE_EDIT_PITCH, (float)ledit.key);
         }
     }
-    const ols_note_t *n = ledit.cursor < p->count ? &p->n[ledit.cursor] : 0;
     if (pressed & (1u << B_REC)) {
         ledit_send(NOTE_EDIT_DELETE, 0.0f);
     }
-    if (pressed & (1u << B_EDIT)) {
+    if ((released & (1u << B_EDIT)) && !ledit.chord) {  /* EDIT tapped: a note one 1/16 after */
         ledit.add_note = n ? n->note : (live.track[mirror.track].kind == OLS_KIND_DRUM ? 36u : 60u);
         ledit_send(NOTE_EDIT_ADD, n ? (float)(n->tick / 24u * 24u + 24u) : 0.0f);
     }

@@ -8,7 +8,7 @@
  *   MENU line    PRESET or OCT: MAP CONTROL / OPTIONS               a menu button (HOME FX ARP SEQ GLO SAVE): back,
  *                                                                    what changed kept past a power cycle */
 
-static const char *const FAMILY_NAME[FAMILIES] = { "ACID", "PSY", "BASSES", "DRUMS", "PUNCH", "SFX", "DARK", "SOFT",
+static const char *const FAMILY_NAME[FAMILIES] = { "ACID", "PSY", "BASSES", "DRUMS", "PUNCH", "SFX", "UNDER", "SOFT",
                                                    "USER" };
 #define FAV_MENU_ROW FAMILIES                    /* the line under the families */
 

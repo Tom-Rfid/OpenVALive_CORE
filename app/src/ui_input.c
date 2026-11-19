@@ -1796,7 +1796,8 @@ static uint32_t button_lit(uint32_t buttons)
     }
     if (live.recording) {
         lit |= 1u << B_REC;
-        lit = (plat_ms() / 60u) & 1u ? lit | (1u << B_EDIT) : lit & ~(1u << B_EDIT);   /* recording: EDIT flickers */
+        lit = (plat_ms() / 200u) & 1u ? lit | (1u << B_EDIT) : lit & ~(1u << B_EDIT);   /* recording: EDIT blinks
+                                                 * (slow enough for every target's LEDs: the SMK-37's GLOBE) */
     }
     if (ui.on_a) {
         lit |= 1u << BTN_VALIDATE;              /* on A, SEL held + SELECT then let go swaps A with a track */

@@ -6,6 +6,13 @@
 
 
 
+## 19 November 2026 — LOOP EDIT chords, UNDER, recording sign, one pause for SAVE
+
+- LOOP EDIT: EDIT held + keys add notes at the note's place (chords); EDIT tapped still adds one a 1/16 later.
+- Family F7 renamed UNDER (underground). The red infinity sign shows with the pink line (from the first note),
+  just left of REC (it was under the MASTER figure). EDIT blinks at 200 ms while recording (seen on the SMK-37's LEDs).
+- `APP_SAVE_BEGIN` / `APP_SAVE_END`: a target can wrap the whole SAVE in one audio pause.
+
 ## 19 November 2026 — 12 sounds, families by character
 
 - TALK, PSY BASS, ZAP, LASER, BLIP, METAL, ARP, CHOIR, NOISE, RISER, DOWNLIFTER, SHAKER (48 sounds, 43 synth).

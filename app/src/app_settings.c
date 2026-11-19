@@ -481,10 +481,20 @@ static void settings_keep(void)
 }
 
 /* SAVE: the settings and the whole live set as it is heard (MIDI changes included). */
+/* A target whose flash writes each pause the audio (the SMK-37) wraps the whole SAVE in one pause: one short clean
+ * silence instead of a choppy one */
+#ifndef APP_SAVE_BEGIN
+#define APP_SAVE_BEGIN()
+#define APP_SAVE_END()
+#endif
+
 static int settings_save(void)
 {
-    if (plat_store_save(OBJ_SETTINGS, &set, sizeof set) != 0 || !project_save()
-        || plat_store_save(OBJ_USER_SOUNDS, user_sounds, sizeof user_sounds) != 0 || !map_save()) {
+    APP_SAVE_BEGIN();
+    int ok = plat_store_save(OBJ_SETTINGS, &set, sizeof set) == 0 && project_save()
+             && plat_store_save(OBJ_USER_SOUNDS, user_sounds, sizeof user_sounds) == 0 && map_save();
+    APP_SAVE_END();
+    if (!ok) {
         return 0;
     }
     set_dirty = 0;

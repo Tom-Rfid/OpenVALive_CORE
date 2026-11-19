@@ -61,7 +61,7 @@ static const uint8_t VOICE_LIMIT[TRACKS] = { 4, 1, 2, 4 };
 #define LIVE_DEFAULT_SOUND VA_PRESET_LEAD
 
 /* the order PRESET shows the factory sounds in (their numbers, kept in saves, do not change), by character: acid
- * first, the psytrance tools, basses, drums, the punchy ones, transitions, dark textures, the soft ones last; the
+ * first, the psytrance tools, basses, drums, the punchy ones, transitions, underground textures, the soft ones last; the
  * USER sounds follow. */
 static const uint8_t SOUND_ORDER[OLS_SOUND_COUNT] = {
     VA_PRESET_ACID, VA_PRESET_ACID_SQUARE, VA_PRESET_ACID_SCREAM, VA_PRESET_SCREECH, VA_PRESET_GRUNGE, VA_PRESET_TALK,
@@ -77,7 +77,7 @@ static const uint8_t SOUND_ORDER[OLS_SOUND_COUNT] = {
     VA_PRESET_CHOIR, VA_PRESET_INIT,
 };
 /* the families, by their first place in SOUND_ORDER: F1 acid, F2 psy, F3 basses, F4 drums, F5 punch, F6 SFX
- * (transitions, weather), F7 dark, F8 soft (and INIT); the USER sounds are F9. OCT- / OCT+ while a sound is chosen
+ * (transitions, weather), F7 under (underground), F8 soft (and INIT); the USER sounds are F9. OCT- / OCT+ while a sound is chosen
  * jump between them. */
 static const uint8_t FAMILY_AT[] = { 0, 6, 12, 18, 23, 29, 36, 40 };
 #define FAMILIES 9
@@ -147,6 +147,7 @@ static int32_t page_slot(uint32_t page, uint32_t k);
 static int slot_is_default(uint32_t s);
 static uint32_t page_after(uint32_t p);
 static void new_sound_page(uint32_t line, int32_t sound);
+static uint8_t rec_painting[TRACKS];             /* a take started (its first note): the line paints pink */
 static void map_load(void);
 static int map_save(void);
 /* SOUND EDIT (src/sound_edit.c) */
@@ -158,6 +159,7 @@ static void sedit_draw(void);
 /* LOOP EDIT (src/loop_edit.c) */
 static struct {
     uint8_t open, drawn, cursor, want, heard, quiet, key, sounding, sound_note, add_note, want_note;
+    uint8_t chord;                              /* EDIT held made a chord: its release adds nothing more */
     uint16_t want_tick;
     uint32_t buttons, sound_off;
 } ledit;

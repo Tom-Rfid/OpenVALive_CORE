@@ -120,18 +120,20 @@ static void draw_header(void)
         int_text((int32_t)(clock_bpm(&live.clock) + 0.5f), bpm);
         text_cat(bpm, " BPM");
         cv_text(232 - text_w(&FONT_XS, bpm), 0, &FONT_XS, bpm, C_GRAY);
-        if (live.recording) {                   /* recording a loop: a red infinity sign left of the tempo */
+        const char *word = transport_word();
+        cv_text(232 - text_w(&FONT_XS, word), 14, &FONT_XS, word, transport_colour());
+        if (live.recording && rec_painting[mirror.track]) {   /* recording a loop (from its first note, with the pink
+                                                 * line): a red infinity sign just left of REC, clear of
+                                                 * the MASTER and CPU figures */
             static const int8_t RING[24][2] = { {4,0},{4,1},{3,2},{3,3},{2,3},{1,4},{0,4},{-1,4},{-2,3},{-3,3},
                 {-3,2},{-4,1},{-4,0},{-4,-1},{-3,-2},{-3,-3},{-2,-3},{-1,-4},{0,-4},{1,-4},{2,-3},{3,-3},{3,-2},{4,-1} };
-            int32_t cx = 232 - text_w(&FONT_XS, bpm) - 22, cy = 12;
+            int32_t cx = 232 - text_w(&FONT_XS, word) - 13, cy = 21;
             for (int i = 0; i < 24; i++) {
                 cv_rect(cx - 4 + RING[i][0], cy + RING[i][1], 2, 2, C_RED);
                 cv_rect(cx + 4 + RING[i][0], cy + RING[i][1], 2, 2, C_RED);
             }
         }
 
-        const char *word = transport_word();
-        cv_text(232 - text_w(&FONT_XS, word), 14, &FONT_XS, word, transport_colour());
 
         /* MASTER (dark orange) over the CPU load (dark blue, red past 80 %) */
         char vol[12];
@@ -308,7 +310,7 @@ static void draw_track(int t)
     }
     /* recording: from the first note taken (or the punch), the playhead paints the line pink where it records, so
      * the take's start is seen coming back round (when to stop); let go, it paints it back as it passes */
-    static uint8_t painting[TRACKS];
+    uint8_t *painting = rec_painting;
     if (!(live.recording && !ui.on_a && t == mirror.track)) {
         painting[t] = 0;
     } else if (tr->held_count || live.punch) {
