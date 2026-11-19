@@ -5,6 +5,12 @@
 
 
 
+
+## 19 November 2026 — SOUNDS (favourites)
+
+- `src/sound_fav.c`: HOME + key 14, the sounds PRESET offers (`set.hidden`, settings OLSA; older ones keep everything
+  offered). PRESET and the OCT family jumps go through `offered_step` / `family_step`: hidden sounds and empty
+  families skipped, everything offered again if all is hidden. Set-up keys: slow blink, red on a screen keyboard.
 ## 19 November 2026 — STAB, POLY, DRUM EQ, track pan
 
 - STAB and POLY (31 sounds; settings OLS9, older ones moved by themselves).

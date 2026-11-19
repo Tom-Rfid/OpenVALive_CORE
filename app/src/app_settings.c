@@ -20,6 +20,7 @@ static void conf_defaults(void)
     set.drum_gs = 2;                            /* TRIANGLE */
     set.keys_screen = APP_KEYS_SCREEN;
     set.wheel_pan = 0;
+    ols_zero(set.hidden, sizeof set.hidden);  /* every sound offered */
 }
 
 static void settings_defaults(void)
@@ -89,10 +90,23 @@ static void sounds_from(uint32_t first)
 static void sounds_v7(void) { sounds_from(OLD_VA_SOUNDS); }
 
 /* OLS8: 24 synth sounds (STAB and POLY came after); its padding byte is now the wheel's mode */
+/* OLS9: the same without `hidden` */
+static int settings_migrate_v9(void)
+{
+    ols_zero(&set, sizeof set);
+    int size = plat_store_load(OBJ_SETTINGS, &set, sizeof(settings_v9_t));
+    if (size != (int)sizeof(settings_v9_t) || set.magic != SET_MAGIC_V9) {
+        return 0;
+    }
+    set.magic = SET_MAGIC;
+    return settings_valid((int)sizeof set);
+}
+
 static int settings_migrate_v8(void)
 {
-    int size = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
-    if (size != (int)sizeof set || set.magic != SET_MAGIC_V8) {
+    ols_zero(&set, sizeof set);
+    int size = plat_store_load(OBJ_SETTINGS, &set, sizeof(settings_v9_t));
+    if (size != (int)sizeof(settings_v9_t) || set.magic != SET_MAGIC_V8) {
         return 0;
     }
     set.magic = SET_MAGIC;
@@ -104,8 +118,9 @@ static int settings_migrate_v8(void)
 /* OLS7: the same settings */
 static int settings_migrate_v7(void)
 {
-    int size = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
-    if (size != (int)sizeof set || set.magic != SET_MAGIC_V7) {
+    ols_zero(&set, sizeof set);
+    int size = plat_store_load(OBJ_SETTINGS, &set, sizeof(settings_v9_t));
+    if (size != (int)sizeof(settings_v9_t) || set.magic != SET_MAGIC_V7) {
         return 0;
     }
     set.magic = SET_MAGIC;
@@ -359,7 +374,7 @@ static int project_save(void)
 static void settings_load(void)
 {
     int size = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
-    if (!settings_valid(size) && !settings_migrate_v8() && !settings_migrate_v7() && !settings_migrate_v6() && !settings_migrate_v5() && !settings_migrate_v4()
+    if (!settings_valid(size) && !settings_migrate_v9() && !settings_migrate_v8() && !settings_migrate_v7() && !settings_migrate_v6() && !settings_migrate_v5() && !settings_migrate_v4()
         && !settings_migrate_v3() && !settings_migrate_v2() && !settings_migrate_v1()) {
         settings_defaults();
     }

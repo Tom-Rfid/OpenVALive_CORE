@@ -39,6 +39,7 @@
 #include "src/control_map.c"
 #include "src/sound_edit.c"
 #include "src/loop_edit.c"
+#include "src/sound_fav.c"
 #include "src/ui_draw.c"
 #include "src/splash.c"
 
@@ -181,6 +182,10 @@ void app_frame(void)
     }
     if (ledit_is_open()) {                        /* and LOOP EDIT */
         ledit_draw();
+        return;
+    }
+    if (fav_is_open()) {                          /* and SOUNDS */
+        fav_draw();
         return;
     }
     /* redraw on change, and at least 20 times a second for the oscilloscope */

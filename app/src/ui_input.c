@@ -191,7 +191,7 @@ static const char *armed_name(uint8_t role, int w)
         return PERFORM_KEY[w].name;
     }
     if (role == KEY_ARMED_HOME) {
-        return w == 0 ? "PANIC" : (w == 1 ? "RESTART" : (w == 2 ? "STOP ALL" : (w == 14 ? "LOOP EDIT" : "SETTINGS")));
+        return w == 0 ? "PANIC" : (w == 1 ? "RESTART" : (w == 2 ? "STOP ALL" : (w == 13 ? "SOUNDS" : (w == 14 ? "LOOP EDIT" : "SETTINGS"))));
     }
     if (role == KEY_ARMED_FX && w == 13) {
         return set.wheel_pan ? "WHEEL BEND" : "WHEEL PAN";   /* what letting go switches the wheel to */
@@ -388,6 +388,10 @@ static int8_t *line_octave(void);
  * from its start, now; with a MIDI clock in, the clock keeps them), STOP ALL */
 static void home_key(int w)
 {
+    if (w == 13) {
+        fav_open();                             /* SOUNDS: which sounds PRESET offers */
+        return;
+    }
     if (w == 14) {
         ledit_open();                           /* LOOP EDIT: the selected track's notes */
         return;
@@ -660,7 +664,7 @@ static int choosing_sound(void)
     return (ui.pend_sound >= 0 && !ui.on_a) || (ui.sound_at && plat_ms() - ui.sound_at < 2000u);
 }
 
-static int32_t family_step(int32_t sound, int32_t step);
+static int32_t family_step(int32_t sound, int32_t step, int for_a);
 static const char *sound_label(int32_t sound);
 static void preset_turn(int32_t step, int family);
 
@@ -726,7 +730,7 @@ static void key_pressed(uint32_t k, uint32_t buttons)
     }
     if (button_held(held, B_HOME)) {            /* HOME + white key 1 / 2 / 3 / 16, HOME let go first: PANIC / RESTART /
                                                  * STOP / the settings */
-        if ((w >= 0 && w < 3) || w == 14 || w == 15) {
+        if ((w >= 0 && w < 3) || (w >= 13 && w <= 15)) {
             arm_key(k, w, KEY_ARMED_HOME);
         }
         return;
@@ -1212,26 +1216,90 @@ static int sound_family(int32_t sound)
     return f + 1;
 }
 
-/* the first sound of the next (step 1) or this-or-previous (step -1: the previous one from a family's first) family */
-static int32_t family_step(int32_t sound, int32_t step)
+/* ---- the sounds PRESET offers: in its order, the hidden ones (SOUNDS screen) and the empty USER slots left out */
+
+static int sound_hidden(int32_t sound)
 {
-    int f = sound_family(sound);
-    if (step > 0) {
-        for (int i = 0; i < OLS_SOUND_TOTAL && sound_family(sound) == f; i++) {
-            sound = sound_step(sound, 1);
-        }
+    return sound >= 0 && sound < OLS_SOUND_TOTAL && ((set.hidden[sound >> 3] >> (sound & 7)) & 1u);
+}
+
+static int32_t sound_at(int32_t pos)            /* PRESET's order: SOUND_ORDER, then USER 1..8 */
+{
+    return pos < OLS_SOUND_COUNT ? SOUND_ORDER[pos] : pos;
+}
+
+static int32_t sound_pos(int32_t sound)
+{
+    if (sound >= OLS_SOUND_COUNT) {
         return sound;
     }
-    int32_t prev = sound_step(sound, -1);
-    if (sound_family(prev) == f) {
-        f = 0;                                  /* inside a family: back to its first */
+    for (int32_t p = 0; p < OLS_SOUND_COUNT; p++) {
+        if (SOUND_ORDER[p] == sound) {
+            return p;
+        }
     }
-    sound = prev;
-    int g = sound_family(sound);
-    for (int i = 0; i < OLS_SOUND_TOTAL && sound_family(sound_step(sound, -1)) == g; i++) {
-        sound = sound_step(sound, -1);
+    return 0;
+}
+
+/* a sound PRESET may land on: for A, the synth sounds and the user sounds holding a synth sound; for a track, every
+ * factory sound and the user sounds holding something; `shown`: not hidden too */
+static int sound_offered(int32_t sound, int for_a, int shown)
+{
+    if (shown && sound_hidden(sound)) {
+        return 0;
     }
-    (void)f;
+    if (sound >= OLS_SOUND_FIRST_USER) {
+        const ols_user_sound_t *u = &user_sounds[sound - OLS_SOUND_FIRST_USER];
+        return u->valid && (!for_a || u->kind == OLS_KIND_VA);
+    }
+    return !for_a || live_sound_ok((uint32_t)sound);
+}
+
+/* the next sound offered `step` (+1 / -1) away; with everything hidden, the hidden ones are offered again */
+static int32_t offered_step(int32_t sound, int32_t step, int for_a)
+{
+    for (int shown = 1; shown >= 0; shown--) {
+        int32_t pos = sound_pos(sound);
+        for (int32_t i = 0; i < OLS_SOUND_TOTAL; i++) {
+            pos = (pos + OLS_SOUND_TOTAL + step) % OLS_SOUND_TOTAL;
+            if (sound_offered(sound_at(pos), for_a, shown)) {
+                return sound_at(pos);
+            }
+        }
+    }
+    return sound;
+}
+
+/* the first sound offered of family f (or -1) */
+static int32_t family_first(int f, int for_a, int shown)
+{
+    for (int32_t pos = 0; pos < OLS_SOUND_TOTAL; pos++) {
+        int32_t s = sound_at(pos);
+        if (sound_family(s) == f && sound_offered(s, for_a, shown)) {
+            return s;
+        }
+    }
+    return -1;
+}
+
+/* OCT+: the first sound of the next family that offers one; OCT-: back to this family's first, or from there the
+ * previous family's first. A family with nothing offered is skipped. */
+static int32_t family_step(int32_t sound, int32_t step, int for_a)
+{
+    for (int shown = 1; shown >= 0; shown--) {
+        int f = sound_family(sound);
+        int32_t here = family_first(f, for_a, shown);
+        if (step < 0 && here >= 0 && here != sound && sound_pos(here) < sound_pos(sound)) {
+            return here;
+        }
+        for (int i = 1; i <= FAMILIES; i++) {
+            int g = (int)((f - 1 + (step > 0 ? i : FAMILIES - i)) % FAMILIES) + 1;
+            int32_t first = family_first(g, for_a, shown);
+            if (first >= 0) {
+                return first;
+            }
+        }
+    }
     return sound;
 }
 
@@ -1266,12 +1334,7 @@ static void preset_turn(int32_t step, int family)
 {
     ui.sound_at = plat_ms();
     if (ui.on_a) {                              /* A's sound: the synth sounds, then the user sounds holding one */
-        int32_t sound = set.live_sound;
-        do {
-            sound = family ? family_step(sound, step) : sound_step(sound, step);
-        } while (!live_sound_ok((uint32_t)sound)
-                 || (sound >= OLS_SOUND_FIRST_USER && (!user_sounds[sound - OLS_SOUND_FIRST_USER].valid
-                                                       || user_sounds[sound - OLS_SOUND_FIRST_USER].kind != OLS_KIND_VA)));
+        int32_t sound = family ? family_step(set.live_sound, step, 1) : offered_step(set.live_sound, step, 1);
         set.live_sound = (uint8_t)sound;
         sound_octave(TRACKS, (uint32_t)sound);
         mark_dirty();
@@ -1283,9 +1346,7 @@ static void preset_turn(int32_t step, int family)
     uint8_t t = mirror.track;
     /* factory sounds, then the user sounds that hold something */
     int32_t sound = ui.pend_sound >= 0 ? ui.pend_sound : set.preset[t];
-    do {
-        sound = family ? family_step(sound, step) : sound_step(sound, step);
-    } while (sound >= OLS_SOUND_FIRST_USER && !user_sounds[sound - OLS_SOUND_FIRST_USER].valid);
+    sound = family ? family_step(sound, step, 0) : offered_step(sound, step, 0);
     if (live.track[t].pat.count > 0u) {
         /* the loop plays: the sound waits, red in the header, until SEL (another track gives it up) */
         ui.pend_sound = (int16_t)(sound == set.preset[t] ? -1 : sound);
@@ -1506,6 +1567,7 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
     uint32_t no_blink;
     uint32_t *bl = blink_mask ? blink_mask : &no_blink;
     *bl = 0;
+    ui.keys_conf = 0;
     *lit = keys;
     *dim = 0;
     if (button_held(buttons, B_GLO)) {
@@ -1552,7 +1614,12 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
             }
         }
     } else if (button_held(buttons, B_HOME)) {
-        *dim = white_mask(0, 3) | white_mask(14, 16);       /* PANIC, RESTART, STOP; LOOP EDIT, the settings */
+        *dim = white_mask(0, 3) | white_mask(13, 16);       /* PANIC, RESTART, STOP; SOUNDS, LOOP EDIT, the settings */
+        ui.keys_conf = (1u << WHITE_KEY[13]) | (1u << WHITE_KEY[15]);   /* the set-up ones: slow blink / red on screen */
+        if ((plat_ms() / 500u) & 1u) {
+            *dim &= ~ui.keys_conf;
+        }
+        *bl |= ui.keys_conf;
     } else if (button_held(buttons, BTN_PAGES)) {
         *dim = white_mask(0, 1) | white_mask(APP_WHEEL ? 13 : 14, 16);   /* the line's reset; the wheel; the drum keys */
         *lit |= 1u << WHITE_KEY[set.drum_map == DRUM_MAP_GM ? 15 : 14];
@@ -1652,6 +1719,10 @@ static void input(void)
     }
     if (ledit_is_open()) {                  /* and LOOP EDIT */
         ledit_input();
+        return;
+    }
+    if (fav_is_open()) {                    /* and SOUNDS */
+        fav_input();
         return;
     }
     uint32_t buttons = plat_buttons();

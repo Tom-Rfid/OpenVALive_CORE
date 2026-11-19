@@ -78,17 +78,6 @@ static const uint8_t FAMILY_AT[] = { 0, 4, 9, 14, 19, 23 };
 #define FAMILIES 7
 typedef char sound_order_complete[(OLS_SOUND_COUNT == 31) ? 1 : -1];   /* a sound added: put it in SOUND_ORDER */
 
-/* the sound `step` places away in PRESET's order (factory sounds in SOUND_ORDER, then USER 1..8) */
-static int32_t sound_step(int32_t sound, int32_t step)
-{
-    int32_t pos = sound;
-    if (sound < OLS_SOUND_COUNT) {
-        for (pos = 0; pos < OLS_SOUND_COUNT - 1 && SOUND_ORDER[pos] != sound; pos++) {
-        }
-    }
-    pos = (pos + OLS_SOUND_TOTAL + step) % OLS_SOUND_TOTAL;
-    return pos < OLS_SOUND_COUNT ? SOUND_ORDER[pos] : pos;
-}
 static engine_va_t lv PLAT_POOL;               /* the live voice: a VA engine without delay (the RAM goes to the loops);
                                                 * it renders into the Live Core's chunk buffers, free once it has rendered */
 static volatile float lv_gain = 1.0f;          /* its level (LIVE page, LEVEL with A selected) */
@@ -163,6 +152,16 @@ static struct {
     uint32_t buttons, sound_off;
 } ledit;
 static int ledit_is_open(void);
+
+/* SOUNDS (src/sound_fav.c): which sounds PRESET offers */
+static struct {
+    uint8_t open, drawn, family, row;
+    uint32_t buttons;
+} fav;
+static int fav_is_open(void);
+static void fav_open(void);
+static void fav_input(void);
+static void fav_draw(void);
 static void ledit_open(void);
 static void ledit_input(void);
 static void ledit_draw(void);
@@ -187,7 +186,8 @@ static const uint8_t XFADE_BARS[4] = { 0, 1, 2, 4 };      /* a scene change: a c
 
 /* ------------------------------------------------------------ settings */
 
-#define SET_MAGIC 0x4F4C5339u                   /* "OLS9": settings format; any other value loads defaults */
+#define SET_MAGIC 0x4F4C5341u                   /* "OLSA": settings format; any other value loads defaults */
+#define SET_MAGIC_V9 0x4F4C5339u                /* "OLS9": the same without the sounds hidden from PRESET */
 #define SET_MAGIC_V8 0x4F4C5338u                /* "OLS8": the same, the drum kits and USER sounds 2 lower */
 #define SET_MAGIC_V7 0x4F4C5337u                /* "OLS7": the same, the drum kits and USER sounds 7 lower */
 #define SET_MAGIC_V6 0x4F4C5336u                /* "OLS6": the same without the drum keys and the keys on screen */
@@ -210,8 +210,18 @@ typedef struct {
     uint8_t drum_ds, drum_gs;                   /* the original map's D# and G#: DRUM_PERC numbers */
     uint8_t keys_screen;                        /* 1: a layer button held shows its keys in place of the scope */
     uint8_t wheel_pan;                          /* 1: a target's pitch wheel pans the selected track (APP_WHEEL) */
+    uint8_t hidden[(OLS_SOUND_TOTAL + 7) / 8];  /* sounds PRESET does not offer (the SOUNDS screen); 0: all offered */
 } settings_t;
-typedef char settings_size_kept[(sizeof(settings_t) == 24u) ? 1 : -1];   /* (OLS7 / OLS8 load the same size) */
+
+/* OLS7 .. OLS9's settings: the same without `hidden` (24 bytes) */
+typedef struct {
+    uint32_t magic;
+    int8_t octave[TRACKS + 1];
+    uint8_t page;
+    uint8_t preset[TRACKS];
+    uint8_t controller, midi_ch, live_sound, arp_mode, drum_map, drum_ds, drum_gs, keys_screen, wheel_pan;
+} settings_v9_t;
+typedef char settings_v9_size[(sizeof(settings_v9_t) == 24u) ? 1 : -1];
 
 /* OLS6's settings: the same without the last four */
 typedef struct {
@@ -307,6 +317,7 @@ static struct {
     uint8_t punch;                              /* EDIT held + a note: a punch records (EDIT let go stops it) */
     uint8_t given_up;                           /* the armed role whose key was let go first (said when its button is) */
     uint8_t given_up_w;
+    uint32_t keys_conf;                         /* the keys of the held layer that set things up (shown red / slow) */
     uint8_t arp_vel;                            /* the armed ARP key's strength (its %), shown before it is taken */
     uint8_t arp_pend, arp_pend_w, arp_pend_vel; /* ARP: the last key tapped stays chosen until ARP is let go */
     uint32_t fx_flash_until;                    /* a perform effect just taken: green on the bottom line until then */

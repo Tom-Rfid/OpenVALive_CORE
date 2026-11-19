@@ -179,7 +179,8 @@ static int screen_key_black(uint32_t i)
 
 /* one key: dark grey (nothing), half filled in mint with a mint outline (it does something now), violet (on);
  * a blinking one goes between the half-filled and the dark grey */
-static void screen_key(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t lit, uint32_t dim, uint32_t blink)
+static void screen_key(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t lit, uint32_t dim, uint32_t blink,
+                       uint16_t c)
 {
     int off = blink && ((plat_ms() / 125u) & 1u);
     if (lit && !blink) {
@@ -188,10 +189,10 @@ static void screen_key(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t lit,
     }
     if ((dim || blink) && !off) {
         cv_rect(x, y, w, h, RGB(18, 18, 22));
-        cv_rect(x, y + h / 2, w, h - h / 2, C_MINT);
-        cv_rect(x, y, w, 1, C_MINT);
-        cv_rect(x, y, 1, h, C_MINT);
-        cv_rect(x + w - 1, y, 1, h, C_MINT);
+        cv_rect(x, y + h / 2, w, h - h / 2, c);
+        cv_rect(x, y, w, 1, c);
+        cv_rect(x, y, 1, h, c);
+        cv_rect(x + w - 1, y, 1, h, c);
         return;
     }
     cv_rect(x, y, w, h, RGB(52, 52, 60));
@@ -223,12 +224,13 @@ static int draw_layer_keys(void)
             int32_t k = APP_SCREEN_KEY(i);
             uint32_t bit = k >= 0 ? 1u << k : 0u;
             if (!black) {
-                screen_key(x0 + white * ww, top, ww - 1, kh, lit & bit, dim & bit, blink & bit);
+                screen_key(x0 + white * ww, top, ww - 1, kh, lit & bit, dim & bit, blink & bit,
+                           (ui.keys_conf & bit) ? C_RED : C_MINT);   /* set-up keys red */
                 white++;
             } else {
                 int32_t bw = ww * 3 / 5 | 1;
                 cv_rect(x0 + white * ww - bw / 2 - 1, top, bw + 2, kh * 3 / 5 + 1, C_BLACK);
-                screen_key(x0 + white * ww - bw / 2, top, bw, kh * 3 / 5, lit & bit, dim & bit, blink & bit);
+                screen_key(x0 + white * ww - bw / 2, top, bw, kh * 3 / 5, lit & bit, dim & bit, blink & bit, C_MINT);
             }
         }
     }
