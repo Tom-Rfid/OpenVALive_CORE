@@ -306,11 +306,18 @@ static void draw_track(int t)
     } else if (selected) {
         cv_rect(0, y0, 240, TRACK_ROW_H - 1, C_VIO_BG);      /* the selected track's line, violet */
     }
-    /* recording: the playhead paints the line pink where it records; let go, it paints it back as it passes */
+    /* recording: from the first note taken (or the punch), the playhead paints the line pink where it records, so
+     * the take's start is seen coming back round (when to stop); let go, it paints it back as it passes */
+    static uint8_t painting[TRACKS];
+    if (!(live.recording && !ui.on_a && t == mirror.track)) {
+        painting[t] = 0;
+    } else if (tr->held_count || live.punch) {
+        painting[t] = 1;                        /* a note is being recorded: the take starts here */
+    }
     if (length && live.clock.running) {
         static uint8_t pink[TRACKS][30];
         static int16_t last_x[TRACKS] = { -1, -1, -1, -1 };
-        int rec = live.recording && !ui.on_a && t == mirror.track;
+        int rec = painting[t];
         int32_t px = (int32_t)(ols_live_step(&live, t) * OLS_TICKS_PER_STEP * 240u / length);
         int32_t from = last_x[t] < 0 ? px : last_x[t];
         for (int32_t i = 0; i < 240; i++) {     /* from where it was to where it is, across the loop's end */
@@ -363,7 +370,7 @@ static void draw_track(int t)
     if (live.clock.running) {
         uint32_t pos = ols_live_step(&live, t) * OLS_TICKS_PER_STEP;
         int32_t x = STRIP_X + (int32_t)(pos * STRIP_W / length);
-        int coloured = (live.stutter && tr->stutter) || (live.recording && !ui.on_a && t == mirror.track);
+        int coloured = (live.stutter && tr->stutter) || painting[t];
         cv_rect(x, y0 + 1, 2, TRACK_ROW_H - 2, coloured ? C_GREEN : (selected ? C_WHITE : C_GRAY));   /* green over
                                                  * a red (loop) or pink (recording) line, seen at once */
     }

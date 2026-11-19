@@ -6,6 +6,11 @@
 
 
 
+## 19 November 2026 — the take's pink starts at the first note
+
+- Recording: the line turns pink from the first note taken (or the punch), not from REC pressed, so the take's start
+  is seen coming back round: when to stop. The playhead is green only over that pink (or a running loop).
+
 ## 19 November 2026 — lights checked, PAN target
 
 - Lights, every layer checked in the FM-1 simulator (keys and screen keyboard): SAVE held now lights keys 1–8 (lit:
