@@ -162,6 +162,18 @@ typedef enum {
     VA_PRESET_CREAK,
     VA_PRESET_STRINGS70,    /* vintage: a 70s string machine, an electric piano */
     VA_PRESET_VKEYS,
+    VA_PRESET_TALK,         /* psytrance and transitions */
+    VA_PRESET_PSY_BASS,
+    VA_PRESET_ZAP,
+    VA_PRESET_LASER,
+    VA_PRESET_BLIP,
+    VA_PRESET_METAL,
+    VA_PRESET_ARP,
+    VA_PRESET_CHOIR,
+    VA_PRESET_NOISE,
+    VA_PRESET_RISER,
+    VA_PRESET_DOWNLIFTER,
+    VA_PRESET_SHAKER,
     VA_PRESET_COUNT
 } va_preset_t;
 

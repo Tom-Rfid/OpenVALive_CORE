@@ -60,26 +60,28 @@ static const uint8_t VOICE_LIMIT[TRACKS] = { 4, 1, 2, 4 };
 #define LIVE_VOICES 3u
 #define LIVE_DEFAULT_SOUND VA_PRESET_LEAD
 
-/* the order PRESET shows the factory sounds in (their numbers, kept in saves, do not change): the most played first
- * (acid, basses, drums, leads, keys, pads), the more particular ones last (textures, the weather and sound
- * effects); the USER sounds follow. */
+/* the order PRESET shows the factory sounds in (their numbers, kept in saves, do not change), by character: acid
+ * first, the psytrance tools, basses, drums, the punchy ones, transitions, dark textures, the soft ones last; the
+ * USER sounds follow. */
 static const uint8_t SOUND_ORDER[OLS_SOUND_COUNT] = {
-    VA_PRESET_ACID, VA_PRESET_ACID_SQUARE, VA_PRESET_ACID_SCREAM, VA_PRESET_ACID_DEEP,
-    VA_PRESET_BASS, VA_PRESET_SUB, VA_PRESET_REESE, VA_PRESET_WOBBLE, VA_PRESET_DEEP_SUB,
+    VA_PRESET_ACID, VA_PRESET_ACID_SQUARE, VA_PRESET_ACID_SCREAM, VA_PRESET_SCREECH, VA_PRESET_GRUNGE, VA_PRESET_TALK,
+    VA_PRESET_PSY_BASS, VA_PRESET_ZAP, VA_PRESET_LASER, VA_PRESET_BLIP, VA_PRESET_METAL, VA_PRESET_ARP,
+    VA_PRESET_BASS, VA_PRESET_SUB, VA_PRESET_DEEP_SUB, VA_PRESET_REESE, VA_PRESET_WOBBLE, VA_PRESET_ACID_DEEP,
     OLS_SOUND_FIRST_DRUM + DR_KIT_808, OLS_SOUND_FIRST_DRUM + DR_KIT_909, OLS_SOUND_FIRST_DRUM + DR_KIT_TIGHT,
     OLS_SOUND_FIRST_DRUM + DR_KIT_LOFI, OLS_SOUND_FIRST_DRUM + DR_KIT_IRON,
-    VA_PRESET_LEAD, VA_PRESET_PLUCK, VA_PRESET_STAB, VA_PRESET_BRASS, VA_PRESET_SCREECH,
-    VA_PRESET_ORGAN, VA_PRESET_POLY, VA_PRESET_VKEYS,
-    VA_PRESET_PAD, VA_PRESET_STRINGS, VA_PRESET_STRINGS70, VA_PRESET_SWEEP,
-    VA_PRESET_GRUNGE, VA_PRESET_DRONE, VA_PRESET_HOLD, VA_PRESET_INIT,
-    VA_PRESET_THUNDER, VA_PRESET_RAIN, VA_PRESET_WIND, VA_PRESET_CREAK, VA_PRESET_WHALE, VA_PRESET_DUB_SIREN,
+    VA_PRESET_LEAD, VA_PRESET_PLUCK, VA_PRESET_STAB, VA_PRESET_BRASS, VA_PRESET_ORGAN, VA_PRESET_VKEYS,
+    VA_PRESET_NOISE, VA_PRESET_RISER, VA_PRESET_DOWNLIFTER, VA_PRESET_SHAKER, VA_PRESET_THUNDER, VA_PRESET_RAIN,
+    VA_PRESET_DUB_SIREN,
+    VA_PRESET_DRONE, VA_PRESET_HOLD, VA_PRESET_CREAK, VA_PRESET_WIND,
+    VA_PRESET_POLY, VA_PRESET_PAD, VA_PRESET_STRINGS, VA_PRESET_STRINGS70, VA_PRESET_SWEEP, VA_PRESET_WHALE,
+    VA_PRESET_CHOIR, VA_PRESET_INIT,
 };
-/* the families, by their first place in SOUND_ORDER: F1 acid, F2 basses, F3 drums, F4 leads, F5 keys, F6 pads,
- * F7 textures (and INIT), F8 sound effects; the USER sounds are F9. OCT- / OCT+ while a sound is chosen jump
- * between them. */
-static const uint8_t FAMILY_AT[] = { 0, 4, 9, 14, 19, 22, 26, 30 };
+/* the families, by their first place in SOUND_ORDER: F1 acid, F2 psy, F3 basses, F4 drums, F5 punch, F6 SFX
+ * (transitions, weather), F7 dark, F8 soft (and INIT); the USER sounds are F9. OCT- / OCT+ while a sound is chosen
+ * jump between them. */
+static const uint8_t FAMILY_AT[] = { 0, 6, 12, 18, 23, 29, 36, 40 };
 #define FAMILIES 9
-typedef char sound_order_complete[(OLS_SOUND_COUNT == 36) ? 1 : -1];   /* a sound added: put it in SOUND_ORDER */
+typedef char sound_order_complete[(OLS_SOUND_COUNT == 48) ? 1 : -1];   /* a sound added: put it in SOUND_ORDER */
 
 static engine_va_t lv PLAT_POOL;               /* the live voice: a VA engine without delay (the RAM goes to the loops);
                                                 * it renders into the Live Core's chunk buffers, free once it has rendered */
@@ -194,7 +196,8 @@ static const uint8_t XFADE_BARS[4] = { 0, 1, 2, 4 };      /* a scene change: a c
 
 /* ------------------------------------------------------------ settings */
 
-#define SET_MAGIC 0x4F4C5342u                   /* "OLSB": settings format; any other value loads defaults */
+#define SET_MAGIC 0x4F4C5343u                   /* "OLSC": settings format; any other value loads defaults */
+#define SET_MAGIC_VB 0x4F4C5342u                /* "OLSB": 36 sounds (the drum kits and USER 12 lower) */
 #define SET_MAGIC_VA 0x4F4C5341u                /* "OLSA": 31 sounds (the drum kits and USER 5 lower), no PERC keys,
                                                  * EQ or page per line */
 #define SET_MAGIC_V9 0x4F4C5339u                /* "OLS9": the same without the sounds hidden from PRESET */
@@ -240,6 +243,20 @@ typedef struct {
 } settings_va_t;
 typedef char settings_va_size[(sizeof(settings_va_t) == 28u) ? 1 : -1];
 #define VA_SOUNDS_VA 26u                        /* OLSA's synth sounds: its drum kits and USER sounds from there */
+
+/* OLSB's settings: the same, `hidden` one byte shorter (36 sounds + USER) */
+typedef struct {
+    uint32_t magic;
+    int8_t octave[TRACKS + 1];
+    uint8_t page;
+    uint8_t preset[TRACKS];
+    uint8_t controller, midi_ch, live_sound, arp_mode, drum_map, drum_ds, drum_gs, keys_screen, wheel_pan;
+    uint8_t hidden[6];
+    uint8_t perc[PERC_KEYS];
+    uint8_t eq[EQ_BANDS];
+    uint8_t new_page[TRACKS + 1];
+} settings_vb_t;
+#define VA_SOUNDS_VB 31u                        /* OLSB's synth sounds */
 
 /* OLS7 .. OLS9's settings: the same without `hidden` (24 bytes) */
 typedef struct {

@@ -6,6 +6,12 @@
 
 
 
+## 19 November 2026 — 12 sounds, families by character
+
+- TALK, PSY BASS, ZAP, LASER, BLIP, METAL, ARP, CHOIR, NOISE, RISER, DOWNLIFTER, SHAKER (48 sounds, 43 synth).
+  Families by character: F1 acid, F2 psy, F3 basses, F4 drums, F5 punch, F6 SFX, F7 dark, F8 soft, F9 USER.
+  Settings OLSC (OLSB moved: drum kits, USER and hidden sounds 12 up; `hidden_from`).
+
 ## 19 November 2026 — the take's pink starts at the first note
 
 - Recording: the line turns pink from the first note taken (or the punch), not from REC pressed, so the take's start

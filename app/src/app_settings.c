@@ -117,6 +117,45 @@ static void sounds_from(uint32_t first)
 }
 static void sounds_v7(void) { sounds_from(OLD_VA_SOUNDS); }
 
+/* the hidden sounds of an older format whose drum kits and USER sounds started at `first`: they move up with them */
+static void hidden_from(const uint8_t *old, uint32_t old_bytes, uint32_t first)
+{
+    ols_zero(set.hidden, sizeof set.hidden);
+    for (uint32_t s = 0; s < 8u * old_bytes; s++) {
+        uint32_t now = s < first ? s : s + (VA_PRESET_COUNT - first);
+        if (((old[s >> 3] >> (s & 7u)) & 1u) && now < OLS_SOUND_TOTAL) {
+            set.hidden[now >> 3] = (uint8_t)(set.hidden[now >> 3] | (1u << (now & 7u)));
+        }
+    }
+}
+
+/* OLSB: 36 sounds (TALK .. SHAKER came after) */
+static int settings_migrate_vb(void)
+{
+    static settings_vb_t old;
+    int size = plat_store_load(OBJ_SETTINGS, &old, sizeof old);
+    if (size != (int)sizeof old || old.magic != SET_MAGIC_VB) {
+        return 0;
+    }
+    ols_zero(&set, sizeof set);
+    for (uint32_t i = 0; i < sizeof(settings_v9_t); i++) {  /* the same up to `hidden` */
+        ((uint8_t *)&set)[i] = ((const uint8_t *)&old)[i];
+    }
+    hidden_from(old.hidden, sizeof old.hidden, VA_SOUNDS_VB);
+    for (uint32_t j = 0; j < PERC_KEYS; j++) {
+        set.perc[j] = old.perc[j];
+    }
+    for (uint32_t b = 0; b < EQ_BANDS; b++) {
+        set.eq[b] = old.eq[b];
+    }
+    for (int l = 0; l <= TRACKS; l++) {
+        set.new_page[l] = old.new_page[l];
+    }
+    set.magic = SET_MAGIC;
+    sounds_from(VA_SOUNDS_VB);
+    return settings_valid((int)sizeof set);
+}
+
 /* OLSA: 31 sounds (THUNDER .. VINTAGE KEYS came after), its hidden sounds by those numbers too */
 static int settings_migrate_va(void)
 {
@@ -129,12 +168,7 @@ static int settings_migrate_va(void)
     for (uint32_t i = 0; i < sizeof(settings_v9_t); i++) {  /* the same up to `hidden` */
         ((uint8_t *)&set)[i] = ((const uint8_t *)&old)[i];
     }
-    for (uint32_t s = 0; s < 8u * sizeof old.hidden; s++) {
-        uint32_t now = s < VA_SOUNDS_VA ? s : s + (VA_PRESET_COUNT - VA_SOUNDS_VA);
-        if (((old.hidden[s >> 3] >> (s & 7u)) & 1u) && now < OLS_SOUND_TOTAL) {
-            set.hidden[now >> 3] = (uint8_t)(set.hidden[now >> 3] | (1u << (now & 7u)));
-        }
-    }
+    hidden_from(old.hidden, sizeof old.hidden, VA_SOUNDS_VA);
     set.magic = SET_MAGIC;
     settings_fill_new();
     sounds_from(VA_SOUNDS_VA);
@@ -430,7 +464,7 @@ static int project_save(void)
 static void settings_load(void)
 {
     int size = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
-    if (!settings_valid(size) && !settings_migrate_va() && !settings_migrate_v9() && !settings_migrate_v8() && !settings_migrate_v7() && !settings_migrate_v6() && !settings_migrate_v5() && !settings_migrate_v4()
+    if (!settings_valid(size) && !settings_migrate_vb() && !settings_migrate_va() && !settings_migrate_v9() && !settings_migrate_v8() && !settings_migrate_v7() && !settings_migrate_v6() && !settings_migrate_v5() && !settings_migrate_v4()
         && !settings_migrate_v3() && !settings_migrate_v2() && !settings_migrate_v1()) {
         settings_defaults();
     }
