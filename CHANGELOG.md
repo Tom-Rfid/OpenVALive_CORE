@@ -4,6 +4,12 @@
 
 
 
+
+## 19 November 2026 — STAB, POLY, DRUM EQ, track pan
+
+- STAB and POLY (31 sounds; settings OLS9, older ones moved by themselves).
+- The drum engine's two-band EQ (`DR_P_BASS`, `DR_P_TREBLE`) and the DRUM EQ page (red, drum lines only).
+- `LIVE_PAN`: a track's pan (ramped, no zipper); `APP_WHEEL`: FX + key 14 switches a target's pitch wheel to PAN.
 ## 19 November 2026 — first tests on the SMK-37: titles held, ARP %, recording shown, drums louder
 
 - A layer button held: what its keys last said stays on top until the button is let go or another message comes.
