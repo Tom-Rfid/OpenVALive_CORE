@@ -1,0 +1,351 @@
+/*
+ * OpenVALive - FM-1 app: shared state.
+ *
+ * Part of the app's unity build: app.c includes every file of src/ in order,
+ * so these "static" variables are visible to all of them.
+ *
+ * Ownership rule:
+ *   - the AUDIO side (app_render, in the audio interrupt) owns the engines
+ *     and the Live Core (`live`);
+ *   - the UI side (app_frame, in the main loop) owns `set` and `ui`;
+ *   - the UI talks to the audio side only through the event queue `evq`,
+ *     and only READS the Live Core to draw it.
+ */
+
+/* ------------------------------------------------------------ engines and Live Core */
+
+#define TRACKS OLS_TRACKS                      /* 4 tracks; each owns a VA engine and a drum engine */
+#define DELAY_LEN 16384u                       /* 371 ms of int16 samples = 32 KB per track, in the pool */
+
+static int16_t delay_buf[TRACKS][DELAY_LEN] PLAT_POOL;
+static engine_va_t va[TRACKS] PLAT_POOL;
+static engine_drum_t drum[TRACKS] PLAT_POOL;
+static ols_slot_t slots[TRACKS];               /* which engines each track can switch between (bank.h) */
+static ols_live_t live PLAT_POOL;
+static midi_in_t midi;
+static ols_evq_t evq;
+
+static float buf_l[APP_BLOCK];
+static float buf_r[APP_BLOCK];
+static float gain_now;                          /* smoothed MASTER gain */
+
+/* the built-in speaker cannot play deep bass: below ~130 Hz it only distorts, so it gets a low cut
+ * (the headphones keep the whole sound). Written by the UI (jack switch), read by the audio. */
+static volatile uint8_t on_speaker;
+static dsp_svf_t speaker_cut[2];
+static volatile uint32_t audio_clock;           /* samples rendered since boot */
+
+/* oscilloscope: the left channel, one sample out of SCOPE_DECIMATE, read by the UI */
+#define SCOPE_N 512u
+#define SCOPE_DECIMATE 2u
+static int16_t scope[SCOPE_N];
+static volatile uint32_t scope_write;
+static uint32_t scope_phase;                    /* decimation counter */
+
+/* ------------------------------------------------------------ names and defaults */
+
+/* a band ready to play: the acid (the first thing heard), bass, lead, drums (sound numbers of bank.h) */
+static const uint8_t DEFAULT_SOUND[TRACKS] = { VA_PRESET_ACID, VA_PRESET_BASS, VA_PRESET_LEAD,
+                                               OLS_SOUND_FIRST_DRUM + DR_KIT_808 };
+
+/* synth voices per track: 11 at most in all, so four busy tracks stay inside the CPU */
+static const uint8_t VOICE_LIMIT[TRACKS] = { 4, 1, 2, 4 };
+
+/* ------------------------------------------------------------ A: the live line */
+
+/* A fifth line under the four tracks. With A selected (SELECT past track 4), the keys play a sound of their own, live,
+ * over the loops (not recorded; arpeggiated: ARP tapped), and the gestures (perform effects, CLEAR, UNDO / REDO, the
+ * Creative Engine) act on every track; with a track selected they act on that track only. */
+#define T_LIVE 0xFDu                           /* event target: the live voice */
+#define LIVE_VOICES 3u
+#define LIVE_DEFAULT_SOUND VA_PRESET_LEAD
+
+/* the order PRESET shows the factory sounds in (their numbers, kept in saves, do not change): the acid first, the
+ * basses, the drum kits close, then leads and keys, pads, textures; INIT last. The USER sounds follow. */
+static const uint8_t SOUND_ORDER[OLS_SOUND_COUNT] = {
+    VA_PRESET_ACID, VA_PRESET_ACID_SQUARE, VA_PRESET_ACID_SCREAM, VA_PRESET_ACID_DEEP,
+    VA_PRESET_BASS, VA_PRESET_SUB, VA_PRESET_REESE, VA_PRESET_WOBBLE, VA_PRESET_DEEP_SUB,
+    OLS_SOUND_FIRST_DRUM + DR_KIT_808, OLS_SOUND_FIRST_DRUM + DR_KIT_909, OLS_SOUND_FIRST_DRUM + DR_KIT_TIGHT,
+    OLS_SOUND_FIRST_DRUM + DR_KIT_LOFI, OLS_SOUND_FIRST_DRUM + DR_KIT_IRON,
+    VA_PRESET_LEAD, VA_PRESET_PLUCK, VA_PRESET_BRASS, VA_PRESET_ORGAN,
+    VA_PRESET_PAD, VA_PRESET_STRINGS, VA_PRESET_SWEEP,
+    VA_PRESET_GRUNGE, VA_PRESET_SCREECH, VA_PRESET_DRONE, VA_PRESET_WIND, VA_PRESET_HOLD, VA_PRESET_WHALE,
+    VA_PRESET_DUB_SIREN, VA_PRESET_INIT,
+};
+/* the families, by their first place in SOUND_ORDER: F1 acid, F2 basses, F3 drums, F4 leads and keys, F5 pads,
+ * F6 textures (and INIT); the USER sounds are F7. OCT- / OCT+ while a sound is chosen jump between them. */
+static const uint8_t FAMILY_AT[] = { 0, 4, 9, 14, 18, 21 };
+#define FAMILIES 7
+typedef char sound_order_complete[(OLS_SOUND_COUNT == 29) ? 1 : -1];   /* a sound added: put it in SOUND_ORDER */
+
+/* the sound `step` places away in PRESET's order (factory sounds in SOUND_ORDER, then USER 1..8) */
+static int32_t sound_step(int32_t sound, int32_t step)
+{
+    int32_t pos = sound;
+    if (sound < OLS_SOUND_COUNT) {
+        for (pos = 0; pos < OLS_SOUND_COUNT - 1 && SOUND_ORDER[pos] != sound; pos++) {
+        }
+    }
+    pos = (pos + OLS_SOUND_TOTAL + step) % OLS_SOUND_TOTAL;
+    return pos < OLS_SOUND_COUNT ? SOUND_ORDER[pos] : pos;
+}
+static engine_va_t lv PLAT_POOL;               /* the live voice: a VA engine without delay (the RAM goes to the loops);
+                                                * it renders into the Live Core's chunk buffers, free once it has rendered */
+static volatile float lv_gain = 1.0f;          /* its level (LIVE page, LEVEL with A selected) */
+
+/* the arpeggiator of the live line: the keys held, played one at a time on the 16ths */
+enum { ARP_OFF, ARP_UP, ARP_DOWN, ARP_UPDOWN, ARP_RANDOM, ARP_MODES };
+static const char *const ARP_NAME[ARP_MODES] = { "OFF", "UP", "DOWN", "UP/DOWN", "RANDOM" };
+static volatile uint8_t arp_mode;              /* written by the UI (one byte), read by the audio side */
+#define ARP_HELD 8
+static struct {
+    uint8_t note[ARP_HELD], vel[ARP_HELD];      /* the keys held, in the order they went down */
+    uint8_t count;
+    uint8_t sounding;                           /* the note playing (0: none) */
+    uint8_t pos;                                /* index into the sorted notes */
+    int8_t dir;                                 /* UP/DOWN: +1 / -1 */
+    uint8_t gate_open;
+    float phase;                                /* 0..1 across a 16th */
+    uint32_t rng;
+} arp;
+
+/* A plays synth sounds: the factory ones and the user sounds (a user sound that holds drums is skipped when chosen) */
+static int live_sound_ok(uint32_t sound)
+{
+    return sound < OLS_SOUND_FIRST_DRUM || (sound >= OLS_SOUND_FIRST_USER && sound < OLS_SOUND_TOTAL);
+}
+
+/* colours: the logo's, for what is selected (violet: a track, mint: A) and the pages */
+#define C_VIO RGB(150, 120, 255)
+#define C_VIO_BG RGB(44, 26, 104)
+#define C_MINT RGB(90, 200, 160)
+#define C_MINT_BG RGB(16, 60, 48)
+#define C_ORANGE RGB(238, 90, 36)
+#define C_PINK RGB(255, 120, 190)
+#define C_GREEN RGB(60, 210, 90)
+#define C_YELLOW RGB(255, 214, 40)
+#define C_PINK_BG RGB(120, 36, 86)                /* a track line being recorded */
+#define C_CYAN RGB(60, 200, 235)
+#define C_BAR_BG RGB(96, 96, 106)
+#define C_RED RGB(235, 40, 40)
+#define C_VALUE RGB(130, 118, 178)               /* the values over their bars: grey violet, one colour
+                                                  * (two colours cut a number in two as it changes) */
+enum { MSG_PLAIN, MSG_ARMED, MSG_TAKEN, MSG_NOT_TAKEN };   /* armed: "LET GO .." green; taken: mint; not: orange */
+#define C_DARK_ORANGE RGB(200, 96, 20)
+#define C_LOOP_BG RGB(110, 18, 18)              /* a track whose loop (stutter) runs */
+
+/* ------------------------------------------------------------ knob pages */
+
+/* SEL cycles the pages of the four encoders K1..K4. */
+enum { PAGE_SOUND, PAGE_MACRO, PAGE_LIVE, PAGE_SETUP, PAGE_USER, PAGE_COUNT };
+static const char *const PAGE_NAME[PAGE_COUNT] = { "SOUND", "MACRO", "LIVE", "SETUP", "USER" };
+
+/* the CONTROL MAP (src/control_map.c, after the UI it serves): USER page, menu, the map in flash */
+static int map_is_open(void);
+static void map_open(void);
+static void map_open_settings(void);
+static void map_input(void);
+static void map_draw(void);
+static void map_turn(uint32_t slot, int32_t turn);
+static void map_knob_value(uint32_t k, float *bar, int32_t *shown, const char **label);
+static void map_load(void);
+static int map_save(void);
+/* SOUND EDIT (src/sound_edit.c) */
+static int sedit_is_open(void);
+static void sedit_open(void);
+static void sedit_input(void);
+static void sedit_draw(void);
+
+/* LOOP EDIT (src/loop_edit.c) */
+static struct {
+    uint8_t open, drawn, cursor, want, heard, quiet, key, sounding, sound_note, add_note, want_note;
+    uint16_t want_tick;
+    uint32_t buttons, sound_off;
+} ledit;
+static int ledit_is_open(void);
+static void ledit_open(void);
+static void ledit_input(void);
+static void ledit_draw(void);
+
+/* MACRO: one knob, many parameters on every track (50 = the sound as it is) */
+static const char *const MACRO_NAME[OLS_MACROS] = { "ENERGY", "SPACE", "TENSION", "DENSITY" };
+
+/* SOUND: the four macros of the selected track's engine (synth: CUTOFF RESO ENV FX,
+ * drums: TUNE DECAY CUTOFF DRIVE) */
+#define KNOB_COUNT OLS_MACROS
+
+/* controller mode: the CCs the four knobs send */
+static const uint8_t CONTROLLER_CC[KNOB_COUNT] = { 74, 71, 75, 94 };
+
+/* LIVE: performance values */
+static const char *const LIVE_NAME[KNOB_COUNT] = { "MORPH", "SWING", "PUMP", "LEVEL" };
+
+/* SETUP: preparation, not for the middle of a set */
+static const char *const SETUP_NAME[KNOB_COUNT] = { "MIDI IN", "XFADE", "QUANT", "BARS" };
+static const uint8_t CHAIN_BARS[3] = { 4, 8, 16 };          /* scene chain: bars per scene */
+static const uint8_t XFADE_BARS[4] = { 0, 1, 2, 4 };      /* a scene change: a cut, or a cross-fade of n bars */
+
+/* ------------------------------------------------------------ settings */
+
+#define SET_MAGIC 0x4F4C5338u                   /* "OLS8": settings format; any other value loads defaults */
+#define SET_MAGIC_V7 0x4F4C5337u                /* "OLS7": the same, the drum kits and USER sounds 7 lower */
+#define SET_MAGIC_V6 0x4F4C5336u                /* "OLS6": the same without the drum keys and the keys on screen */
+#define SET_MAGIC_V5 0x4F4C5335u                /* "OLS5": the same, the synth sounds numbered in their old order */
+#define SET_MAGIC_V4 0x4F4C5334u                /* "OLS4": the same, before DRUMS 909 (the sounds past DRUMS 808 one lower) */
+#define SET_MAGIC_V3 0x4F4C5333u                /* "OLS3": one octave for every line */
+#define SET_MAGIC_V2 0x4F4C5332u                /* "OLS2" (0.0.3 and before): no live line */
+#define SET_MAGIC_V1 0x4F4C5331u                /* "OLS1" (0.1): one sound, moved to track 1 */
+
+typedef struct {
+    uint32_t magic;
+    int8_t octave[TRACKS + 1];                  /* -3 .. +3, per line: tracks 1..4, then A */
+    uint8_t page;
+    uint8_t preset[TRACKS];                     /* sound chosen per track (bank.h numbers) */
+    uint8_t controller;                         /* 1: keys and knobs only send MIDI ("local off") */
+    uint8_t midi_ch;                            /* MIDI in: 0 all channels, 1..16 one, MIDI_CH_CLOCK = clock only */
+    uint8_t live_sound;                         /* A's sound (a synth sound, or a user sound) */
+    uint8_t arp_mode;                           /* A's arpeggiator, ARP_* */
+    uint8_t drum_map;                           /* the drum keys: DRUM_MAP_ORIGINAL or DRUM_MAP_GM */
+    uint8_t drum_ds, drum_gs;                   /* the original map's D# and G#: DRUM_PERC numbers */
+    uint8_t keys_screen;                        /* 1: a layer button held shows its keys in place of the scope */
+} settings_t;
+
+/* OLS6's settings: the same without the last four */
+typedef struct {
+    uint32_t magic;
+    int8_t octave[TRACKS + 1];
+    uint8_t page;
+    uint8_t preset[TRACKS];
+    uint8_t controller, midi_ch, live_sound, arp_mode;
+} settings_v6_t;
+
+/* The drum keys (General MIDI note numbers, so a computer and MIDI OUT see the right instruments): the original map
+ * is made to be played (D# and G# chosen, the toms high to low), GM's is the computers' 36..47, every octave. */
+enum { DRUM_MAP_ORIGINAL, DRUM_MAP_GM };
+#define DRUM_PERCS 5u
+static const struct {
+    uint8_t note;
+    const char *name;
+} DRUM_PERC[DRUM_PERCS] = { { 56, "COWBELL" }, { 39, "CLAP" }, { 81, "TRIANGLE" }, { 37, "RIM" }, { 44, "PEDAL HAT" } };
+#ifndef APP_KEYS_SCREEN
+#define APP_KEYS_SCREEN 0u                      /* a target without key lights (SMK-37) turns it on */
+#endif
+
+/* OLS3's settings: one octave for every line */
+typedef struct {
+    uint32_t magic;
+    int8_t octave;
+    uint8_t page;
+    uint8_t preset[TRACKS];
+    uint8_t controller;
+    uint8_t midi_ch;
+    uint8_t live_sound;
+    uint8_t arp_mode;
+} settings_v3_t;
+
+/* OLS2's settings: the same without the live line */
+typedef struct {
+    uint32_t magic;
+    int8_t octave;
+    uint8_t page;
+    uint8_t preset[TRACKS];
+    uint8_t controller;
+    uint8_t midi_ch;
+} settings_v2_t;
+
+#define MIDI_CH_CLOCK 17u                       /* notes ignored, clock followed: a drum machine as the master */
+
+/* 0.1's settings, read once to keep the sound of an update */
+typedef struct {
+    uint32_t magic;
+    int8_t octave;
+    uint8_t preset;
+    uint8_t reserved[2];
+    float p[40];                                /* 0.1 had 40 parameters */
+} settings_v1_t;
+
+static settings_t set;
+static uint8_t set_dirty;                       /* changed since the last save: SAVE is lit */
+static uint32_t saved_changes;                  /* live.changes at the last save */
+
+/* the 8 user sounds (SAVE + white key 1..8 keeps the track's sound): written on the audio side,
+ * saved by the UI with SAVE */
+static ols_user_sound_t user_sounds[OLS_USER_SOUNDS];
+/* a user sound keeps its octave in valid's high nibble (bit 0: valid): sounds kept before read octave 0 */
+#define USER_VALID(oct) ((uint8_t)(1u | ((uint8_t)(oct) & 0x0Fu) << 4))
+#define USER_OCTAVE(u) ((int8_t)((u)->valid & 0xF0u) >> 4)
+
+/* the saved live set is read at boot but applied once the UI is up: holding HOME while switching on
+ * skips it (safe start, if a set ever misbehaves) */
+static volatile uint8_t project_pending;       /* 1: bytes in project_buf wait for the audio side */
+static uint32_t project_size;
+static uint8_t ui_started;                      /* app_ui_init ran once since boot (it runs again after a restore) */
+
+/* project buffer: the live set as bytes (UI side, for saving and loading) */
+static uint8_t project_buf[OLS_PROJECT_MAX + 2u] PLAT_POOL;   /* + the 2-byte size word */
+
+/* ------------------------------------------------------------ UI */
+
+/* what a key does while a layer button is held */
+enum { KEY_NOTE, KEY_FX, KEY_NONE, KEY_ARMED_ARP, KEY_ARMED_SEQ, KEY_ARMED_GLO, KEY_ARMED_HOME, KEY_ARMED_FX };   /* ARMED: on a track, ARP / SEQ + key only shows
+                                                                         * the gesture; letting ARP / SEQ go first applies it */
+
+/* the perform effects on the white keys while FX is held: tap = latch, hold = momentary */
+#define FX_KEYS 16
+#define FX_TAP_MS 250u
+
+static struct {
+    char msg[2][24];                            /* short message over the header */
+    uint32_t msg_until;
+    uint8_t msg_style;                          /* MSG_*: how the header message shows */
+    uint8_t punch;                              /* EDIT held + a note: a punch records (EDIT let go stops it) */
+    uint8_t given_up;                           /* the armed role whose key was let go first (said when its button is) */
+    uint8_t given_up_w;
+    uint8_t arp_vel;                            /* the armed ARP key's strength (its %), shown before it is taken */
+    uint8_t arp_pend, arp_pend_w, arp_pend_vel; /* ARP: the last key tapped stays chosen until ARP is let go */
+    uint32_t fx_flash_until;                    /* a perform effect just taken: green on the bottom line until then */
+    uint8_t seq_used;                           /* SEQ held for a key or OCT: its release is not a tap */
+    uint32_t keys;                              /* keys held at the last scan */
+    uint32_t buttons;                           /* buttons held at the last scan */
+    uint8_t key_note[NKEYS];                    /* note played by each key (the octave may change while held) */
+    uint8_t key_track[NKEYS];                   /* the track it played on (the track may change while held) */
+    uint8_t key_role[NKEYS];                    /* KEY_* */
+    uint8_t key_fx[NKEYS];                      /* the perform effect a held key started (KEY_FX) */
+    uint32_t key_down_at[NKEYS];                /* when it was pressed: a short tap latches */
+    uint8_t fx_on[FX_KEYS];                     /* perform effects running (held or latched) */
+    uint8_t fx_latched[FX_KEYS];                /* ...and those that stay after the key is let go */
+    uint8_t fx_target[FX_KEYS];                 /* the track it acts on, or OLS_TRACK_ALL (A selected) */
+    uint8_t on_a;                               /* A is selected (mirror.track stays the last track selected) */
+    uint32_t arp_down_at;                       /* ARP went down: a tap (no key, short) changes A's arpeggio */
+    uint8_t arp_used;                           /* a key was played while ARP was held */
+    float lv_level;                             /* A's level */
+    float shadow[TRACKS][OLS_MAX_PARAMS];       /* UI copy of the parameters */
+    uint8_t cc_value[KNOB_COUNT];               /* controller mode: the last CC values sent */
+    uint8_t pressure_sent;                      /* last key pressure sent (aftertouch), 0..127 */
+    uint8_t save_used;                          /* SAVE held: a key stored a user sound, so no set save on release */
+    uint8_t metronome;
+    uint8_t xfade;                              /* index in XFADE_BARS */
+    float macro[KNOB_COUNT];                    /* MACRO page, 0..1 (0.5 neutral) */
+    float pump;                                 /* sidechain depth */
+    uint8_t chain_bars;                         /* index in CHAIN_BARS */
+    uint8_t sync_after_load;                    /* the saved set is being loaded: re-read it when done */
+    float morph, swing, level[TRACKS];          /* LIVE page values */
+    uint32_t turned_at;                         /* last encoder turn, ms */
+    uint32_t sound_at;                          /* PRESET last turned, ms: OCT- / OCT+ jump families for a while */
+    uint32_t last_draw;
+    uint8_t redraw;
+    int16_t pend_sound;                         /* a sound turned on PRESET for a track with a loop: waits for SEL (-1: none) */
+    uint8_t hover;                              /* SEL held + SELECT turned: the line pointed at (0..3, TRACKS = A) */
+    uint8_t hovering;                           /* ...and it moved: SEL let go selects it (from A: swaps A with it) */
+    uint8_t swap_track;                         /* the last A <-> track swap: its track + 1 (0: none) */
+    uint8_t swap_undone;                        /* 1: ENV put it back (LFO swaps again) */
+    uint32_t swap_mark;                         /* live.undo_top at the swap: undoable while nothing newer */
+    uint8_t pages_used;                         /* SEL did something else while held: no page turn on release */
+    uint32_t splash_until;                      /* the boot screen stays until then, or until a hand touches something */
+    uint8_t activity;                           /* something was touched since the last frame */
+} ui;
+
+/* the MASTER position in %, for the header: fm1-base's pot, or a target's own (the SMK-37's encoder) */
+#ifndef APP_MASTER_PCT
+#define APP_MASTER_PCT() ((plat_master() * 100u + 2048u) / 4096u)
+#endif

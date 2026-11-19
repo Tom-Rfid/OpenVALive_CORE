@@ -1,0 +1,4 @@
+build/
+*.wav
+*.f32
+__pycache__/
