@@ -6,6 +6,12 @@
 
 
 
+## 20 November 2026 — breathing keys, brighter glow (FM-1)
+
+- A layer held: the keys it offers breathe (a second up and down: the dim pulse swept 0.5–4 µs, the mid level at the
+  top; `APP_DIM_LEVELS` targets), and their fill on a screen keyboard too; otherwise the glow at its brightest
+  (4 µs, was the low glow 1.6 µs). HOME's set-up keys breathe instead of blinking.
+
 ## 20 November 2026 — names per target, HOME set-up keys moved, titles, REC / CAPTURE while playing
 
 - `APP_BUTTON_NAMES`, `APP_ALGO_NAME`, `APP_PRESET_NAME`: the screen names the target's buttons (SMK-37: NOTE,

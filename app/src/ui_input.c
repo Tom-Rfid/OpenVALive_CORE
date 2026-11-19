@@ -1753,6 +1753,18 @@ static uint32_t white_mask(int from, int to)
     return m;
 }
 
+/* the buttons that hold a layer on the keys */
+#define LAYER_BUTTONS_ALL ((1u << B_ARP) | (1u << B_GLO) | (1u << BTN_PERFORM) | (1u << BTN_TRACKS) | (1u << B_SAVE) \
+                           | (1u << B_HOME) | (1u << BTN_PAGES))
+
+/* a breath, 0 .. 256 and back over a second (a smoothstep each way: close to a sine, without one) */
+static uint32_t breath_256(void)
+{
+    uint32_t t = plat_ms() % 1000u;
+    uint32_t x = t < 500u ? t * 256u / 500u : (1000u - t) * 256u / 500u;    /* 0 .. 256 .. 0 */
+    return x * x * (768u - 2u * x) / 65536u;                               /* 3x^2 - 2x^3, in 256ths */
+}
+
 /* the keys' lights: lit, dim (it does something now), and which of them blink (*blink, may be 0) */
 static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t *dim, uint32_t *blink_mask)
 {
@@ -1823,10 +1835,7 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
          * screen keyboard; a key held: lit */
         ui.keys_conf = white_mask(HOME_SOUNDS, HOME_OPTIONS + 1);
         *lit |= white_mask(0, 3);
-        if ((plat_ms() / 500u) & 1u) {
-            *lit |= ui.keys_conf;
-        }
-        *dim = white_mask(0, 3) | ui.keys_conf;
+        *dim = white_mask(0, 3) | ui.keys_conf;     /* (the set-up ones breathe, as every key a layer offers) */
     } else if (button_held(buttons, BTN_PAGES)) {
         *dim = white_mask(0, 1) | white_mask(APP_WHEEL ? 13 : 14, 16);   /* the line's reset; the wheel; the drum keys */
         *lit |= 1u << WHITE_KEY[set.drum_map == DRUM_MAP_GM ? 15 : 14];
@@ -1924,6 +1933,18 @@ static void show_lights(uint32_t keys, uint32_t buttons)
     }
     plat_play_red(live.recording);
     plat_lights(lit_b, lit_k, dim_b, dim_k & ~lit_k, 1);
+#ifdef APP_DIM_LEVELS
+    /* a layer button held: the keys it offers breathe (up and down over a second: the dim pulse swept, the mid level
+     * at the top); otherwise the dim ones steady at the brightest glow */
+    if (buttons & LAYER_BUTTONS_ALL) {
+        uint32_t b = breath_256();
+        plat_dim_ns(500u + 3500u * b / 256u);
+        plat_lights_mid(0, b > 170u ? dim_k & ~lit_k : 0u);
+    } else {
+        plat_dim_ns(4000u);
+        plat_lights_mid(0, 0);
+    }
+#endif
 }
 
 /* ------------------------------------------------------------ all inputs */

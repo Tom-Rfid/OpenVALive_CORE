@@ -207,8 +207,17 @@ static int screen_key_black(uint32_t i)
     return pc == 1u || pc == 3u || pc == 6u || pc == 8u || pc == 10u;
 }
 
-/* one key: dark grey (nothing), half filled in mint with a mint outline (it does something now), violet (on);
- * a blinking one goes between the half-filled and the dark grey */
+/* two RGB565 colours mixed, t = 0 .. 256 of b */
+static uint16_t mix565(uint16_t a, uint16_t b, uint32_t t)
+{
+    uint32_t r = ((a >> 11) * (256u - t) + (b >> 11) * t) >> 8;
+    uint32_t g = (((a >> 5) & 63u) * (256u - t) + ((b >> 5) & 63u) * t) >> 8;
+    uint32_t bl = ((a & 31u) * (256u - t) + (b & 31u) * t) >> 8;
+    return (uint16_t)(r << 11 | g << 5 | bl);
+}
+
+/* one key: dark grey (nothing), half filled in mint with a mint outline (it does something now: its fill breathes,
+ * a second up and down), violet (on); a blinking one goes between the half-filled and the dark grey */
 static void screen_key(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t lit, uint32_t dim, uint32_t blink,
                        uint16_t c)
 {
@@ -219,7 +228,7 @@ static void screen_key(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t lit,
     }
     if ((dim || blink) && !off) {
         cv_rect(x, y, w, h, RGB(18, 18, 22));
-        cv_rect(x, y + h / 2, w, h - h / 2, c);
+        cv_rect(x, y + h / 2, w, h - h / 2, blink ? c : mix565(RGB(18, 18, 22), c, 80u + 176u * breath_256() / 256u));
         cv_rect(x, y, w, 1, c);
         cv_rect(x, y, 1, h, c);
         cv_rect(x + w - 1, y, 1, h, c);
