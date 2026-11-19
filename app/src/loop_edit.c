@@ -3,7 +3,7 @@
  *   SELECT       the note before / after (it sounds)        a key   its pitch becomes that key's note
  *   K1 position (1/16)   K2 length   K3 velocity   K4 pitch (a semitone)
  *   REC          take the note out                          EDIT    a note one 1/16 after it
- *   HOME / SEL   back (the whole edit is one UNDO step)     PLAY    play / stop, still editing
+ *   a menu button or SEL: back (one UNDO step)   PLAY    play / stop, still editing
  * The Live Core does the change (LIVE_NOTE_EDIT): it may be playing. */
 
 static int ledit_is_open(void) { return ledit.open; }
@@ -86,10 +86,11 @@ static void ledit_input(void)
         send_note_off(mirror.track, ledit.sound_note);
         ledit.sounding = 0;
     }
-    if (pressed & ((1u << B_HOME) | (1u << BTN_VALIDATE))) {
+    if (pressed & (MENU_BUTTONS | (1u << BTN_VALIDATE))) {    /* any menu button, or SEL: back */
         ledit_close();
         return;
     }
+    menu_lights((1u << B_REC) | (1u << B_EDIT));         /* REC takes the note out, EDIT adds one */
     if (pressed & (1u << B_PLAY)) {
         send_live(LIVE_PLAY_TOGGLE, 0, 0, 0.0f, 0);
     }
@@ -236,6 +237,7 @@ static void ledit_draw(void)
     } else {
         cv_text(8, 16, &FONT_B, "EMPTY: EDIT ADDS", C_GRAY);
     }
-    cv_text(8, 46, &FONT_XS, "REC DEL  EDIT ADD  HOME BACK", C_GRAY);
+    cv_text(8, 46, &FONT_XS, "REC DEL  EDIT ADD", C_GRAY);
+    help_menu_out(46, C_GRAY);
     cv_blit(0, LEDIT_TOP + LEDIT_ROLL);
 }

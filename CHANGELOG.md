@@ -6,6 +6,14 @@
 
 
 
+## 19 November 2026 — lights checked, PAN target
+
+- Lights, every layer checked in the FM-1 simulator (keys and screen keyboard): SAVE held now lights keys 1–8 (lit:
+  a USER sound kept there); FX held lights key 14 while the wheel pans; FX and SAVE pressed show their title like
+  the other layers. The set-up screens (SOUNDS, MAP / OPTION CONTROL, SOUND EDIT, LOOP EDIT) light their buttons
+  (`menu_lights`: the menu buttons and PLAY dim, the ones acting there lit) and all close with any menu button.
+- MAP CONTROL target **PAN** (a track in the stereo field, notched in the middle): the FM-1 pans with a knob.
+
 ## 19 November 2026 — 5 sounds, 9 families, MAP CONTROL / OPTION CONTROL, master EQ, PERC keys
 
 - Sounds: THUNDER, RAIN, CREAK, STRINGS 70, VINTAGE KEYS (36). Families F1 acid, F2 basses, F3 drums, F4 leads,

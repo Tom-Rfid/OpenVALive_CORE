@@ -63,6 +63,7 @@ static void fav_input(void)
     uint32_t pressed = buttons & ~fav.buttons;
     fav.buttons = buttons;
     menu_keys();
+    menu_lights((1u << BTN_VALIDATE) | (1u << B_OCTDN) | (1u << B_OCTUP));   /* SEL on / off, OCT the family */
     if (pressed & MENU_BUTTONS) {
         fav_close();
         return;

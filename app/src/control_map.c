@@ -36,7 +36,7 @@ enum {
     MAP_NONE, MAP_LEVEL, MAP_ENERGY, MAP_SPACE, MAP_TENSION, MAP_DENSITY, MAP_MORPH, MAP_SWING, MAP_PUMP,
     MAP_FILTER, MAP_RESO, MAP_DRIVE, MAP_DELAY, MAP_CHORUS, MAP_CRUSH, MAP_DECAY,
     MAP_SOUND, MAP_TEMPO, MAP_BEND, MAP_PRESSURE, MAP_CC,
-    MAP_EQ_BASS, MAP_EQ_MID, MAP_EQ_TREBLE, MAP_EQ_FREQ, MAP_TARGETS     /* (new ones at the end: numbers kept) */
+    MAP_EQ_BASS, MAP_EQ_MID, MAP_EQ_TREBLE, MAP_EQ_FREQ, MAP_PAN, MAP_TARGETS   /* (new ones at the end: numbers kept) */
 };
 static const struct {
     const char *name;
@@ -55,7 +55,7 @@ static const struct {
     { "SOUND", ARG_KNOB, 0 },       { "TEMPO", ARG_NONE, 0 },
     { "BEND", ARG_NONE, 0 },        { "AFTER", ARG_NONE, 0 },       { "MIDI CC", ARG_CC, 0 },
     { "BASS", ARG_NONE, 0 },        { "MID", ARG_NONE, 0 },         { "TREBLE", ARG_NONE, 0 },
-    { "MID FREQ", ARG_NONE, 0 },
+    { "MID FREQ", ARG_NONE, 0 },    { "PAN", ARG_TRACK, 0 },
 };
 #define SCOPE_ALL 0u                /* ARG_SCOPE: 0 every track, 1..4 one track, 5 the selected one */
 #define SCOPE_SELECTED 5u
@@ -405,6 +405,8 @@ static float map_current(uint32_t slot)
         return (live.clock.bpm - 60.0f) * (1.0f / 120.0f);
     case MAP_EQ_BASS: case MAP_EQ_MID: case MAP_EQ_TREBLE: case MAP_EQ_FREQ:
         return (float)set.eq[cmap.target[slot] - MAP_EQ_BASS] * (1.0f / 255.0f);
+    case MAP_PAN:
+        return 0.5f + 0.5f * live.track[map_track(slot)].pan;
     case MAP_SOUND: {
         const ols_engine_api_t *api = track_api(mirror.track);
         return ui.shadow[mirror.track][api->macros[(cmap.arg[slot] - 1u) % KNOB_COUNT]];
@@ -470,6 +472,14 @@ static void map_set(uint32_t slot, float v)
         set.eq[target - MAP_EQ_BASS] = (uint8_t)(v * 255.0f + 0.5f);
         int32_t db = (int32_t)((v - 0.5f) * 24.0f + (v >= 0.5f ? 0.5f : -0.5f));
         say_int(name, db, " DB");
+        return;
+    }
+    case MAP_PAN: {                             /* the track in the stereo field: left .. centre .. right */
+        uint8_t t = map_track(slot);
+        float pan = (v - 0.5f) * 2.0f;
+        pan = pan > -0.04f && pan < 0.04f ? 0.0f : pan;    /* a notch in the middle: the centre is easy to find */
+        send_live(LIVE_PAN, 0, 0, pan, t);
+        say_int(name, (int32_t)(pan * 100.0f + (pan >= 0.0f ? 0.5f : -0.5f)), pan < 0.0f ? " L" : (pan > 0.0f ? " R" : " C"));
         return;
     }
     case MAP_EQ_FREQ:
@@ -670,6 +680,18 @@ static void map_change_arg(uint32_t s, int32_t turn)
     cmap.arg[s] = (uint8_t)a;
 }
 
+/* a set-up screen's lights: the menu buttons (any closes) and PLAY dim (PLAY green when running), `lit` the ones that
+ * act here (EDIT: a row's default; SEL, OCT: SOUNDS), the keys as they are played */
+static void menu_lights(uint32_t lit)
+{
+    uint32_t dim = (MENU_BUTTONS | (1u << BTN_VALIDATE) | (1u << B_PLAY)) & ~lit;
+    uint32_t play = 1u << B_PLAY;
+    dim = (dim & ~play) | (live.clock.running ? 0u : LED_PLAY_GREEN);
+    lit = (lit & ~play) | (live.clock.running ? LED_PLAY_GREEN : 0u);
+    plat_play_red(live.recording);
+    plat_lights(lit, ui.keys, dim, 0, 1);
+}
+
 /* the keys play while a menu page is open (the FM-1's go through the app's key scan, without a layer) */
 static void menu_keys(void)
 {
@@ -724,6 +746,7 @@ static void map_input(void)
         send_live(LIVE_PLAY_TOGGLE, 0, 0, 0.0f, 0);
     }
     menu_keys();
+    menu_lights(1u << B_EDIT);
     int32_t turn = plat_enc(EN_SELECT);
     if (turn) {
         mapui.row = (uint8_t)clamp((int32_t)mapui.row + (turn > 0 ? 1 : -1), 0, (int32_t)menu_rows() - 1);

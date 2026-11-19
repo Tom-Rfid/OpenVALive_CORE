@@ -1050,6 +1050,7 @@ static void button_pressed(uint32_t b, uint32_t buttons)
         break;
     case BTN_PAGES:                             /* FX: the page turns on release */
         ui.pages_used = 0;
+        app_say("PAGES", "TAP: NEXT");          /* (its layer: the title while held, as the others) */
         break;
     case B_HOME:
         app_say("1 PANIC 2 SYNC", "3 STOP");     /* HOME + white key, HOME let go first */
@@ -1057,6 +1058,7 @@ static void button_pressed(uint32_t b, uint32_t buttons)
         break;
     case B_SAVE:
         ui.save_used = 0;                       /* the set is saved on release, unless a key kept a sound */
+        app_say("SAVE", "TAP: SET  KEY: USER");
         break;
     case B_ARP:
         ui.arp_down_at = plat_ms();
@@ -1755,6 +1757,16 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
     } else if (button_held(buttons, BTN_PAGES)) {
         *dim = white_mask(0, 1) | white_mask(APP_WHEEL ? 13 : 14, 16);   /* the line's reset; the wheel; the drum keys */
         *lit |= 1u << WHITE_KEY[set.drum_map == DRUM_MAP_GM ? 15 : 14];
+        if (APP_WHEEL && set.wheel_pan) {
+            *lit |= 1u << WHITE_KEY[13];        /* the wheel pans */
+        }
+    } else if (button_held(buttons, B_SAVE)) {  /* SAVE + key 1..8: keep the sound as USER 1..8; lit: holds one */
+        *dim = white_mask(0, OLS_USER_SOUNDS);
+        for (int u = 0; u < OLS_USER_SOUNDS; u++) {
+            if (user_sounds[u].valid) {
+                *lit |= 1u << WHITE_KEY[u];
+            }
+        }
     } else if (button_held(buttons, B_ARP)) {
         *dim = white_mask(0, 15);
     } else if (!ui.on_a && live.track[mirror.track].kind == OLS_KIND_DRUM) {

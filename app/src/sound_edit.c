@@ -3,7 +3,8 @@
  *
  * ARP + SEL opens it (the SMK-37: SHIFT + SELECT too). SELECT chooses the parameter, PRESET changes it (a step of
  * 1/32, or the next choice), ALGO finely (1/256). The keys still play while it is open, so the sound is heard as
- * it changes. HOME, SEL or ARP closes it. The changes go to the sound like a knob's (undo, scenes, SAVE).
+ * it changes. A menu button (HOME FX ARP SEQ GLO SAVE) or SEL closes it. The changes go to the sound like a knob's
+ * (undo, scenes, SAVE).
  *
  * For the VA, the choices have names (waveforms, filter modes, LFO lengths, the modulation matrix's sources and
  * destinations); every other parameter shows 0..100, the bipolar ones -100..+100.
@@ -127,10 +128,11 @@ static void sedit_input(void)
     uint32_t buttons = plat_buttons();
     uint32_t pressed = buttons & ~sedit.buttons;
     sedit.buttons = buttons;
-    if (pressed & ((1u << B_HOME) | (1u << BTN_VALIDATE) | (1u << B_ARP))) {
+    if (pressed & (MENU_BUTTONS | (1u << BTN_VALIDATE))) {    /* any menu button, or SEL: back */
         sedit_close();
         return;
     }
+    menu_lights(0);
     if (pressed & (1u << B_PLAY)) {
         send_live(LIVE_PLAY_TOGGLE, 0, 0, 0.0f, 0);
     }
@@ -210,6 +212,7 @@ static void sedit_draw(void)
     }
     cv_begin(240, 36, C_BLACK);
     cv_text(6, 4, &FONT_XS, "SELECT param  PRESET value", C_GRAY);
-    cv_text(6, 20, &FONT_XS, "ALGO fine  HOME close", C_GRAY);
+    cv_text(6, 20, &FONT_XS, "ALGO fine", C_GRAY);
+    help_menu_out(20, C_GRAY);
     cv_blit(0, 240 - 36);
 }
