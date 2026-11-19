@@ -1,6 +1,6 @@
 # CLAUDE.md — guide for agents (and busy humans)
 
-OpenVALive VirtualAnalog: the portable C99 heart of OpenVALive (DSP, engines, Live Core, the shared app, the desktop
+OpenVALive CORE: the portable C99 heart of OpenVALive (DSP, engines, Live Core, the shared app, the desktop
 app). The devices live in their own repositories, which include this one as a submodule `va/`:
 OpenVALive_FM-1 (MIT) and OpenVALive_SMK-37 (GPL-3.0). A change here is tested in both before their submodule moves. Code comments
 in **English**; docs in `docs/_EN` (English) and `docs/_FR` (French) — keep both in sync. Read `STATUS.md` first

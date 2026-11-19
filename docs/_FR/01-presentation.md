@@ -1,6 +1,6 @@
 # 01 — Présentation
 
-**OpenVALive VirtualAnalog** est le cœur d'OpenVALive : un synthétiseur pensé pour le live, en C99 portable, et l'app
+**OpenVALive CORE** est le cœur d'OpenVALive : un synthétiseur pensé pour le live, en C99 portable, et l'app
 qui le joue sur de petits appareils. Il n'a pas de code matériel : les appareils ont leurs propres dépôts, qui
 incluent celui-ci comme sous-module git.
 

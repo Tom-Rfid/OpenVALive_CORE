@@ -33,7 +33,7 @@ while True:
         break
     BIG_PX -= 1
 TITLE_TOP, SUB_GAP, INSET = 52, 9, 3        # the title's ink top (px), the gap to VIRTUAL ANALOG, its left inset
-VERSION_TOP, MARK = 222, 98                 # the version's top (the firmware writes it), the mark's size
+VERSION_TOP, MARK = 212, 98                 # the version's top (the firmware writes it), the mark's size
 
 def ink(draw_fn):
     """draw on a 240 x 240 alpha plane, return (x, y, w, h, alphas 0..15) of what was drawn"""

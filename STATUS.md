@@ -1,4 +1,4 @@
-# STATUS — OpenVALive VirtualAnalog
+# STATUS — OpenVALive CORE
 
 The core of OpenVALive, split out of OpenVALive on 17 November 2026 (history kept). The device firmwares are in
 [OpenVALive_FM-1](https://github.com/Tom-Rfid/OpenVALive_FM-1) and [OpenVALive_SMK-37](https://github.com/Tom-Rfid/OpenVALive_SMK-37),

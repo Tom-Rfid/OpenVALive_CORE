@@ -1,6 +1,6 @@
 # 01 — Overview
 
-**OpenVALive VirtualAnalog** is the heart of OpenVALive: a live-first synthesizer in portable C99, and the app that
+**OpenVALive CORE** is the heart of OpenVALive: a live-first synthesizer in portable C99, and the app that
 plays it on small devices. It has no hardware code: the devices have their own repositories, which include this one
 as a git submodule.
 

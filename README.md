@@ -1,4 +1,6 @@
-# OpenVALive VirtualAnalog
+# OpenVALive CORE
+
+<p align="center"><img src="docs/img/openvalive-logo.png" width="240" alt="OpenVALive — virtual analog"></p>
 
 **The heart of OpenVALive: a live-first synthesizer in portable C99**, with a virtual analog engine, a drum engine,
 a modulation matrix, LFOs locked to the tempo, and a **Live Core** for loops, CAPTURE, scenes and Morph. No
@@ -12,6 +14,16 @@ a browser.
 | [OpenVALive_SMK-37](https://github.com/Tom-Rfid/OpenVALive_SMK-37) | the SMK-37 Elite / Pro firmware (on M-VAVE's smk37_open) | GPL-3.0 |
 
 The device repositories include this one as a git submodule (`va/`), pinned to a commit or a release tag.
+
+## What is inside
+
+| | |
+|---|---|
+| 🎹 **VA engine** | 2 oscillators + sub + noise, 12 dB SVF (LP/BP/HP/notch) with drive, 2 LFOs locked to the tempo, a 4-slot modulation matrix, glide, mono legato; delay, Juno chorus, phaser, bitcrusher per track |
+| 🥁 **Drum engine** | synthesised kits (808, 909, TIGHT, LOFI, IRON), 11 voices, GM note map |
+| 🔊 **29 sounds in 7 families** | acid (303, square, scream, deep), basses (Reese, wobble, deep sub…), drums, leads and keys, pads, textures (dub siren…), the user's own |
+| 🔁 **Live Core** | 4 tracks on one clock, record, PUNCH, CAPTURE, LOOP EDIT, undo / redo, scenes and Morph, the Creative Engine, projects, MIDI clock in and out |
+| 🖥️ **The app** | the whole instrument's UI and audio side, shared by the FM-1 and the SMK-37 (`app/`) |
 
 ## Quick start
 

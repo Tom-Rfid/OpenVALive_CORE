@@ -1,4 +1,4 @@
-# OpenVALive VirtualAnalog - tests and the desktop apps.
+# OpenVALive CORE - tests and the desktop apps.
 #   push / pull request    tests, desktop apps as artifacts
 #   Run workflow           with "release" ticked: the release vX.Y.Z of the VERSION file (tag + desktop apps)
 name: ci
@@ -44,5 +44,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           V="$(cat VERSION)"
-          gh release create "v$V" dist/* --target "$GITHUB_SHA" --title "OpenVALive VirtualAnalog $V" \
+          gh release create "v$V" dist/* --target "$GITHUB_SHA" --title "OpenVALive CORE $V" \
             --notes "See CHANGELOG.md. The device firmwares: OpenVALive_FM-1, OpenVALive_SMK-37."
