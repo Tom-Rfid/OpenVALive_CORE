@@ -67,16 +67,16 @@ static const uint8_t SOUND_ORDER[OLS_SOUND_COUNT] = {
     VA_PRESET_BASS, VA_PRESET_SUB, VA_PRESET_REESE, VA_PRESET_WOBBLE, VA_PRESET_DEEP_SUB,
     OLS_SOUND_FIRST_DRUM + DR_KIT_808, OLS_SOUND_FIRST_DRUM + DR_KIT_909, OLS_SOUND_FIRST_DRUM + DR_KIT_TIGHT,
     OLS_SOUND_FIRST_DRUM + DR_KIT_LOFI, OLS_SOUND_FIRST_DRUM + DR_KIT_IRON,
-    VA_PRESET_LEAD, VA_PRESET_PLUCK, VA_PRESET_BRASS, VA_PRESET_ORGAN,
-    VA_PRESET_PAD, VA_PRESET_STRINGS, VA_PRESET_SWEEP,
+    VA_PRESET_LEAD, VA_PRESET_PLUCK, VA_PRESET_STAB, VA_PRESET_BRASS, VA_PRESET_ORGAN,
+    VA_PRESET_POLY, VA_PRESET_PAD, VA_PRESET_STRINGS, VA_PRESET_SWEEP,
     VA_PRESET_GRUNGE, VA_PRESET_SCREECH, VA_PRESET_DRONE, VA_PRESET_WIND, VA_PRESET_HOLD, VA_PRESET_WHALE,
     VA_PRESET_DUB_SIREN, VA_PRESET_INIT,
 };
 /* the families, by their first place in SOUND_ORDER: F1 acid, F2 basses, F3 drums, F4 leads and keys, F5 pads,
  * F6 textures (and INIT); the USER sounds are F7. OCT- / OCT+ while a sound is chosen jump between them. */
-static const uint8_t FAMILY_AT[] = { 0, 4, 9, 14, 18, 21 };
+static const uint8_t FAMILY_AT[] = { 0, 4, 9, 14, 19, 23 };
 #define FAMILIES 7
-typedef char sound_order_complete[(OLS_SOUND_COUNT == 29) ? 1 : -1];   /* a sound added: put it in SOUND_ORDER */
+typedef char sound_order_complete[(OLS_SOUND_COUNT == 31) ? 1 : -1];   /* a sound added: put it in SOUND_ORDER */
 
 /* the sound `step` places away in PRESET's order (factory sounds in SOUND_ORDER, then USER 1..8) */
 static int32_t sound_step(int32_t sound, int32_t step)
@@ -137,8 +137,8 @@ enum { MSG_PLAIN, MSG_ARMED, MSG_TAKEN, MSG_NOT_TAKEN };   /* armed: "LET GO .."
 /* ------------------------------------------------------------ knob pages */
 
 /* SEL cycles the pages of the four encoders K1..K4. */
-enum { PAGE_SOUND, PAGE_MACRO, PAGE_LIVE, PAGE_SETUP, PAGE_USER, PAGE_COUNT };
-static const char *const PAGE_NAME[PAGE_COUNT] = { "SOUND", "MACRO", "LIVE", "SETUP", "USER" };
+enum { PAGE_SOUND, PAGE_MACRO, PAGE_LIVE, PAGE_SETUP, PAGE_USER, PAGE_DRUM, PAGE_COUNT };   /* DRUM EQ: drum lines only */
+static const char *const PAGE_NAME[PAGE_COUNT] = { "SOUND", "MACRO", "LIVE", "SETUP", "USER", "DRUM EQ" };
 
 /* the CONTROL MAP (src/control_map.c, after the UI it serves): USER page, menu, the map in flash */
 static int map_is_open(void);
@@ -187,7 +187,8 @@ static const uint8_t XFADE_BARS[4] = { 0, 1, 2, 4 };      /* a scene change: a c
 
 /* ------------------------------------------------------------ settings */
 
-#define SET_MAGIC 0x4F4C5338u                   /* "OLS8": settings format; any other value loads defaults */
+#define SET_MAGIC 0x4F4C5339u                   /* "OLS9": settings format; any other value loads defaults */
+#define SET_MAGIC_V8 0x4F4C5338u                /* "OLS8": the same, the drum kits and USER sounds 2 lower */
 #define SET_MAGIC_V7 0x4F4C5337u                /* "OLS7": the same, the drum kits and USER sounds 7 lower */
 #define SET_MAGIC_V6 0x4F4C5336u                /* "OLS6": the same without the drum keys and the keys on screen */
 #define SET_MAGIC_V5 0x4F4C5335u                /* "OLS5": the same, the synth sounds numbered in their old order */
@@ -208,7 +209,9 @@ typedef struct {
     uint8_t drum_map;                           /* the drum keys: DRUM_MAP_ORIGINAL or DRUM_MAP_GM */
     uint8_t drum_ds, drum_gs;                   /* the original map's D# and G#: DRUM_PERC numbers */
     uint8_t keys_screen;                        /* 1: a layer button held shows its keys in place of the scope */
+    uint8_t wheel_pan;                          /* 1: a target's pitch wheel pans the selected track (APP_WHEEL) */
 } settings_t;
+typedef char settings_size_kept[(sizeof(settings_t) == 24u) ? 1 : -1];   /* (OLS7 / OLS8 load the same size) */
 
 /* OLS6's settings: the same without the last four */
 typedef struct {
@@ -229,6 +232,9 @@ static const struct {
 } DRUM_PERC[DRUM_PERCS] = { { 56, "COWBELL" }, { 39, "CLAP" }, { 81, "TRIANGLE" }, { 37, "RIM" }, { 44, "PEDAL HAT" } };
 #ifndef APP_KEYS_SCREEN
 #define APP_KEYS_SCREEN 0u                      /* a target without key lights (SMK-37) turns it on */
+#endif
+#ifndef APP_WHEEL
+#define APP_WHEEL 0                             /* 1: the target has a pitch wheel (SMK-37): FX + key 14 makes it pan */
 #endif
 
 /* OLS3's settings: one octave for every line */

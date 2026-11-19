@@ -113,6 +113,13 @@ OLS_COLD void ols_live_command(ols_live_t *L, ols_live_cmd_t cmd, uint8_t b, uin
     case LIVE_CAPTURE:
         ols_live_capture(L);
         break;
+    case LIVE_PAN: {
+        int t = live_track_index(L, target);
+        if (t >= 0) {
+            L->track[t].pan = v < -1.0f ? -1.0f : (v > 1.0f ? 1.0f : v);
+        }
+        break;
+    }
     case LIVE_NOTE_EDIT:
         live_note_edit(L, target, b, id, v);
         break;

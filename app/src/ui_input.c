@@ -193,6 +193,9 @@ static const char *armed_name(uint8_t role, int w)
     if (role == KEY_ARMED_HOME) {
         return w == 0 ? "PANIC" : (w == 1 ? "RESTART" : (w == 2 ? "STOP ALL" : (w == 14 ? "LOOP EDIT" : "SETTINGS")));
     }
+    if (role == KEY_ARMED_FX && w == 13) {
+        return set.wheel_pan ? "WHEEL BEND" : "WHEEL PAN";   /* what letting go switches the wheel to */
+    }
     if (role == KEY_ARMED_FX) {
         return w == 14 ? "DRUMS ORIGINAL" : (w == 15 ? "DRUMS GM" : (ui.on_a ? "A RESET" : "TRACK RESET"));
     }
@@ -450,6 +453,9 @@ static void layer_released(uint8_t role)
             home_key(ui.key_fx[k]);
         } else if (ui.key_fx[k] == 0) {
             line_reset();
+        } else if (ui.key_fx[k] == 13) {
+            set.wheel_pan = (uint8_t)!set.wheel_pan;   /* the pitch wheel: bend, or pan the selected track */
+            settings_keep();
         } else {
             set.drum_map = ui.key_fx[k] == 15 ? DRUM_MAP_GM : DRUM_MAP_ORIGINAL;
             settings_keep();                    /* kept at once, past a power cycle (no SAVE needed) */
@@ -728,7 +734,7 @@ static void key_pressed(uint32_t k, uint32_t buttons)
     if (button_held(held, BTN_PAGES)) {         /* FX + white key 1 / 15 / 16, FX let go first: the line's reset,
                                                  * the drum keys original / GM */
         ui.pages_used = 1;
-        if (w == 0 || w == 14 || w == 15) {
+        if (w == 0 || w == 14 || w == 15 || (APP_WHEEL && w == 13)) {
             arm_key(k, w, KEY_ARMED_FX);
         }
         return;
@@ -1018,13 +1024,28 @@ static void edit_released(void)
     app_say("CAPTURE", "LOOP");
 }
 
-/* FX let go: the next knob page */
+/* the page after `p`: DRUM EQ only when the selected line is a drum track */
+static int drum_line(void)
+{
+    return !ui.on_a && live.track[mirror.track].kind == OLS_KIND_DRUM;
+}
+
+static uint32_t page_after(uint32_t p)
+{
+    p = (p + 1u) % PAGE_COUNT;
+    if (p == PAGE_DRUM && !drum_line()) {
+        p = (p + 1u) % PAGE_COUNT;
+    }
+    return p;
+}
+
+/* FX let go: the next knob page (DRUM EQ only on a drum line) */
 static void pages_released(void)
 {
     if (ui.pages_used) {
         return;
     }
-    set.page = (uint8_t)((set.page + 1u) % PAGE_COUNT);
+    set.page = (uint8_t)page_after(set.page);
     mark_dirty();
     ui.redraw = 1;                              /* no header message: the colours and the name bottom right show it */
     if (ann_on()) {
@@ -1389,6 +1410,20 @@ static void setup_knob(uint32_t k, int32_t turn)
     }
 }
 
+/* DRUM EQ page (a drum line): BASS, TREBLE, the kick's and the hats' levels */
+static const uint16_t DRUM_EQ_ID[KNOB_COUNT] = { DR_P_BASS, DR_P_TREBLE, DR_P_LEVEL_KICK, DR_P_LEVEL_HAT };
+static const char *const DRUM_EQ_NAME[KNOB_COUNT] = { "BASS", "TREBLE", "KICK", "HATS" };
+
+static void drum_eq_knob(uint32_t k, int32_t turn)
+{
+    uint8_t t = mirror.track;
+    uint16_t id = DRUM_EQ_ID[k];
+    float v = fm_clampf(ui.shadow[t][id] + (float)turn * ENCODER_STEP, 0.0f, 1.0f);
+    ui.shadow[t][id] = v;
+    send_param(t, id, v);
+    say_int(DRUM_EQ_NAME[k], (int32_t)(v * 100.0f + 0.5f), "%");
+}
+
 /* MACRO page: ENERGY, SPACE, TENSION, DENSITY on every track at once. */
 static void macro_knob(uint32_t k, int32_t turn)
 {
@@ -1420,6 +1455,8 @@ static void scan_knobs(void)
             macro_knob(k, turn);
         } else if (set.page == PAGE_USER) {
             map_turn(k, turn);
+        } else if (set.page == PAGE_DRUM) {
+            drum_eq_knob(k, turn);
         } else {
             live_knob(k, turn);
         }
@@ -1517,7 +1554,7 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
     } else if (button_held(buttons, B_HOME)) {
         *dim = white_mask(0, 3) | white_mask(14, 16);       /* PANIC, RESTART, STOP; LOOP EDIT, the settings */
     } else if (button_held(buttons, BTN_PAGES)) {
-        *dim = white_mask(0, 1) | white_mask(14, 16);       /* the line's reset; the drum keys */
+        *dim = white_mask(0, 1) | white_mask(APP_WHEEL ? 13 : 14, 16);   /* the line's reset; the wheel; the drum keys */
         *lit |= 1u << WHITE_KEY[set.drum_map == DRUM_MAP_GM ? 15 : 14];
     } else if (button_held(buttons, B_ARP)) {
         *dim = white_mask(0, 15);
@@ -1628,6 +1665,10 @@ static void input(void)
     scan_track_encoder(buttons);
     scan_tempo_encoder(buttons);
     scan_preset_encoder(buttons);
+    if (set.page == PAGE_DRUM && !drum_line()) {   /* DRUM EQ shown on a synth line or A: back to SOUND */
+        set.page = PAGE_SOUND;
+        ui.redraw = 1;
+    }
     scan_knobs();
 
     /* a layer button held: what its keys last said stays on top until the button is let go or another comes */

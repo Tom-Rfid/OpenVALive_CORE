@@ -155,6 +155,8 @@ typedef enum {
     VA_PRESET_WOBBLE,
     VA_PRESET_DEEP_SUB,
     VA_PRESET_DUB_SIREN,
+    VA_PRESET_STAB,
+    VA_PRESET_POLY,
     VA_PRESET_COUNT
 } va_preset_t;
 

@@ -364,11 +364,24 @@ static void mix_track(ols_live_t *L, ols_track_t *tr, float *out_l, float *out_r
     tr->engine.api->render(tr->engine.ctx, L->tmp_l, L->tmp_r, (int)n);
     float step = (g1 - g0) / (float)n;
     float g = g0;
+    if (tr->pan == 0.0f && tr->pan_now == 0.0f) {
+        for (uint32_t i = 0; i < n; i++) {
+            g += step;
+            out_l[i] += L->tmp_l[i] * g;
+            out_r[i] += L->tmp_r[i] * g;
+        }
+        return;
+    }
+    /* panned: the far side turned down, the pan ramping to where it is asked over the chunk (no zipper) */
+    float p = tr->pan_now, pstep = (tr->pan - tr->pan_now) / (float)n;
     for (uint32_t i = 0; i < n; i++) {
         g += step;
-        out_l[i] += L->tmp_l[i] * g;
-        out_r[i] += L->tmp_r[i] * g;
+        p += pstep;
+        float gl = p > 0.0f ? 1.0f - p : 1.0f, gr = p < 0.0f ? 1.0f + p : 1.0f;
+        out_l[i] += L->tmp_l[i] * g * gl;
+        out_r[i] += L->tmp_r[i] * g * gr;
     }
+    tr->pan_now = tr->pan;
 }
 
 /* Follows the source's peaks: instant up, ~120 ms down. Returns the ducked gain for the others. */

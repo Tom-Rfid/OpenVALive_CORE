@@ -49,6 +49,7 @@ typedef enum {
     DR_P_LEVEL_KICK, DR_P_LEVEL_SNARE, DR_P_LEVEL_HAT, DR_P_LEVEL_PERC,
     DR_P_RESO,
     DR_P_VOLUME,
+    DR_P_BASS, DR_P_TREBLE,           /* a two-band EQ on the kit's output: 0.5 flat, 0 -12 dB, 1 +5 dB */
     DR_P_COUNT
 } dr_param_t;
 
@@ -84,6 +85,8 @@ typedef struct {
     float cutoff_hz, reso;
     float drive_gain, drive_comp;
     float volume;
+    float bass_g, treble_g;           /* the EQ's gains on its low and high bands (1: flat) */
+    float eq_lo, eq_hi;               /* its two one-pole low-passes (150 Hz, 5 kHz) */
 
     float cutoff_now;     /* smoothed, set into `out_filter` at control rate */
     dsp_svf_t out_filter;

@@ -436,6 +436,13 @@ static void knob_value(uint32_t k, float *bar, int32_t *shown, const char **labe
         map_knob_value(k, bar, shown, label);
         return;
     }
+    if (set.page == PAGE_DRUM) {                    /* DRUM EQ: BASS TREBLE KICK HATS */
+        const ols_track_t *tr = &live.track[t];
+        *label = DRUM_EQ_NAME[k];
+        *bar = tr->engine.api->get_param(tr->engine.ctx, DRUM_EQ_ID[k]);
+        *shown = (int32_t)(*bar * 100.0f + 0.5f);
+        return;
+    }
     if (set.page == PAGE_MACRO) {
         *label = MACRO_NAME[k];
         *bar = live.macro[k];
@@ -487,7 +494,7 @@ static void knob_value(uint32_t k, float *bar, int32_t *shown, const char **labe
 
 /* each page its colour, on its knob names, bars and name (bottom right): SOUND the accent, MACRO cyan,
  * LIVE mint (as A), SETUP pink, USER violet. Every bar white on grey, its value centred, bold, black: readable. */
-static const uint16_t PAGE_COLOUR[PAGE_COUNT] = { 0, C_CYAN, C_MINT, C_PINK, C_VIO };
+static const uint16_t PAGE_COLOUR[PAGE_COUNT] = { 0, C_CYAN, C_MINT, C_PINK, C_VIO, C_RED };
 
 static uint16_t colour_of_page(uint32_t page)
 {
@@ -574,7 +581,7 @@ static void draw_status_line(void)
     /* the page on the left, in its colour; on the right an arrow and the page FX turns to, in that one's */
     const char *page = set.controller && set.page == PAGE_SOUND ? "CONTROLLER" : PAGE_NAME[set.page];
     cv_text(6, 36, &FONT_XS, page, page_colour_label());
-    uint32_t next = (set.page + 1u) % PAGE_COUNT;
+    uint32_t next = page_after(set.page);
     int32_t nx = 234 - text_w(&FONT_XS, PAGE_NAME[next]);
     cv_text(nx, 36, &FONT_XS, PAGE_NAME[next], colour_of_page(next));
     cv_line(nx - 14, 43, nx - 5, 43, C_GRAY);

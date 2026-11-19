@@ -12,7 +12,7 @@ const char *const DR_PARAM_NAMES[DR_P_COUNT] = {
     "HatTone", "HatDec",
     "ClapDec", "TomDec",
     "LvlKick", "LvlSnar", "LvlHat", "LvlPerc",
-    "Reso", "Volume",
+    "Reso", "Volume", "Bass", "Treble",
 };
 
 const char *const DR_KIT_NAMES[DR_KIT_COUNT] = { "808", "909", "TIGHT", "LOFI", "IRON" };
@@ -60,7 +60,7 @@ static const float KIT_808[DR_P_COUNT] = {
     [DR_P_HAT_TONE] = 0.5f, [DR_P_HAT_DECAY] = 0.45f,
     [DR_P_CLAP_DECAY] = 0.5f, [DR_P_TOM_DECAY] = 0.5f,
     [DR_P_LEVEL_KICK] = 0.9f, [DR_P_LEVEL_SNARE] = 0.75f, [DR_P_LEVEL_HAT] = 0.55f, [DR_P_LEVEL_PERC] = 0.7f,
-    [DR_P_RESO] = 0.1f, [DR_P_VOLUME] = 0.7f,
+    [DR_P_RESO] = 0.1f, [DR_P_VOLUME] = 0.7f, [DR_P_BASS] = 0.5f, [DR_P_TREBLE] = 0.5f,
 };
 
 /* 909 style from the same voices: a higher, shorter kick with a strong click and a fast sweep, a snare with more
@@ -202,6 +202,8 @@ void engine_drum_set_param(void *ctx, uint16_t id, float value)
         e->drive_comp = 0.7f / dsp_tanh(0.7f * e->drive_gain);
         break;
     case DR_P_VOLUME: e->volume = 2.08f * value * value; break;   /* (+30 %: the kits sat under the synths) */
+    case DR_P_BASS:   e->bass_g = 0.25f + 1.5f * value; break;     /* the band's gain: x0.25 .. x1.75 */
+    case DR_P_TREBLE: e->treble_g = 0.25f + 1.5f * value; break;
     default:
         break;                                /* read when an instrument is hit */
     }
@@ -337,6 +339,10 @@ void engine_drum_render(void *ctx, float *out_l, float *out_r, int n)
             if (filtered) {
                 x = svf_process(&e->out_filter, x, SVF_LP);
             }
+            /* the EQ: the low band (under ~150 Hz) and the high band (over ~5 kHz) set apart, each at its gain */
+            e->eq_lo += (x - e->eq_lo) * (6.2832f * 150.0f / DSP_SR);
+            e->eq_hi += (x - e->eq_hi) * (6.2832f * 5000.0f / DSP_SR);
+            x += (e->bass_g - 1.0f) * e->eq_lo + (e->treble_g - 1.0f) * (x - e->eq_hi);
             x = dsp_tanh(x * e->drive_gain) * e->drive_comp * e->volume;
             out_l[offset + i] = x;
             out_r[offset + i] = x;

@@ -32,6 +32,7 @@ const char *const VA_PRESET_NAMES[VA_PRESET_COUNT] = {
     [VA_PRESET_WHALE] = "WHALE", [VA_PRESET_INIT] = "INIT", [VA_PRESET_ACID_SQUARE] = "ACID SQUARE",
     [VA_PRESET_ACID_SCREAM] = "ACID SCREAM", [VA_PRESET_ACID_DEEP] = "ACID DEEP", [VA_PRESET_REESE] = "REESE",
     [VA_PRESET_WOBBLE] = "WOBBLE", [VA_PRESET_DEEP_SUB] = "DEEP SUB", [VA_PRESET_DUB_SIREN] = "DUB SIREN",
+    [VA_PRESET_STAB] = "STAB", [VA_PRESET_POLY] = "POLY",
 };
 
 /* Choices are spread over 0..1: these values land in the middle of each one. */
@@ -177,6 +178,23 @@ static const va_change_t DUB_SIREN[] = {
     {VA_P_RESO, 0.3f}, {VA_P_FENV_AMT, 0.5f}, {VA_P_LFO1_WAVE, LFO_TRIANGLE}, {VA_P_LFO1_RATE, 0.42f},
     {VA_P_LFO1_PITCH, 0.6f}, {VA_P_A_ATTACK, 0.02f}, {VA_P_A_SUSTAIN, 0.9f}, {VA_P_A_RELEASE, 0.5f},
     {VA_P_DELAY_MIX, 0.45f}, {VA_P_DELAY_FB, 0.65f}, {VA_P_DELAY_TIME, 0.75f}, {VA_P_VOLUME, 0.5f},
+};
+
+/* House / techno chord stab: two saws, a short snappy envelope on the filter and the amp, chorus, an echo. */
+static const va_change_t STAB[] = {
+    {VA_P_OSC2_FINE, 0.6f}, {VA_P_MIX_OSC2, 0.75f}, {VA_P_CUTOFF, 0.35f}, {VA_P_RESO, 0.35f},
+    {VA_P_FENV_AMT, 0.85f}, {VA_P_F_DECAY, 0.28f}, {VA_P_F_SUSTAIN, 0.05f}, {VA_P_A_ATTACK, 0.0f},
+    {VA_P_A_DECAY, 0.32f}, {VA_P_A_SUSTAIN, 0.0f}, {VA_P_A_RELEASE, 0.25f}, {VA_P_VEL_FILTER, 0.5f},
+    {VA_P_CHORUS_MODE, (1.0f + 0.5f) / 4.0f}, {VA_P_CHORUS_MIX, 0.5f}, {VA_P_DELAY_MIX, 0.25f},
+    {VA_P_DELAY_FB, 0.35f}, {VA_P_VOLUME, 0.55f},
+};
+
+/* Warm poly chords, Juno style: two saws gently detuned, the filter half open, a soft attack, both choruses. */
+static const va_change_t POLY[] = {
+    {VA_P_OSC2_FINE, 0.58f}, {VA_P_MIX_OSC2, 0.7f}, {VA_P_MIX_SUB, 0.15f}, {VA_P_CUTOFF, 0.5f},
+    {VA_P_RESO, 0.2f}, {VA_P_FENV_AMT, 0.6f}, {VA_P_F_DECAY, 0.55f}, {VA_P_F_SUSTAIN, 0.45f},
+    {VA_P_A_ATTACK, 0.12f}, {VA_P_A_DECAY, 0.6f}, {VA_P_A_SUSTAIN, 0.8f}, {VA_P_A_RELEASE, 0.5f},
+    {VA_P_CHORUS_MODE, (3.0f + 0.5f) / 4.0f}, {VA_P_CHORUS_MIX, 0.6f}, {VA_P_VOLUME, 0.55f},
 };
 
 /* String ensemble: detuned saws, slow attack, both choruses. */
@@ -426,6 +444,8 @@ static const struct {
     [VA_PRESET_WOBBLE] = CHANGES(WOBBLE),
     [VA_PRESET_DEEP_SUB] = CHANGES(DEEP_SUB),
     [VA_PRESET_DUB_SIREN] = CHANGES(DUB_SIREN),
+    [VA_PRESET_STAB] = CHANGES(STAB),
+    [VA_PRESET_POLY] = CHANGES(POLY),
 };
 
 void engine_va_load_preset(engine_va_t *e, va_preset_t preset)

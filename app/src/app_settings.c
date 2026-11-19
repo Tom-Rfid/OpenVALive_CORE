@@ -19,6 +19,7 @@ static void conf_defaults(void)
     set.drum_ds = 0;                            /* COWBELL */
     set.drum_gs = 2;                            /* TRIANGLE */
     set.keys_screen = APP_KEYS_SCREEN;
+    set.wheel_pan = 0;
 }
 
 static void settings_defaults(void)
@@ -67,22 +68,37 @@ static int settings_valid(int loaded_size)
     }
     return set.controller <= 1u && set.midi_ch <= MIDI_CH_CLOCK && set.arp_mode < ARP_MODES
            && live_sound_ok(set.live_sound) && set.drum_map <= DRUM_MAP_GM && set.drum_ds < DRUM_PERCS
-           && set.drum_gs < DRUM_PERCS && set.keys_screen <= 1u;
+           && set.drum_gs < DRUM_PERCS && set.keys_screen <= 1u && set.wheel_pan <= 1u;
 }
 
 /* Before OLS8 the 17 synth sounds came first, the drum kits and USER sounds right after: 7 synth sounds were added
  * after INIT, so those move 7 up (every older format ends here) */
 #define OLD_VA_SOUNDS 17u
-static void sounds_v7(void)
+/* the sounds numbered from `first` (the drum kits, the USER sounds) move up past the synth sounds added since */
+static void sounds_from(uint32_t first)
 {
     for (int t = 0; t < TRACKS; t++) {
-        if (set.preset[t] >= OLD_VA_SOUNDS) {
-            set.preset[t] = (uint8_t)(set.preset[t] + (VA_PRESET_COUNT - OLD_VA_SOUNDS));
+        if (set.preset[t] >= first) {
+            set.preset[t] = (uint8_t)(set.preset[t] + (VA_PRESET_COUNT - first));
         }
     }
-    if (set.live_sound >= OLD_VA_SOUNDS && set.live_sound < 0xF0u) {
-        set.live_sound = (uint8_t)(set.live_sound + (VA_PRESET_COUNT - OLD_VA_SOUNDS));
+    if (set.live_sound >= first && set.live_sound < 0xF0u) {
+        set.live_sound = (uint8_t)(set.live_sound + (VA_PRESET_COUNT - first));
     }
+}
+static void sounds_v7(void) { sounds_from(OLD_VA_SOUNDS); }
+
+/* OLS8: 24 synth sounds (STAB and POLY came after); its padding byte is now the wheel's mode */
+static int settings_migrate_v8(void)
+{
+    int size = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
+    if (size != (int)sizeof set || set.magic != SET_MAGIC_V8) {
+        return 0;
+    }
+    set.magic = SET_MAGIC;
+    set.wheel_pan = 0;
+    sounds_from(24u);
+    return settings_valid((int)sizeof set);
 }
 
 /* OLS7: the same settings */
@@ -93,6 +109,7 @@ static int settings_migrate_v7(void)
         return 0;
     }
     set.magic = SET_MAGIC;
+    set.wheel_pan = 0;
     sounds_v7();
     return settings_valid((int)sizeof set);
 }
@@ -342,7 +359,7 @@ static int project_save(void)
 static void settings_load(void)
 {
     int size = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
-    if (!settings_valid(size) && !settings_migrate_v7() && !settings_migrate_v6() && !settings_migrate_v5() && !settings_migrate_v4()
+    if (!settings_valid(size) && !settings_migrate_v8() && !settings_migrate_v7() && !settings_migrate_v6() && !settings_migrate_v5() && !settings_migrate_v4()
         && !settings_migrate_v3() && !settings_migrate_v2() && !settings_migrate_v1()) {
         settings_defaults();
     }

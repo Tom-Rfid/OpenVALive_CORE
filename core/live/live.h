@@ -92,6 +92,7 @@ typedef enum {
     LIVE_PUNCH,                /* b = 1: record over the selected track, replacing what the playhead passes; 0: stop */
     LIVE_RESTART,              /* every track back to its start, now (internal clock; external: the clock decides) */
     LIVE_NOTE_EDIT,            /* a loop's note: target = track, b = ols_note_edit_t, id = note index, v = the value */
+    LIVE_PAN,                  /* target = track, v = -1 left .. 1 right (a spring-loaded wheel: back to 0) */
     LIVE_CMD_COUNT
 } ols_live_cmd_t;
 
@@ -117,6 +118,7 @@ typedef struct {
     ols_pattern_t pat;
     uint8_t mute;
     float gain;
+    float pan, pan_now;        /* -1 left .. 0 centre .. 1 right (LIVE_PAN), and where the mix is (ramped) */
 
     ols_active_note_t active[OLS_ACTIVE_NOTES];
     uint8_t active_count;
