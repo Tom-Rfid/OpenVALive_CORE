@@ -32,8 +32,8 @@
  *                    BREAK (drums out), SOLO, DRUMS ONLY, ALL OUT, ALL FX OFF. Taken: on, latched (again: off);
  *                    on A: hold the key = while held, tap = latched. SEQ tapped: the loop lets go (A: every loop).
  *                    Tracks taken out come back on the next bar, on the one.
- *   SEL  tracks      MUTE 1 2 3 4, (free), CLEAR (A: every track), QUANTIZE, CLOCK IN,
- *                    CLOCK OUT, EUCLID 3..8 hits, CONTROLLER; black keys: 1st MUTE ALL 4 (A plays on), 4th A VOL
+ *   SEL  tracks      MUTE 1 2 3 4 (at once), (free), then valid on release (SEL let go first): CLEAR (A: every
+ *                    track), QUANTIZE, CLOCK IN, CLOCK OUT, EUCLID 3..8 hits, CONTROLLER; black keys: 1st MUTE ALL 4 (A plays on), 4th A VOL
  *                    (the levels brought together over the longest loop)
  *
  * Hold SEL and turn PRESET: MIDI IN channel (ALL, 1..16, CLOCK only: follow a drum machine
@@ -202,6 +202,11 @@ static const char *armed_name(uint8_t role, int w)
     if (role == KEY_ARMED_FX && w == 13) {
         return set.wheel_pan ? "WHEEL BEND" : "WHEEL PAN";   /* what letting go switches the wheel to */
     }
+    if (role == KEY_ARMED_SEL) {                /* the tracks layer's set-up keys */
+        static const char *const SEL_NAME[11] = { "CLEAR", "QUANTIZE", "CLOCK IN", "CLOCK OUT", "EUCLID 3", "EUCLID 4",
+                                                  "EUCLID 5", "EUCLID 6", "EUCLID 7", "EUCLID 8", "CONTROLLER" };
+        return w >= 5 && w <= 15 ? SEL_NAME[w - 5] : "";
+    }
     if (role == KEY_ARMED_FX) {
         return w == 14 ? "DRUMS ORIGINAL" : (w == 15 ? "DRUMS GM" : (ui.on_a ? "A RESET" : "TRACK RESET"));
     }
@@ -219,7 +224,7 @@ static void arm_key(uint32_t k, int w, uint8_t role)
     if (role == KEY_ARMED_ARP) {
         ui.arp_pend = 0;                        /* a new tap replaces the one chosen before */
     }
-    static const char *const LET_GO[] = { "ARP", "SEQ", "GLO", "HOME", "FX" };   /* drawn after an arrow: let go */
+    static const char *const LET_GO[] = { "ARP", "SEQ", "GLO", "HOME", "FX", "SEL" };   /* drawn after an arrow: let go */
     app_say(armed_name(role, w), LET_GO[role - KEY_ARMED_ARP]);
     ui.msg_style = MSG_ARMED;
 }
@@ -461,6 +466,8 @@ static void layer_released(uint8_t role)
             scene_key(ui.key_fx[k]);
         } else if (role == KEY_ARMED_HOME) {
             home_key(ui.key_fx[k]);
+        } else if (role == KEY_ARMED_SEL) {
+            track_key(ui.key_fx[k]);
         } else if (ui.key_fx[k] == 0) {
             line_reset();
         } else if (ui.key_fx[k] == 13) {
@@ -748,6 +755,17 @@ static uint8_t drum_key_note(uint32_t note)
     return ORIGINAL[n];
 }
 
+/* a key's velocity on the selected line: on a drum track every D# key 10 % softer and every G# key 20 % (the
+ * percussions there stood out of the kit); at least 1 */
+static uint32_t app_play_vel(uint32_t key_note, uint32_t velocity)
+{
+    if (!ui.on_a && live.track[mirror.track].kind == OLS_KIND_DRUM) {
+        uint32_t pc = key_note % 12u;
+        velocity = pc == 3u ? velocity * 9u / 10u : (pc == 8u ? velocity * 8u / 10u : velocity);
+    }
+    return velocity < 1u ? 1u : velocity;
+}
+
 /* the note a key of the selected line plays (a target whose keys skip key_pressed uses it too: the SMK-37) */
 static uint8_t app_play_note(uint32_t note)
 {
@@ -828,7 +846,9 @@ static void key_pressed(uint32_t k, uint32_t buttons)
         return;
     }
     if (button_held(buttons, BTN_TRACKS)) {
-        if (w >= 0) {
+        if (w >= 5 && button_held(held, BTN_TRACKS)) {
+            arm_key(k, w, KEY_ARMED_SEL);       /* CLEAR .. CONTROLLER: SEL let go first takes it (valid on release) */
+        } else if (w >= 0) {
             track_key(w);
         } else if (k == KEY_MUTE_ALL) {
             mute_all_key();
@@ -853,11 +873,9 @@ static void key_pressed(uint32_t k, uint32_t buttons)
         return;
     }
 
-    int32_t note = app_play_note((uint32_t)clamp(FIRST_KEY_NOTE + (int32_t)k + 12 * *line_octave(), 0, 127));
-    uint32_t velocity = touch_vel(k);
-    if (velocity < 1u) {
-        velocity = 1u;
-    }
+    uint32_t key_note = (uint32_t)clamp(FIRST_KEY_NOTE + (int32_t)k + 12 * *line_octave(), 0, 127);
+    int32_t note = app_play_note(key_note);
+    uint32_t velocity = app_play_vel(key_note, touch_vel(k));
     uint8_t target = ui.on_a ? T_LIVE : mirror.track;       /* A: its own voice, live, not recorded */
     if (button_held(buttons, B_EDIT) && !ui.on_a && !ui.punch && live.clock.running && !live.recording) {
         send_live(LIVE_PUNCH, 1, 0, 0.0f, 0);   /* EDIT held + a note: record over, until EDIT is let go */
@@ -898,6 +916,7 @@ static void key_released(uint32_t k)
     case KEY_ARMED_GLO:
     case KEY_ARMED_HOME:
     case KEY_ARMED_FX:
+    case KEY_ARMED_SEL:
         ui.given_up = ui.key_role[k];           /* the key let go first: nothing done (said when the button is let go) */
         ui.given_up_w = ui.key_fx[k];
         break;
@@ -1138,7 +1157,7 @@ static void edit_released(void)
         return;
     }
     send_live(LIVE_CAPTURE, 0, 0, 0.0f, 0);
-    app_say("CAPTURE", "LOOP");
+    app_say("CAPTURE", "ENV: UNDO");     /* not right? ENV undoes it at once */
 }
 
 /* the page after `p`: DRUM EQ only when the selected line is a drum track */
@@ -1201,6 +1220,7 @@ static void scan_buttons(uint32_t buttons)
         } else if (!(buttons & bit) && (ui.buttons & bit) && b == B_EDIT) {
             edit_released();
         } else if (!(buttons & bit) && (ui.buttons & bit) && b == BTN_VALIDATE) {
+            layer_released(KEY_ARMED_SEL);
             validate_released();
         } else if (!(buttons & bit) && (ui.buttons & bit) && b == BTN_PAGES) {
             layer_released(KEY_ARMED_FX);
@@ -1704,17 +1724,22 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
             }
         }
     } else if (button_held(buttons, BTN_TRACKS)) {
-        int all_out = 1;
+        int all_out = 1, fast = (plat_ms() / 125u) & 1u;
         *dim = (white_mask(0, 16) & ~(1u << WHITE_KEY[4])) | (1u << KEY_MUTE_ALL) | (1u << KEY_AVOL);
-        for (int t = 0; t < TRACKS; t++) {
+        for (int t = 0; t < TRACKS; t++) {      /* a track playing: lit; muted: fast blink */
             if (!live.track[t].mute) {
                 *lit |= 1u << WHITE_KEY[t];
                 all_out = 0;
+            } else {
+                *lit |= (uint32_t)fast << WHITE_KEY[t];
+                *bl |= 1u << WHITE_KEY[t];
             }
         }
-        if (all_out) {                          /* MUTE ALL: fast blink while every track is out */
-            *lit |= ((plat_ms() / 125u) & 1u) << KEY_MUTE_ALL;
+        if (all_out) {                          /* MUTE ALL: lit, fast blink while every track is out */
+            *lit |= (uint32_t)fast << KEY_MUTE_ALL;
             *bl |= 1u << KEY_MUTE_ALL;
+        } else {
+            *lit |= 1u << KEY_MUTE_ALL;
         }
         if (avol.on) {                          /* A VOL running: a slow 2 s swell, lit first (lit, dim, off, dim) */
             uint32_t ph = (plat_ms() - avol.start) % 2000u;
@@ -1801,6 +1826,9 @@ static uint32_t button_lit(uint32_t buttons)
     }
     if (ui.on_a) {
         lit |= 1u << BTN_VALIDATE;              /* on A, SEL held + SELECT then let go swaps A with a track */
+    }
+    if (ui.pend_sound >= 0) {                   /* a sound waits for SEL: SEL blinks fast (taken: back to normal) */
+        lit = (plat_ms() / 125u) & 1u ? lit | (1u << BTN_VALIDATE) : lit & ~(1u << BTN_VALIDATE);
     }
     if (!ui.on_a && (ols_live_can_undo_track(&live, mirror.track) || swap_undoable(0))) {
         lit |= 1u << B_ENV;                     /* something to undo: ENV lit; to redo: LFO lit */

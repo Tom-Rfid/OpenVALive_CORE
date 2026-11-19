@@ -65,7 +65,7 @@ DR_COLD void dr_trigger(engine_drum_t *e, dr_inst_t inst, float velocity)
 
     switch (inst) {
     case DR_KICK:
-        v->level = velocity * 1.4f * param(e, DR_P_LEVEL_KICK);
+        v->level = velocity * 1.54f * param(e, DR_P_LEVEL_KICK);     /* (+10 %: the kit's floor) */
         v->freq = (38.0f + 40.0f * param(e, DR_P_KICK_PITCH)) * tune;
         v->amp_coef = decay_coef((0.15f + 1.2f * param(e, DR_P_KICK_DECAY)) * decay);
         v->sweep_coef = decay_coef(0.02f + 0.08f * param(e, DR_P_KICK_SWEEP));

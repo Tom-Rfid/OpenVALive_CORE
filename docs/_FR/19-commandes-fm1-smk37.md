@@ -11,14 +11,14 @@ pédale, plus de touches).
 | Bouton de l'app | FM-1 | SMK-37 | Seul | Tenu (couche) |
 |---|---|---|---|---|
 | `B_FX` (`BTN_PAGES`) | FX | FX | page de boutons suivante (ordre de MAP CONTROL) | remise à zéro de la ligne (touche 1), molette BEND / PAN (14), carte batterie (15 / 16) |
-| `B_SEL` (`BTN_TRACKS`, `BTN_VALIDATE`) | SEL | SELECT (bouton) | prend un son en attente | couche pistes : mutes, CLEAR, QUANTIZE, CLOCK, EUCLID, CONTROLLER ; touches noires MUTE ALL, A VOL |
+| `B_SEL` (`BTN_TRACKS`, `BTN_VALIDATE`) | SEL | NOTE REPEAT | prend un son en attente | couche pistes : mutes (tout de suite), puis CLEAR, QUANTIZE, CLOCK, EUCLID, CONTROLLER (validés au relâché) ; touches noires MUTE ALL, A VOL ; clignote vite quand un son l'attend (+SEL) |
 | `B_SEQ` (`BTN_PERFORM`) | SEQ | SEQ | tapé : la boucle se relâche | couche jeu (16 effets) |
 | `B_ARP` | ARP | ARP | sur A : mode d'arpège | couche créative |
 | `B_GLO` | GLO | GLO | — | couche scènes ; GLO + SEL : MAP CONTROL ; GLO + PLAY : chaîne |
 | `B_HOME` | HOME | HOME | panic | PANIC / RESTART / STOP, SOUNDS (14), LOOP EDIT (15), OPTION CONTROL (16) |
-| `B_SAVE` | SAVE | SAVE | enregistre le live set | SAVE + touche : son perso |
+| `B_SAVE` | SAVE | PARA | enregistre le live set | SAVE + touche : son perso |
 | `B_ENV` / `B_LFO` | ENV / LFO | ENV / LFO | UNDO / REDO | — |
-| `B_EDIT` | EDIT | EDIT | CAPTURE ; dans un menu : valeur par défaut de la ligne | EDIT + note : punch |
+| `B_EDIT` | EDIT | GLOBE | CAPTURE (ENV l'annule) ; dans un menu : valeur par défaut de la ligne ; clignote pendant l'enregistrement | EDIT + note : punch ; LOOP EDIT : EDIT + touches = accord |
 | `B_PLAY` / `B_REC` | PLAY / REC | PLAY / REC | transport / enregistrement | SEL + PLAY tap tempo, SEL + REC métronome |
 | `B_OCTDN` / `B_OCTUP` | OCT− / OCT+ | OCT− / OCT+ | octave ; saut de famille ; boucle ×2 / ÷2 | — |
 | — | — | KNOB BANK = SHIFT | — | SHIFT + K1–K4 : page LIVE ; SHIFT + SELECT : SOUND EDIT ; SHIFT + pads 1–8 : mémoriser les scènes |

@@ -51,6 +51,21 @@ static uint16_t transport_colour(void)
     return live.clock.running ? RGB(60, 210, 90) : C_GRAY;
 }
 
+/* playing, not recording, with a loop on some track: the transport shows an infinity sign (REC, PLAY on empty
+ * tracks, STOP: their words) */
+static int loops_playing(void)
+{
+    if (!live.clock.running || live.recording) {
+        return 0;
+    }
+    for (int t = 0; t < TRACKS; t++) {
+        if (live.track[t].pat.count) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static const char *transport_word(void)
 {
     if (live.recording) {
@@ -121,19 +136,17 @@ static void draw_header(void)
         text_cat(bpm, " BPM");
         cv_text(232 - text_w(&FONT_XS, bpm), 0, &FONT_XS, bpm, C_GRAY);
         const char *word = transport_word();
-        cv_text(232 - text_w(&FONT_XS, word), 14, &FONT_XS, word, transport_colour());
-        if (live.recording && rec_painting[mirror.track]) {   /* recording a loop (from its first note, with the pink
-                                                 * line): a red infinity sign just left of REC, clear of
-                                                 * the MASTER and CPU figures */
+        if (loops_playing()) {                  /* loops playing: a green infinity sign in place of PLAY */
             static const int8_t RING[24][2] = { {4,0},{4,1},{3,2},{3,3},{2,3},{1,4},{0,4},{-1,4},{-2,3},{-3,3},
                 {-3,2},{-4,1},{-4,0},{-4,-1},{-3,-2},{-3,-3},{-2,-3},{-1,-4},{0,-4},{1,-4},{2,-3},{3,-3},{3,-2},{4,-1} };
-            int32_t cx = 232 - text_w(&FONT_XS, word) - 13, cy = 21;
+            int32_t cx = 224, cy = 21;
             for (int i = 0; i < 24; i++) {
-                cv_rect(cx - 4 + RING[i][0], cy + RING[i][1], 2, 2, C_RED);
-                cv_rect(cx + 4 + RING[i][0], cy + RING[i][1], 2, 2, C_RED);
+                cv_rect(cx - 4 + RING[i][0], cy + RING[i][1], 2, 2, transport_colour());
+                cv_rect(cx + 4 + RING[i][0], cy + RING[i][1], 2, 2, transport_colour());
             }
+        } else {
+            cv_text(232 - text_w(&FONT_XS, word), 14, &FONT_XS, word, transport_colour());
         }
-
 
         /* MASTER (dark orange) over the CPU load (dark blue, red past 80 %) */
         char vol[12];

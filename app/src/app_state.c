@@ -147,6 +147,7 @@ static int32_t page_slot(uint32_t page, uint32_t k);
 static int slot_is_default(uint32_t s);
 static uint32_t page_after(uint32_t p);
 static void new_sound_page(uint32_t line, int32_t sound);
+static void track_key(int w);
 static uint8_t rec_painting[TRACKS];             /* a take started (its first note): the line paints pink */
 static void map_load(void);
 static int map_save(void);
@@ -353,7 +354,8 @@ static uint8_t project_buf[OLS_PROJECT_MAX + 2u] PLAT_POOL;   /* + the 2-byte si
 /* ------------------------------------------------------------ UI */
 
 /* what a key does while a layer button is held */
-enum { KEY_NOTE, KEY_FX, KEY_NONE, KEY_ARMED_ARP, KEY_ARMED_SEQ, KEY_ARMED_GLO, KEY_ARMED_HOME, KEY_ARMED_FX };   /* ARMED: on a track, ARP / SEQ + key only shows
+enum { KEY_NOTE, KEY_FX, KEY_NONE, KEY_ARMED_ARP, KEY_ARMED_SEQ, KEY_ARMED_GLO, KEY_ARMED_HOME, KEY_ARMED_FX,
+       KEY_ARMED_SEL };   /* ARMED: on a track, ARP / SEQ + key only shows
                                                                          * the gesture; letting ARP / SEQ go first applies it */
 
 /* the perform effects on the white keys while FX is held: tap = latch, hold = momentary */

@@ -10,14 +10,14 @@ Same behaviour on both; the SMK-37 only adds what it has more (pads, faders, whe
 | App button | FM-1 | SMK-37 | Alone | Held (layer) |
 |---|---|---|---|---|
 | `B_FX` (`BTN_PAGES`) | FX | FX | next knob page (MAP CONTROL's order) | line reset (key 1), wheel BEND / PAN (key 14), drum map (keys 15 / 16) |
-| `B_SEL` (`BTN_TRACKS`, `BTN_VALIDATE`) | SEL | SELECT (button) | takes a waiting sound | tracks layer: mutes, CLEAR, QUANTIZE, CLOCK, EUCLID, CONTROLLER; black keys MUTE ALL, A VOL |
+| `B_SEL` (`BTN_TRACKS`, `BTN_VALIDATE`) | SEL | NOTE REPEAT | takes a waiting sound | tracks layer: mutes (at once), then CLEAR, QUANTIZE, CLOCK, EUCLID, CONTROLLER (valid on release); black keys MUTE ALL, A VOL; blinks fast while a sound waits for it (+SEL) |
 | `B_SEQ` (`BTN_PERFORM`) | SEQ | SEQ | tapped: a loop lets go | perform layer (16 effects) |
 | `B_ARP` | ARP | ARP | on A: arpeggio mode | creative layer |
 | `B_GLO` | GLO | GLO | — | scenes layer; GLO + SEL: MAP CONTROL; GLO + PLAY: chain |
 | `B_HOME` | HOME | HOME | panic | PANIC / RESTART / STOP, SOUNDS (14), LOOP EDIT (15), OPTION CONTROL (16) |
-| `B_SAVE` | SAVE | SAVE | saves the live set | SAVE + key: user sound |
+| `B_SAVE` | SAVE | PARA | saves the live set | SAVE + key: user sound |
 | `B_ENV` / `B_LFO` | ENV / LFO | ENV / LFO | UNDO / REDO | — |
-| `B_EDIT` | EDIT | EDIT | CAPTURE; in a menu: the row's default | EDIT + note: punch |
+| `B_EDIT` | EDIT | GLOBE | CAPTURE (ENV undoes it); in a menu: the row's default; blinks while recording | EDIT + note: punch; LOOP EDIT: EDIT + keys = chord |
 | `B_PLAY` / `B_REC` | PLAY / REC | PLAY / REC | transport / record | SEL + PLAY tap tempo, SEL + REC metronome |
 | `B_OCTDN` / `B_OCTUP` | OCT− / OCT+ | OCT− / OCT+ | octave; family jump; loop ×2 / ÷2 | — |
 | — | — | KNOB BANK = SHIFT | — | SHIFT + K1–K4: LIVE page; SHIFT + SELECT: SOUND EDIT; SHIFT + pads 1–8: store scenes |

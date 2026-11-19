@@ -6,6 +6,14 @@
 
 
 
+## 19 November 2026 — valid on release on SEL, lights, drum levels, the infinity sign
+
+- SEL layer: CLEAR .. CONTROLLER (white keys 6–16) valid on release (`KEY_ARMED_SEL`), the mutes stay at once.
+  Muted tracks blink fast, MUTE ALL lit (fast blink: all out). SEL blinks fast while a sound waits for it.
+- The infinity sign replaces PLAY while loops play (not while recording, not at STOP).
+- Drums: the kick +10 % (engine); on a drum track every D# key 10 % softer, every G# 20 % (`app_play_vel`).
+- CAPTURE says "ENV: UNDO".
+
 ## 19 November 2026 — LOOP EDIT chords, UNDER, recording sign, one pause for SAVE
 
 - LOOP EDIT: EDIT held + keys add notes at the note's place (chords); EDIT tapped still adds one a 1/16 later.
