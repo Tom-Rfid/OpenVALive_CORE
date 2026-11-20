@@ -210,7 +210,14 @@ static void fav_draw(void)
     char sel[12];
     copy_text(sel, BTN_NAME[B_SEL], sizeof sel);
     text_cat(sel, " ");
-    int32_t ty = (240 - y0) / 2 - 4, x = cv_text(6, ty, &FONT_XS, sel, C_GRAY);
+    int32_t ty = (240 - y0) / 2 - 4, x;
+    if (fav.family == FAV_MENU_ROW) {           /* the next-page row: how to go */
+        help_next_page(ty, C_GRAY);
+        help_menu_out(ty, C_GRAY);
+        cv_blit(0, (uint32_t)y0);
+        return;
+    }
+    x = cv_text(6, ty, &FONT_XS, sel, C_GRAY);
     x = cv_text(x, ty, &FONT_XS, "ON", C_GREEN);
     x = cv_text(x, ty, &FONT_XS, "/", C_GRAY);
     cv_text(x, ty, &FONT_XS, "OFF", C_RED);

@@ -69,3 +69,24 @@ void app_say(const char *a, const char *b)
         ann_say(spoken, 0, ANN_NOW);
     }
 }
+
+/* A list longer than its view: a thin bar on the right edge (x 237-239) shows where the view is in it. Drawn a band
+ * at a time (the canvas holds a few rows): `band_y` is where this band starts in the view, `band_h` its height, the
+ * view `view_h` high shows rows top .. top + visible of total. Nothing when it all fits. */
+static void scroll_bar(int32_t band_y, int32_t band_h, int32_t view_h, uint32_t top, uint32_t visible, uint32_t total)
+{
+    if (total <= visible || view_h <= 0) {
+        return;
+    }
+    int32_t th = (int32_t)(visible * (uint32_t)view_h / total);
+    th = th < 10 ? 10 : th;
+    int32_t ty = (int32_t)(top * (uint32_t)(view_h - th) / (total - visible));
+    for (int32_t y = 0; y < band_h; y++) {
+        int32_t v = band_y + y;
+        if (v >= ty && v < ty + th) {
+            cv_rect(236, y, 3, 1, RGB(150, 150, 165));
+        } else {
+            cv_rect(237, y, 1, 1, RGB(50, 50, 58));
+        }
+    }
+}

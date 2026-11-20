@@ -208,6 +208,7 @@ static void sedit_draw(void)
             cv_text(6, y + 3, &FONT_XS, api->param_names ? api->param_names[id] : "?", sel ? C_WHITE : C_GRAY);
             cv_text(234 - text_w(&FONT_XS, value), y + 3, &FONT_XS, value, sel ? C_WHITE : C_HI);
         }
+        scroll_bar((int32_t)(band * SEDIT_ROW_H), 3 * SEDIT_ROW_H, SEDIT_ROWS * SEDIT_ROW_H, sedit.top, SEDIT_ROWS, count);
         cv_blit(0, SEDIT_TOP + band * SEDIT_ROW_H);
     }
     cv_begin(240, 36, C_BLACK);

@@ -822,8 +822,22 @@ static void draw_menu_row(int32_t y, int sel, uint32_t screen)
     text_cat(t, "   ");
     text_cat(t, SCREEN_NAME[(screen + 1u) % SCREENS]);
     text_cat(t, " >");
-    cv_text(6, y, &FONT_XS, "MENU", sel ? C_WHITE : C_GRAY);
+    uint16_t c = sel ? C_WHITE : C_GRAY;
+    cv_rect(6, y + 4, 9, 2, c);                 /* an arrow: the next page */
+    for (int32_t i = 0; i < 4; i++) {
+        cv_rect(12 + i, y + 1 + i, 1, 8 - 2 * i, c);
+    }
+    cv_text(22, y, &FONT_XS, "NEXT PAGE", c);
     cv_text(234 - text_w(&FONT_XS, t), y, &FONT_XS, t, sel ? C_PINK : C_GRAY);
+}
+
+/* on the next-page row, the help says how to go: "<- PRESET ->" (the target's name) */
+static void help_next_page(int32_t y, uint16_t c)
+{
+    char h[24] = "<- ";
+    text_cat(h, APP_PRESET_NAME);
+    text_cat(h, " ->");
+    cv_text(6, y, &FONT_XS, h, c);
 }
 
 static void map_draw_row(uint32_t row, int32_t y, int sel)
@@ -916,6 +930,8 @@ static void map_draw(void)
                 conf_draw_row(row, y, sel);
             }
         }
+        scroll_bar((int32_t)(first * MAP_ROW_H), 3 * MAP_ROW_H, MAP_VISIBLE * MAP_ROW_H, mapui.top, MAP_VISIBLE,
+                   menu_rows());                /* (there is more below / above) */
         cv_blit(0, MAP_TOP + first * MAP_ROW_H);
     }
     cv_begin(240, 36, C_BLACK);
@@ -925,7 +941,11 @@ static void map_draw(void)
     text_cat(h, map ? (on_page ? " move  " : " target  ") : " or ");
     text_cat(h, APP_ALGO_NAME);
     text_cat(h, map ? (on_page ? " on/off" : " option") : ": change");
-    cv_text(6, 4, &FONT_XS, h, C_GRAY);
+    if (mapui.row + 1u == menu_rows()) {
+        help_next_page(4, C_GRAY);              /* the last row: the next page */
+    } else {
+        cv_text(6, 4, &FONT_XS, h, C_GRAY);
+    }
     copy_text(h, BTN_NAME[B_EDIT], sizeof h);
     text_cat(h, " default");
     cv_text(6, 20, &FONT_XS, h, C_GRAY);
