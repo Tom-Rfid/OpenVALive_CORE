@@ -33,6 +33,7 @@ static void conf_defaults(void)
     set.drum_gs = 2;                            /* TRIANGLE */
     set.keys_screen = APP_KEYS_SCREEN;
     set.wheel_pan = 0;
+    set.no_help = 0;                            /* the help pages at start */
     ols_zero(set.hidden, sizeof set.hidden);  /* every sound offered */
     settings_fill_new();
 }
@@ -72,6 +73,9 @@ static int new_valid(void)
         if (set.user_from[u] >= OLS_SOUND_COUNT) {
             set.user_from[u] = USER_FROM_NONE;  /* (not a reason to drop the settings) */
         }
+    }
+    if (set.no_help > 1u) {
+        set.no_help = 0;                        /* (padding before: not a reason to drop the settings) */
     }
     if (set.pad_kit >= DR_KIT_COUNT) {
         set.pad_kit = 0;                        /* (padding before: not a reason to drop the settings) */

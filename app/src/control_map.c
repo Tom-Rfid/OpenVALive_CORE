@@ -94,7 +94,7 @@ static struct {
 #endif
 
 /* OPTION CONTROL's rows */
-enum { CONF_PLAY_MODE, CONF_DRUM_MAP, CONF_PERC, CONF_KEYS_SCREEN = CONF_PERC + APP_PERC_COUNT, CONF_NEW_PAGE,
+enum { CONF_PLAY_MODE, CONF_DRUM_MAP, CONF_PERC, CONF_KEYS_SCREEN = CONF_PERC + APP_PERC_COUNT, CONF_HELP, CONF_NEW_PAGE,
        CONF_MENU = CONF_NEW_PAGE + TRACKS + 1, CONF_ROWS };
 /* the menu buttons: one pressed leaves a set-up screen (what it changed is kept) */
 #define MENU_BUTTONS ((1u << B_HOME) | (1u << B_GLO) | (1u << BTN_PAGES) | (1u << B_ARP) | (1u << BTN_PERFORM) \
@@ -169,7 +169,7 @@ static void conf_name(uint32_t c, char *t)
         copy_text(t, NEW_PAGE_LINE[c - CONF_NEW_PAGE], 16);
     } else {
         copy_text(t, c == CONF_PLAY_MODE ? "PLAY MODE" : (c == CONF_DRUM_MAP ? "DRUM KEYS"
-                     : (c == CONF_KEYS_SCREEN ? "KEYS ON SCREEN" : "MENU")), 16);
+                     : (c == CONF_KEYS_SCREEN ? "KEYS ON SCREEN" : (c == CONF_HELP ? "HELP AT START" : "MENU"))), 16);
     }
 }
 
@@ -187,6 +187,9 @@ static const char *conf_text(uint32_t c)
     }
     if (c == CONF_DRUM_MAP) {
         return set.drum_map == DRUM_MAP_GM ? "GM" : "ORIGINAL";
+    }
+    if (c == CONF_HELP) {
+        return set.no_help ? "OFF" : "ON";
     }
     return c == CONF_KEYS_SCREEN ? (set.keys_screen ? "ON" : "OFF") : "";
 }
@@ -207,6 +210,8 @@ static void conf_turn(uint32_t c, int32_t turn)
         set.drum_map = (uint8_t)!set.drum_map;
     } else if (c == CONF_KEYS_SCREEN) {
         set.keys_screen = (uint8_t)!set.keys_screen;
+    } else if (c == CONF_HELP) {
+        set.no_help = (uint8_t)!set.no_help;
     } else {
         return;
     }
@@ -228,6 +233,8 @@ static void conf_default(uint32_t c)
         set.drum_map = DRUM_MAP_ORIGINAL;
     } else if (c == CONF_KEYS_SCREEN) {
         set.keys_screen = APP_KEYS_SCREEN;
+    } else if (c == CONF_HELP) {
+        set.no_help = 0;                        /* ON */
     } else {
         return;
     }
@@ -879,6 +886,8 @@ static void conf_draw_row(uint32_t c, int32_t y, int sel)
         vc = set.controller ? C_CYAN : C_MINT;              /* LIVE mint, FULL MIDI cyan */
     } else if (c == CONF_KEYS_SCREEN) {
         vc = set.keys_screen ? C_GREEN : C_RED;             /* ON green, OFF red */
+    } else if (c == CONF_HELP) {
+        vc = set.no_help ? C_RED : C_GREEN;
     } else if (c == CONF_DRUM_MAP) {                        /* the two FX keys, as the keyboard shows them */
         key_chip(124, y + 3, 9, 11, set.drum_map != DRUM_MAP_GM);
         key_chip(136, y + 3, 9, 11, set.drum_map == DRUM_MAP_GM);

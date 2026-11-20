@@ -130,6 +130,7 @@ void app_ui_init(void)
     touch_on(1);                                  /* key velocity sensing on */
     if (!ui_started) {
         ui.splash_until = plat_ms() + 3000u;      /* the boot screen stays 3 s more, unless a hand moves */
+        ui.help = !set.no_help;                   /* then the help pages, until a button (not SEL) or a knob */
     } else {
         lcd_fill(0, 0, 240, 240, C_BLACK);
     }
@@ -173,7 +174,21 @@ void app_frame(void)
                                                  * a touch then still ends it right after) */
             return;
         }
+        if (ui.touched) {
+            ui.help = 0;                          /* the boot screen cut short: no help either (it is for a quiet start) */
+        }
         ui.splash_until = 0;
+        lcd_fill(0, 0, 240, 240, C_BLACK);
+        ui.redraw = 1;
+        ui.help_since = now;
+        ui.help_shown = 0;
+    }
+    if (ui.help) {                                /* the help pages: one every 3 s, until a button or a knob */
+        help_draw(now);
+        return;
+    }
+    if (ui.help_shown) {                          /* (just closed) */
+        ui.help_shown = 0;
         lcd_fill(0, 0, 240, 240, C_BLACK);
         ui.redraw = 1;
     }
@@ -233,6 +248,10 @@ int app_expect(const char *what, int *got)
         }
     } else if (!strcmp(what, "slicer")) {
         *got = slicer_on;                         /* PERFORM SLICER on */
+    } else if (!strcmp(what, "help")) {
+        *got = ui.help;                           /* the help pages up (after the boot screen) */
+    } else if (!strcmp(what, "help_page")) {
+        *got = ui.help_shown;                     /* the help page drawn, 1 or 2 (0: none) */
     } else if (!strcmp(what, "cap")) {
         *got = ui.cap_on;                         /* CAPTURE's green line shown */
     } else if (!strcmp(what, "preset")) {

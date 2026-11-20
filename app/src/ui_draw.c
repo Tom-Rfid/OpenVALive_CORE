@@ -480,6 +480,86 @@ static int draw_layer_keys(void)
     return 1;
 }
 
+/* --- the help pages, after the boot screen (OPTION CONTROL: HELP AT START): a page every 3 s, until a button (not
+ * SEL) or a knob. Drawn in bands of 48 rows, each a canvas of its own (y: the screen's) --- */
+#define HELP_BAND 48
+#define HELP_PAGES 2u
+#define HELP_TEXT RGB(225, 225, 225)
+
+static void help_band(int32_t by)
+{
+    cv_begin(240, HELP_BAND, C_BLACK);
+    cv_oy = -by;                                /* draw at the screen's y; the canvas keeps rows by .. by + 47 */
+    cv_y0 = 0;
+    cv_y1 = HELP_BAND;
+}
+
+/* a key as the screen keyboard draws it, 18 x 36: offered (half filled, outlined) in colour c */
+static void help_key(int32_t x, int32_t y, uint16_t c)
+{
+    screen_key(x, y, 18, 36, 0, 1, 0, c, 0);
+}
+
+static void help_page_keys(void)
+{
+    static const struct {
+        uint16_t c;
+        const char *name, *what;
+    } ROW[3] = {
+        { RGB(60, 110, 255), "BLUE", "SET-UP SCREENS" },
+        { C_PINK, "PINK", "ON RELEASE: LET GO FIRST" },
+        { C_MINT, "MINT", "READY: ACTS AT ONCE" },
+    };
+    cv_text(8, 8, &FONT_B, "KEY COLOURS", C_WHITE);
+    cv_text(232 - text_w(&FONT_XS, "1/2"), 12, &FONT_XS, "1/2", C_GRAY);
+    for (int32_t i = 0; i < 3; i++) {
+        int32_t y = 44 + i * 52;
+        help_key(10, y, ROW[i].c);
+        help_key(30, y, ROW[i].c);
+        cv_text(60, y + 2, &FONT_B, ROW[i].name, ROW[i].c);
+        cv_text(60, y + 22, &FONT_XS, ROW[i].what, HELP_TEXT);
+    }
+    cv_text(8, 216, &FONT_XS, "HOLD A LAYER BUTTON TO SEE ITS KEYS", C_GRAY);
+}
+
+static void help_page_play(void)
+{
+    cv_text(8, 8, &FONT_B, "IN PLAY", C_GREEN);
+    cv_text(232 - text_w(&FONT_XS, "2/2"), 12, &FONT_XS, "2/2", C_GRAY);
+    int32_t x = cv_text(8, 46, &FONT_B, "EDIT", C_WHITE);
+    draw_inf(x + 18, 54, C_RED);                /* EDIT makes a loop: the red infinity sign */
+    cv_text(16, 76, &FONT_XS, "PUSH", C_AMB);
+    cv_text(70, 76, &FONT_XS, "FULL LOOP AT END", HELP_TEXT);
+    cv_text(16, 96, &FONT_XS, "HOLD", C_AMB);
+    cv_text(70, 96, &FONT_XS, "PART LIVE LOOP", HELP_TEXT);
+    cv_rect(8, 124, 224, 1, RGB(52, 52, 60));
+    cv_text(8, 136, &FONT_B, "REC", C_RED);
+    cv_text(16, 166, &FONT_XS, "PUSH", C_AMB);
+    cv_text(70, 166, &FONT_XS, "LIVE OVERDUB", HELP_TEXT);
+    cv_text(70, 184, &FONT_XS, "ADDS NOTES ON TOP", HELP_TEXT);
+    int32_t cx = cv_text(8, 216, &FONT_XS, "ANY BUTTON BUT ", C_GRAY);   /* (SEL: NOTE REPEAT on the SMK-37) */
+    cx = cv_text(cx, 216, &FONT_XS, BTN_NAME[B_SEL], C_GRAY);
+    cv_text(cx, 216, &FONT_XS, ": CLOSE", C_GRAY);
+}
+
+static void help_draw(uint32_t now)
+{
+    uint8_t page = (uint8_t)(((now - ui.help_since) / 3000u) % HELP_PAGES);
+    if (ui.help_shown == page + 1u) {
+        return;
+    }
+    ui.help_shown = (uint8_t)(page + 1u);
+    for (int32_t by = 0; by < 240; by += HELP_BAND) {
+        help_band(by);
+        if (page == 0u) {
+            help_page_keys();
+        } else {
+            help_page_play();
+        }
+        cv_blit(0, (uint32_t)by);
+    }
+}
+
 static void draw_scope(void)
 {
     if (draw_layer_keys()) {

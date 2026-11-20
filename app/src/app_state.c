@@ -248,6 +248,8 @@ typedef struct {
     uint8_t pad_kit;                            /* the pads' drum kit (DRUMS pads), 0..DR_KIT_COUNT-1 */
     uint8_t user_from[OLS_USER_SOUNDS];         /* the factory sound each USER sound was made from (its name shows:
                                                  * "U3 ACID 303"), USER_FROM_NONE unknown */
+    uint8_t no_help;                            /* 1: no help pages after the boot screen (HELP AT START OFF); in what
+                                                 * was padding, so 0 (help on) in settings saved before it */
 } settings_t;
 typedef char settings_size_kept[(sizeof(settings_t) == 60u) ? 1 : -1];   /* (a field more: a new format) */
 #define USER_FROM_NONE 0xFFu
@@ -480,6 +482,9 @@ static struct {
     uint32_t splash_until;                      /* the boot screen stays until then, or until a hand touches something */
     uint8_t activity;                           /* something was touched since the last frame */
     uint8_t touched;                            /* a key, a pad or a button since power-on: the boot screen goes */
+    uint8_t help;                               /* the help pages after the boot screen (HELP AT START) are up */
+    uint8_t help_shown;                         /* the help page on the screen + 1 (0: none drawn yet) */
+    uint32_t help_since;                        /* when they came up: a page every 3 s */
 } ui;
 
 /* the MASTER position in %, for the header: fm1-base's pot, or a target's own (the SMK-37's encoder) */

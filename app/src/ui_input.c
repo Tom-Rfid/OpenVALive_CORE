@@ -1405,6 +1405,7 @@ static int32_t detents(int role)
     int32_t d = plat_enc(role);
     if (d != 0) {
         ui.activity = 1;
+        ui.help = 0;                            /* a knob closes the help pages */
     }
     return d;
 }
@@ -2171,6 +2172,9 @@ static void input(void)
     touch_poll();                           /* key velocity sensing (lib/touch.h) */
     uint32_t keys = touch_keys();
 
+    if (ui.help && (buttons & ~ui.buttons & ~(1u << B_SEL))) {
+        ui.help = 0;                            /* a button (not SEL) closes the help pages, and does its job */
+    }
     scan_buttons(buttons);
     avol_tick();
     scan_keys(keys, buttons);
