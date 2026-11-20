@@ -185,13 +185,14 @@ static const va_change_t DUB_SIREN[] = {
     {VA_P_DELAY_MIX, 0.45f}, {VA_P_DELAY_FB, 0.65f}, {VA_P_DELAY_TIME, 0.75f}, {VA_P_VOLUME, 0.5f},
 };
 
-/* House / techno chord stab: two saws, a short snappy envelope on the filter and the amp, chorus, an echo. */
+/* House / techno chord stab: two saws and a little sub, a snappy filter envelope on the attack, then a body that
+ * holds while the keys are (sustain), chorus, an echo. */
 static const va_change_t STAB[] = {
-    {VA_P_OSC2_FINE, 0.6f}, {VA_P_MIX_OSC2, 0.75f}, {VA_P_CUTOFF, 0.35f}, {VA_P_RESO, 0.35f},
-    {VA_P_FENV_AMT, 0.85f}, {VA_P_F_DECAY, 0.28f}, {VA_P_F_SUSTAIN, 0.05f}, {VA_P_A_ATTACK, 0.0f},
-    {VA_P_A_DECAY, 0.32f}, {VA_P_A_SUSTAIN, 0.0f}, {VA_P_A_RELEASE, 0.25f}, {VA_P_VEL_FILTER, 0.5f},
-    {VA_P_CHORUS_MODE, (1.0f + 0.5f) / 4.0f}, {VA_P_CHORUS_MIX, 0.5f}, {VA_P_DELAY_MIX, 0.25f},
-    {VA_P_DELAY_FB, 0.35f}, {VA_P_VOLUME, 0.55f},
+    {VA_P_OSC2_FINE, 0.6f}, {VA_P_MIX_OSC2, 0.75f}, {VA_P_MIX_SUB, 0.2f}, {VA_P_CUTOFF, 0.4f}, {VA_P_RESO, 0.35f},
+    {VA_P_FENV_AMT, 0.8f}, {VA_P_F_DECAY, 0.32f}, {VA_P_F_SUSTAIN, 0.2f}, {VA_P_A_ATTACK, 0.0f},
+    {VA_P_A_DECAY, 0.45f}, {VA_P_A_SUSTAIN, 0.4f}, {VA_P_A_RELEASE, 0.35f}, {VA_P_VEL_FILTER, 0.5f},
+    {VA_P_CHORUS_MODE, (1.0f + 0.5f) / 4.0f}, {VA_P_CHORUS_MIX, 0.5f}, {VA_P_DELAY_MIX, 0.3f},
+    {VA_P_DELAY_FB, 0.4f}, {VA_P_VOLUME, 0.6f},
 };
 
 /* Warm poly chords, Juno style: two saws gently detuned, the filter half open, a soft attack, both choruses. */
@@ -232,21 +233,25 @@ static const va_change_t BRASS[] = {
     {VA_P_LFO1_PITCH, 0.04f},
 };
 
-/* Pluck: a bright attack that dies away, echoes behind it. */
+/* Pluck: a bright attack that dies down to a soft tone held with the key, a ringing release, chorus and echoes
+ * behind it. */
 static const va_change_t PLUCK[] = {
     {VA_P_OSC2_WAVE, WAVE_SQUARE},
     {VA_P_OSC2_COARSE, SEMITONES(12)},
     {VA_P_MIX_OSC2, 0.35f},
-    {VA_P_CUTOFF, 0.35f},
-    {VA_P_FENV_AMT, 0.85f},
-    {VA_P_F_DECAY, 0.35f},
-    {VA_P_F_SUSTAIN, 0.0f},
+    {VA_P_CUTOFF, 0.4f},
+    {VA_P_RESO, 0.3f},
+    {VA_P_FENV_AMT, 0.8f},
+    {VA_P_F_DECAY, 0.45f},
+    {VA_P_F_SUSTAIN, 0.15f},
     {VA_P_A_ATTACK, 0.0f},
-    {VA_P_A_DECAY, 0.45f},
-    {VA_P_A_SUSTAIN, 0.0f},
-    {VA_P_A_RELEASE, 0.4f},
-    {VA_P_DELAY_MIX, 0.3f},
-    {VA_P_DELAY_FB, 0.45f},
+    {VA_P_A_DECAY, 0.6f},
+    {VA_P_A_SUSTAIN, 0.25f},
+    {VA_P_A_RELEASE, 0.5f},
+    {VA_P_CHORUS_MIX, 0.35f},
+    {VA_P_DELAY_MIX, 0.35f},
+    {VA_P_DELAY_FB, 0.5f},
+    {VA_P_VOLUME, 0.65f},
 };
 
 /* Organ: triangle + square an octave up + sub, no envelope, chorus II as a rotary. */
@@ -569,13 +574,13 @@ static const va_change_t NOISE[] = {
     {VA_P_VOLUME, 0.85f},
 };
 
-/* Riser: noise and a saw, the filter and the pitch (an octave) rising for about 8 s (4 bars at 120 BPM) while the
- * note is held, then staying up. */
+/* Riser: noise and a saw, heard at once, the filter and the pitch (an octave) rising for about 8 s (4 bars at 120
+ * BPM) while the note is held, then staying up. */
 static const va_change_t RISER[] = {
-    {VA_P_MIX_OSC1, 0.4f}, {VA_P_MIX_OSC2, 0.0f}, {VA_P_MIX_NOISE, 0.75f}, {VA_P_CUTOFF, 0.15f}, {VA_P_RESO, 0.45f},
+    {VA_P_MIX_OSC1, 0.4f}, {VA_P_MIX_OSC2, 0.0f}, {VA_P_MIX_NOISE, 0.75f}, {VA_P_CUTOFF, 0.25f}, {VA_P_RESO, 0.45f},
     {VA_P_FENV_AMT, 0.95f}, {VA_P_F_ATTACK, 1.0f}, {VA_P_F_SUSTAIN, 1.0f}, {VA_P_F_RELEASE, 0.6f},
     {VA_P_MOD1_SRC, MOD_SRC(VA_SRC_FENV)}, {VA_P_MOD1_DST, MOD_DST(VA_DST_PITCH)}, {VA_P_MOD1_AMT, 0.75f},
-    {VA_P_A_ATTACK, 0.7f}, {VA_P_A_SUSTAIN, 1.0f}, {VA_P_A_RELEASE, 0.6f}, {VA_P_PHASER_MIX, 0.3f},
+    {VA_P_A_ATTACK, 0.3f}, {VA_P_A_SUSTAIN, 1.0f}, {VA_P_A_RELEASE, 0.6f}, {VA_P_PHASER_MIX, 0.3f},
     {VA_P_DELAY_FB, 0.5f}, {VA_P_DELAY_MIX, 0.25f}, {VA_P_VOLUME, 0.8f},
 };
 
