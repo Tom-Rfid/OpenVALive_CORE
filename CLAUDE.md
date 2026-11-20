@@ -20,7 +20,9 @@ FM1_BASE=~/fm1-base sh tests/run_tests.sh             # + device checks (no-libc
 
 Before any commit: `FM1_BASE=... sh tests/run_tests.sh` must end with "All tests pass.". A new gesture or control:
 add it to `docs/_EN/19-fm1-smk37-controls.md` (FR: `docs/_FR/19-commandes-fm1-smk37.md`) and check it on both devices
-(the FM-1 and the SMK-37 keep the same behaviour; the SMK-37 only adds its extra controls). A change to `app/` is also
+(the FM-1 and the SMK-37 keep the same behaviour; the SMK-37 only adds its extra controls), and copy it to
+`docs/_*/21-…` in OpenVALive_FM-1 and OpenVALive_SMK-37. The FM-1 sets the common functions: a gesture with no
+place on the FM-1 is SMK-37 only and must be **told to Thomas** (so a FM-1 way can be found). A change to `app/` is also
 run in OpenVALive_FM-1's simulator and OpenVALive_SMK-37's host test (their CI, after moving their submodule).
 
 ## Repository map

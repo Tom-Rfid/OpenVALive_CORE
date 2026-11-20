@@ -49,8 +49,36 @@ pédale, plus de touches).
 | touches PERC de batterie (OPTION CONTROL) | PERC 1–4 : Sol#3 Ré#4 Sol#4 Ré#5 | PERC 1–6 : Ré#3 Sol#3 Ré#4 Sol#4 Ré#5 Sol#5 (`APP_PERC_FIRST` / `APP_PERC_COUNT`) |
 | lumières des touches | les LED des touches | le clavier à l'écran (KEYS ON SCREEN), couche tenue |
 
-## Seulement sur le SMK-37
+## Réglages (OPTION CONTROL, les deux)
 
-Pads (PERFORM / PLAY avec roulements à la pression / SCÈNES avec mutes, MUTE ALL, A VOL), 4 faders (volumes, macros,
-emplacements USER), molette de pitch (BEND ou PAN) et de modulation (MORPH par défaut ; les deux réglables), pédale
-de sustain, MIDI OUT en jack TRS, courbe de vélocité des touches.
+| Ligne | Valeurs | Rôle |
+|---|---|---|
+| PLAY MODE | **LIVE** (par défaut) / FULL MIDI | LIVE : les touches et les pads jouent les sons internes (et sortent en MIDI). FULL MIDI : ils n'envoient que du MIDI (local off), pour un DAW ou un autre synthé ; aussi SEL + 16e touche blanche |
+| DRUM KEYS | ORIGINAL / GM | la carte des touches de batterie |
+| PERC 1–4 (FM-1) / 1–6 (SMK-37) | 10 percussions | ce que joue chaque Ré# / Sol# de la batterie |
+| KEYS ON SCREEN | ON / OFF | le clavier à l'écran quand une couche est tenue |
+| T1–T4, A NEW SOUND | KEEP / une page | la page de boutons qu'amène un nouveau son |
+
+## Seulement sur le SMK-37 (ses commandes en plus, rien dont le FM-1 a besoin)
+
+| SMK-37 | Rôle | Sur le FM-1 |
+|---|---|---|
+| 16 pads : pads de réglage MODE + REC, 14 pads de jeu | CLIPS, DRUMS (roulements à la pression), PERFORM (14 effets), SCÈNES (scènes, mutes, MUTE ALL, A VOL), MIDI (canal 16) | PERFORM, SCÈNES, mutes, MUTE ALL, A VOL : pareil sur les touches sous une couche. **Les CLIPS, les pads MIDI et les roulements n'ont pas d'équivalent FM-1** |
+| 4 faders | volumes, macros, emplacements USER (FADER BANK) | les boutons rotatifs (pages LIVE / MACRO, MAP CONTROL) |
+| molette de pitch, de modulation | BEND ou PAN, MORPH (réglables) | — |
+| pédale de sustain | tient les notes | — |
+| MIDI OUT (jack TRS) | notes, horloge | MIDI USB seulement |
+| 10 touches de plus, courbe de vélocité | Do3–Do6 | 27 touches Fa3–Sol5 |
+| SHIFT (KNOB BANK) | SHIFT + K1–K4 : page LIVE ; SHIFT + SELECT : SOUND EDIT | ARP + SEL : SOUND EDIT (aussi sur le SMK-37) ; page LIVE : pages FX |
+
+## Seulement sur le FM-1
+
+| FM-1 | Sur le SMK-37 |
+|---|---|
+| une LED dans chaque touche (les emplacements de la couche allumés) | le clavier à l'écran (KEYS ON SCREEN) |
+| le haut-parleur intégré | casque / sortie ligne |
+| potentiomètre MASTER | encodeur 8 |
+
+**Règle pour la suite :** les fonctions communes sont ce que le FM-1 sait faire (ses 14 boutons, 27 touches, 6
+boutons rotatifs). Un nouveau geste trouve d'abord sa place sur le FM-1 ; s'il ne peut pas (il lui faut un pad, un
+fader, une pédale), il est seulement sur le SMK-37 et va dans le tableau ci-dessus.

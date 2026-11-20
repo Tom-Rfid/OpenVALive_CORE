@@ -668,7 +668,7 @@ static void draw_status_line(void)
     }
 
     /* the page on the left, in its colour; on the right an arrow and the page FX turns to, in that one's */
-    const char *page = set.controller && set.page == PAGE_SOUND ? "CONTROLLER" : PAGE_NAME[set.page];
+    const char *page = set.controller && set.page == PAGE_SOUND ? "FULL MIDI" : PAGE_NAME[set.page];
     cv_text(6, 36, &FONT_XS, page, page_colour_label());
     uint32_t next = page_after(set.page);
     int32_t nx = 234 - text_w(&FONT_XS, PAGE_NAME[next]);

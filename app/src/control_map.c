@@ -94,7 +94,7 @@ static struct {
 #endif
 
 /* OPTION CONTROL's rows */
-enum { CONF_DRUM_MAP, CONF_PERC, CONF_KEYS_SCREEN = CONF_PERC + APP_PERC_COUNT, CONF_NEW_PAGE,
+enum { CONF_PLAY_MODE, CONF_DRUM_MAP, CONF_PERC, CONF_KEYS_SCREEN = CONF_PERC + APP_PERC_COUNT, CONF_NEW_PAGE,
        CONF_MENU = CONF_NEW_PAGE + TRACKS + 1, CONF_ROWS };
 /* the menu buttons: one pressed leaves a set-up screen (what it changed is kept) */
 #define MENU_BUTTONS ((1u << B_HOME) | (1u << B_GLO) | (1u << BTN_PAGES) | (1u << B_ARP) | (1u << BTN_PERFORM) \
@@ -168,7 +168,8 @@ static void conf_name(uint32_t c, char *t)
     } else if (c >= CONF_NEW_PAGE && c < CONF_MENU) {
         copy_text(t, NEW_PAGE_LINE[c - CONF_NEW_PAGE], 16);
     } else {
-        copy_text(t, c == CONF_DRUM_MAP ? "DRUM KEYS" : (c == CONF_KEYS_SCREEN ? "KEYS ON SCREEN" : "MENU"), 16);
+        copy_text(t, c == CONF_PLAY_MODE ? "PLAY MODE" : (c == CONF_DRUM_MAP ? "DRUM KEYS"
+                     : (c == CONF_KEYS_SCREEN ? "KEYS ON SCREEN" : "MENU")), 16);
     }
 }
 
@@ -180,6 +181,9 @@ static const char *conf_text(uint32_t c)
     if (c >= CONF_NEW_PAGE && c < CONF_MENU) {
         uint8_t p = set.new_page[c - CONF_NEW_PAGE];
         return p ? PAGE_NAME[(p - 1u) % PAGE_COUNT] : "KEEP";
+    }
+    if (c == CONF_PLAY_MODE) {                  /* LIVE: the sounds inside; FULL MIDI: the keys and pads only send MIDI */
+        return set.controller ? "FULL MIDI" : "LIVE";
     }
     if (c == CONF_DRUM_MAP) {
         return set.drum_map == DRUM_MAP_GM ? "GM" : "ORIGINAL";
@@ -196,6 +200,9 @@ static void conf_turn(uint32_t c, int32_t turn)
     } else if (c >= CONF_NEW_PAGE && c < CONF_MENU) {
         uint8_t *p = &set.new_page[c - CONF_NEW_PAGE];
         *p = (uint8_t)((*p + PAGE_COUNT + 1u + (uint32_t)step) % (PAGE_COUNT + 1u));   /* KEEP, SOUND .. EQ */
+    } else if (c == CONF_PLAY_MODE) {
+        set.controller = (uint8_t)!set.controller;
+        mark_dirty();
     } else if (c == CONF_DRUM_MAP) {
         set.drum_map = (uint8_t)!set.drum_map;
     } else if (c == CONF_KEYS_SCREEN) {
@@ -214,6 +221,9 @@ static void conf_default(uint32_t c)
         set.perc[j] = (j & 1u) ? 2u : 0u;           /* G#: TRIANGLE, D#: COWBELL */
     } else if (c >= CONF_NEW_PAGE && c < CONF_MENU) {
         set.new_page[c - CONF_NEW_PAGE] = 0;
+    } else if (c == CONF_PLAY_MODE) {
+        set.controller = 0;                     /* LIVE */
+        mark_dirty();
     } else if (c == CONF_DRUM_MAP) {
         set.drum_map = DRUM_MAP_ORIGINAL;
     } else if (c == CONF_KEYS_SCREEN) {
@@ -850,7 +860,9 @@ static void conf_draw_row(uint32_t c, int32_t y, int sel)
     conf_name(c, name);
     const char *v = conf_text(c);
     uint16_t vc = sel ? C_WHITE : C_AMB;
-    if (c == CONF_KEYS_SCREEN) {
+    if (c == CONF_PLAY_MODE) {
+        vc = set.controller ? C_CYAN : C_MINT;              /* LIVE mint, FULL MIDI cyan */
+    } else if (c == CONF_KEYS_SCREEN) {
         vc = set.keys_screen ? C_GREEN : C_RED;             /* ON green, OFF red */
     } else if (c == CONF_DRUM_MAP) {                        /* the two FX keys, as the keyboard shows them */
         key_chip(124, y + 3, 9, 11, set.drum_map != DRUM_MAP_GM);

@@ -48,8 +48,36 @@ Same behaviour on both; the SMK-37 only adds what it has more (pads, faders, whe
 | drum PERC keys (OPTION CONTROL) | PERC 1–4: G#3 D#4 G#4 D#5 | PERC 1–6: D#3 G#3 D#4 G#4 D#5 G#5 (`APP_PERC_FIRST` / `APP_PERC_COUNT`) |
 | key lights | the keys' LEDs | the screen keyboard (KEYS ON SCREEN), while a layer is held |
 
-## Only on the SMK-37
+## Settings (OPTION CONTROL, both)
 
-Pads (PERFORM / PLAY with rolls by pressure / SCENES with mutes, MUTE ALL, A VOL), 4 faders (levels, macros, USER
-slots), pitch wheel (BEND or PAN) and mod wheel (MORPH by default; both mappable), sustain pedal, MIDI OUT TRS, key
-velocity curve.
+| Row | Values | What |
+|---|---|---|
+| PLAY MODE | **LIVE** (default) / FULL MIDI | LIVE: the keys and pads play the sounds inside (and go out on MIDI). FULL MIDI: they only send MIDI (local off), for a DAW or another synth; also SEL + 16th white key |
+| DRUM KEYS | ORIGINAL / GM | the drum keys' map |
+| PERC 1–4 (FM-1) / 1–6 (SMK-37) | 10 percussions | what each drum D# / G# plays |
+| KEYS ON SCREEN | ON / OFF | the screen keyboard while a layer is held |
+| T1–T4, A NEW SOUND | KEEP / a page | the knob page a new sound brings |
+
+## Only on the SMK-37 (its own controls, nothing the FM-1 needs)
+
+| SMK-37 | What | On the FM-1 |
+|---|---|---|
+| 16 pads: MODE + REC set-up pads, 14 playing pads | CLIPS, DRUMS (rolls by pressure), PERFORM (14 effects), SCENES (scenes, mutes, MUTE ALL, A VOL), MIDI (channel 16) | PERFORM, SCENES, mutes, MUTE ALL, A VOL: the same on the keys under a layer. **CLIPS, the MIDI pads and the pad rolls have no FM-1 equivalent** |
+| 4 faders | levels, macros, USER slots (FADER BANK) | the knobs (LIVE / MACRO pages, MAP CONTROL) |
+| pitch wheel, mod wheel | BEND or PAN, MORPH (mappable) | — |
+| sustain pedal | holds the notes | — |
+| MIDI OUT (TRS jack) | notes, clock | USB MIDI only |
+| 10 more keys, velocity curve | C3–C6 | 27 keys F3–G5 |
+| SHIFT (KNOB BANK) | SHIFT + K1–K4: LIVE page; SHIFT + SELECT: SOUND EDIT | ARP + SEL: SOUND EDIT (also on the SMK-37); LIVE page: FX pages |
+
+## Only on the FM-1
+
+| FM-1 | On the SMK-37 |
+|---|---|
+| a LED in each key (the layer's slots lit) | the screen keyboard (KEYS ON SCREEN) |
+| the built-in speaker | headphones / line out |
+| MASTER pot | encoder 8 |
+
+**Rule for what comes next:** the common functions are what the FM-1 can do (its 14 buttons, 27 keys, 6 knobs). A
+new gesture first gets a place on the FM-1; when it cannot (it needs a pad, a fader, a pedal), it is SMK-37 only and
+goes in the table above.

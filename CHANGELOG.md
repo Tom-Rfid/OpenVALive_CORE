@@ -13,6 +13,8 @@
   the next beat, looping, on the line's sound, not recorded in the loop. The line being taken goes green on screen.
 - The boot screen goes at the first key, pad or button, even pressed in its first half second (it was missed then).
 - PERFORM's title: an infinity sign, "DIV / FILTER".
+- OPTION CONTROL: **PLAY MODE** LIVE (default) / FULL MIDI (the keys and pads only send MIDI; was CONTROLLER).
+- Doc 19: settings, what only one of the two has, the FM-1 sets the common functions.
 
 ## 20 November 2026 — breathing keys, brighter glow (FM-1)
 

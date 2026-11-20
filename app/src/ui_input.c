@@ -211,7 +211,7 @@ static const char *armed_name(uint8_t role, int w)
     }
     if (role == KEY_ARMED_SEL) {                /* the tracks layer's set-up keys */
         static const char *const SEL_NAME[11] = { "CLEAR", "QUANTIZE", "CLOCK IN", "CLOCK OUT", "EUCLID 3", "EUCLID 4",
-                                                  "EUCLID 5", "EUCLID 6", "EUCLID 7", "EUCLID 8", "CONTROLLER" };
+                                                  "EUCLID 5", "EUCLID 6", "EUCLID 7", "EUCLID 8", "FULL MIDI" };
         return w >= 5 && w <= 15 ? SEL_NAME[w - 5] : "";
     }
     if (role == KEY_ARMED_FX) {
@@ -742,7 +742,7 @@ static void track_key(int w)
     } else {
         set.controller = (uint8_t)!set.controller;
         mark_dirty();
-        app_say("CONTROLLER", set.controller ? "MIDI ONLY" : "OFF");
+        app_say("PLAY MODE", set.controller ? "FULL MIDI" : "LIVE");
     }
 }
 
