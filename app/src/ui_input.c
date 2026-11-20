@@ -48,7 +48,7 @@
 #define ENCODER_STEP (1.0f / 64.0f) /* one detent = 1/64 of the range */
 #define WHITE_KEYS 16
 #define SEL_AVOL 16                             /* SEL + A VOL armed (valid on release): its role's w */
-#define SAVE_ALL 16                             /* SAVE + the 1st black key (SAVE ALL) armed: its role's w */
+#define SAVE_ALL 16                             /* SAVE + the 6th black key (SAVE ALL) armed: its role's w */
 /* HOME + white key, HOME let go first: the set-up screens, from the 2nd F (white key 8: F4 on the FM-1), clear of the
  * right hand on the buttons */
 #define HOME_OPTIONS 6                          /* OPTIONS (7th white key: E4 on the FM-1), SOUNDS (8th: F4), and LOOP EDIT */
@@ -62,6 +62,7 @@ static const uint8_t WHITE_KEY[WHITE_KEYS] = { 0, 2, 4, 6, 7, 9, 11, 12, 14, 16,
 #define BLACK_KEYS 11
 static const uint8_t BLACK_KEY[BLACK_KEYS] = { 1, 3, 5, 8, 10, 13, 15, 17, 20, 22, 25 };
 #define KEY_MUTE_ALL 1u                         /* SEL + the first black key (F#3): every track out / back */
+#define KEY_SAVE_ALL 13u                        /* SAVE + the sixth black key (between LOAD 8 and SAVE 1): SAVE ALL */
 #define KEY_AVOL 8u                             /* SEL + the fourth (C#4): A VOL, the levels brought together */
 
 /* the Creative Engine on the white keys (ARP held): operation and argument */
@@ -896,11 +897,11 @@ static void key_pressed(uint32_t k, uint32_t buttons)
     }
 #endif
 
-    if (button_held(buttons, B_SAVE)) {         /* SAVE + key 1-8: LOAD USER 1-8, 9-16: SAVE USER 1-8, 1st black: SAVE
+    if (button_held(buttons, B_SAVE)) {         /* SAVE + key 1-8: LOAD USER 1-8, 9-16: SAVE USER 1-8, 6th black: SAVE
                                                  * ALL; each valid on release (SAVE let go first) */
         if (w >= 0 && w < 2 * OLS_USER_SOUNDS) {
             arm_key(k, w, KEY_ARMED_SAVE);
-        } else if (k == KEY_MUTE_ALL) {
+        } else if (k == KEY_SAVE_ALL) {
             arm_key(k, SAVE_ALL, KEY_ARMED_SAVE);
         }
         return;
@@ -1180,7 +1181,7 @@ static void button_pressed(uint32_t b, uint32_t buttons)
         break;
     case B_SAVE:
         app_say(BTN_NAME[B_SAVE], "HOLD + KEY");
-        ui.msg_right = "SAVE ALL";              /* the 1st black key: the live set */
+        ui.msg_right = "SAVE ALL";              /* the 6th black key: the live set */
         break;
     case B_ARP:
         ui.arp_down_at = plat_ms();
@@ -1938,7 +1939,7 @@ static uint32_t keys_armable(uint32_t buttons)
         return ui.on_a ? 0u : white_mask(0, 1);
     }
     if (button_held(buttons, B_SAVE)) {         /* (the LOAD keys show what they hold instead: violet or grey) */
-        return white_mask(OLS_USER_SOUNDS, 2 * OLS_USER_SOUNDS) | (1u << KEY_MUTE_ALL);
+        return white_mask(OLS_USER_SOUNDS, 2 * OLS_USER_SOUNDS) | (1u << KEY_SAVE_ALL);
     }
     if (button_held(buttons, B_ARP)) {
         return ui.on_a ? 0u : white_mask(0, 15);
@@ -2037,16 +2038,16 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
             *lit |= 1u << WHITE_KEY[13];        /* the wheel pans */
         }
     } else if (button_held(buttons, B_SAVE)) {  /* SAVE + key 1-8 LOAD USER 1-8 (lit: one to load), 9-16 SAVE (lit:
-                                                 * one there already), 1st black SAVE ALL (blinking: something to save) */
-        *dim = white_mask(OLS_USER_SOUNDS, 2 * OLS_USER_SOUNDS) | (1u << KEY_MUTE_ALL);
+                                                 * one there already), 6th black SAVE ALL (blinking: something to save) */
+        *dim = white_mask(OLS_USER_SOUNDS, 2 * OLS_USER_SOUNDS) | (1u << KEY_SAVE_ALL);
         for (int u = 0; u < OLS_USER_SOUNDS; u++) {
             if (user_sounds[u].valid) {
                 *lit |= 1u << WHITE_KEY[u] | 1u << WHITE_KEY[OLS_USER_SOUNDS + u];
             }
         }
         if (set_dirty || live.changes != saved_changes) {
-            *lit |= (uint32_t)((plat_ms() / 125u) & 1u) << KEY_MUTE_ALL;
-            *bl |= 1u << KEY_MUTE_ALL;
+            *lit |= (uint32_t)((plat_ms() / 125u) & 1u) << KEY_SAVE_ALL;
+            *bl |= 1u << KEY_SAVE_ALL;
         }
     } else if (button_held(buttons, B_ARP)) {
         *dim = white_mask(0, 15);

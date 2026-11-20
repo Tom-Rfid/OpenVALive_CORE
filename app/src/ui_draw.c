@@ -293,6 +293,135 @@ static void screen_key_colours(int32_t k, uint32_t bit, uint32_t lit, uint16_t *
     }
 }
 
+/* --- the keys' names on the screen keyboard: 3 characters at most, stacked down the key in a 3x5 font (white keys at
+ * the bottom, every name starting on the same line; black keys at the top), a dark shadow under them --- */
+static const char FONT35_CHARS[] = "0123456789ABCDEFGHIKLMNOPQRSTUVWXY-+<>";
+static const uint16_t FONT35[] = {             /* 5 rows of 3 pixels, top row first, left pixel the high bit */
+    0x7b6f, 0x2c97, 0x73e7, 0x73cf, 0x5bc9, 0x79cf, 0x79ef, 0x7292, 0x7bef, 0x7bcf, 0x2bed, 0x6bae, 0x3923,
+    0x6b6e, 0x79a7, 0x79a4, 0x396b, 0x5bed, 0x7497, 0x5d35, 0x4927, 0x5fed, 0x6b6d, 0x2b6a, 0x6ba4, 0x2b73,
+    0x6bad, 0x388e, 0x7492, 0x5b6f, 0x5b6a, 0x5bfd, 0x5aad, 0x5a92, 0x01c0, 0x05d0, 0x1511, 0x4454,
+};
+
+static void glyph35(int32_t x, int32_t y, char ch, uint16_t col)
+{
+    for (uint32_t i = 0; FONT35_CHARS[i]; i++) {
+        if (FONT35_CHARS[i] != ch) {
+            continue;
+        }
+        for (int32_t b = 0; b < 15; b++) {
+            if ((FONT35[i] >> (14 - b)) & 1u) {
+                cv_rect(x + b % 3, y + b / 3, 1, 1, col);
+            }
+        }
+        return;
+    }
+}
+
+static void name35(int32_t x, int32_t y, const char *s, uint16_t col)
+{
+    for (int32_t i = 0; i < 3 && s[i]; i++) {
+        glyph35(x + 1, y + 6 * i + 1, s[i], C_BLACK);
+    }
+    for (int32_t i = 0; i < 3 && s[i]; i++) {
+        glyph35(x, y + 6 * i, s[i], col);
+    }
+}
+
+enum { NAMES_SEL, NAMES_SEQ, NAMES_GLO, NAMES_ARP, NAMES_HOME, NAMES_FX, NAMES_SAVE, NAMES_REC };
+enum { NAME_WHITE, NAME_YELLOW, NAME_RED, NAME_GREEN };
+#define NB(b) (16u + (b))                       /* a black key: its index among the black keys */
+static const struct {
+    uint8_t layer, key, col;                    /* key: a white key's index 0-15, or NB(the black key's) */
+    char name[4];
+} KEY_NAME[] = {
+    { NAMES_SEL, 0, 0, "M1" }, { NAMES_SEL, 1, 0, "M2" }, { NAMES_SEL, 2, 0, "M3" }, { NAMES_SEL, 3, 0, "M4" },
+    { NAMES_SEL, 5, 0, "CLR" }, { NAMES_SEL, 6, 0, "QNT" }, { NAMES_SEL, 7, 0, "CKI" }, { NAMES_SEL, 8, 0, "CKO" },
+    { NAMES_SEL, 9, NAME_YELLOW, "E3" }, { NAMES_SEL, 10, NAME_YELLOW, "E4" }, { NAMES_SEL, 11, NAME_YELLOW, "E5" },
+    { NAMES_SEL, 12, 0, "E6" }, { NAMES_SEL, 13, 0, "E7" }, { NAMES_SEL, 14, 0, "E8" }, { NAMES_SEL, 15, 0, "MID" },
+    { NAMES_SEL, NB(0), 0, "MA" }, { NAMES_SEL, NB(3), 0, "AV" },
+    { NAMES_SEQ, 0, 0, "L1" }, { NAMES_SEQ, 1, 0, "L2" }, { NAMES_SEQ, 2, 0, "L4" }, { NAMES_SEQ, 3, 0, "L8" },
+    { NAMES_SEQ, 4, 0, "L16" }, { NAMES_SEQ, 5, 0, "SLC" }, { NAMES_SEQ, 6, 0, "FL-" }, { NAMES_SEQ, 7, 0, "FL+" },
+    { NAMES_SEQ, 8, 0, "DLY" }, { NAMES_SEQ, 9, 0, "DRV" }, { NAMES_SEQ, 10, 0, "CRU" }, { NAMES_SEQ, 11, 0, "BRK" },
+    { NAMES_SEQ, 12, 0, "SOL" }, { NAMES_SEQ, 13, 0, "DRM" }, { NAMES_SEQ, 14, 0, "OUT" }, { NAMES_SEQ, 15, 0, "OFF" },
+    { NAMES_GLO, 0, 0, "SC1" }, { NAMES_GLO, 1, 0, "SC2" }, { NAMES_GLO, 2, 0, "SC3" }, { NAMES_GLO, 3, 0, "SC4" },
+    { NAMES_GLO, 4, 0, "SC5" }, { NAMES_GLO, 5, 0, "SC6" }, { NAMES_GLO, 6, 0, "SC7" }, { NAMES_GLO, 7, 0, "SC8" },
+    { NAMES_GLO, 8, NAME_YELLOW, "SV1" }, { NAMES_GLO, 9, NAME_YELLOW, "SV2" }, { NAMES_GLO, 10, NAME_YELLOW, "SV3" },
+    { NAMES_GLO, 11, NAME_YELLOW, "SV4" }, { NAMES_GLO, 12, NAME_YELLOW, "SV5" }, { NAMES_GLO, 13, NAME_YELLOW, "SV6" },
+    { NAMES_GLO, 14, NAME_YELLOW, "SV7" }, { NAMES_GLO, 15, NAME_YELLOW, "SV8" },
+    { NAMES_ARP, 0, 0, "MUT" }, { NAMES_ARP, 1, 0, "HUM" }, { NAMES_ARP, 2, 0, "FIL" }, { NAMES_ARP, 3, 0, "SMP" },
+    { NAMES_ARP, 4, 0, "RO<" }, { NAMES_ARP, 5, 0, "RO>" }, { NAMES_ARP, 6, 0, "REV" },
+    { NAMES_ARP, 7, NAME_RED, "T-1" }, { NAMES_ARP, 8, NAME_GREEN, "T+1" }, { NAMES_ARP, 9, 0, "EXP" },
+    { NAMES_ARP, 10, 0, "CON" }, { NAMES_ARP, 11, 0, "CHA" }, { NAMES_ARP, 12, 0, "RAT" },
+    { NAMES_ARP, 13, NAME_RED, "O-" }, { NAMES_ARP, 14, NAME_GREEN, "O+" },
+    { NAMES_HOME, 0, 0, "PNC" }, { NAMES_HOME, 1, NAME_GREEN, "RST" }, { NAMES_HOME, 2, NAME_RED, "STP" },
+    { NAMES_HOME, 6, 0, "OPT" }, { NAMES_HOME, 7, 0, "SND" }, { NAMES_HOME, NB(3), 0, "LE" },
+    { NAMES_FX, 0, NAME_RED, "RST" },
+#if APP_WHEEL
+    { NAMES_FX, 13, 0, "PAN" },
+#endif
+    { NAMES_FX, 14, 0, "ORG" }, { NAMES_FX, 15, 0, "GM" },
+    { NAMES_SAVE, 0, 0, "U1" }, { NAMES_SAVE, 1, 0, "U2" }, { NAMES_SAVE, 2, 0, "U3" }, { NAMES_SAVE, 3, 0, "U4" },
+    { NAMES_SAVE, 4, 0, "U5" }, { NAMES_SAVE, 5, 0, "U6" }, { NAMES_SAVE, 6, 0, "U7" }, { NAMES_SAVE, 7, 0, "U8" },
+    { NAMES_SAVE, 8, 0, "SU1" }, { NAMES_SAVE, 9, 0, "SU2" }, { NAMES_SAVE, 10, 0, "SU3" }, { NAMES_SAVE, 11, 0, "SU4" },
+    { NAMES_SAVE, 12, 0, "SU5" }, { NAMES_SAVE, 13, 0, "SU6" }, { NAMES_SAVE, 14, 0, "SU7" },
+    { NAMES_SAVE, 15, 0, "SU8" }, { NAMES_SAVE, NB(5), 0, "ALL" },
+    { NAMES_REC, 0, 0, "RST" },
+};
+
+/* the layer whose names show (the same order as key_lights), -1: none */
+static int key_names_layer(uint32_t buttons)
+{
+    if (button_held(buttons, B_GLO)) {
+        return NAMES_GLO;
+    }
+    if (button_held(buttons, BTN_TRACKS)) {
+        return NAMES_SEL;
+    }
+    if (button_held(buttons, BTN_PERFORM)) {
+        return NAMES_SEQ;
+    }
+    if (button_held(buttons, B_HOME)) {
+        return NAMES_HOME;
+    }
+    if (button_held(buttons, B_REC)) {
+        return ui.on_a ? -1 : NAMES_REC;
+    }
+    if (button_held(buttons, BTN_PAGES)) {
+        return NAMES_FX;
+    }
+    if (button_held(buttons, B_SAVE)) {
+        return NAMES_SAVE;
+    }
+    return button_held(buttons, B_ARP) ? NAMES_ARP : -1;
+}
+
+/* the name of app key k on that layer (NULL: none), and its colour */
+static const char *key_name(int layer, int32_t k, uint16_t *col)
+{
+    int idx = -1;
+    if (k < 0 || layer < 0) {
+        return 0;
+    }
+    int w = white_index((uint32_t)k);
+    if (w >= 0) {
+        idx = w;
+    } else {
+        for (int b = 0; b < BLACK_KEYS; b++) {
+            if (BLACK_KEY[b] == (uint32_t)k) {
+                idx = (int)NB(b);
+            }
+        }
+    }
+    for (uint32_t i = 0; i < sizeof KEY_NAME / sizeof KEY_NAME[0]; i++) {
+        if (KEY_NAME[i].layer == layer && KEY_NAME[i].key == idx) {
+            static const uint16_t COL[] = { RGB(235, 235, 235), RGB(255, 214, 40), RGB(255, 70, 60), RGB(60, 230, 90) };
+            *col = COL[KEY_NAME[i].col];
+            return KEY_NAME[i].name;
+        }
+    }
+    return 0;
+}
+
 static int draw_layer_keys(void)
 {
     const uint32_t LAYERS = (1u << B_ARP) | (1u << B_GLO) | (1u << BTN_PERFORM) | (1u << BTN_TRACKS) | (1u << B_SAVE)
@@ -302,6 +431,7 @@ static int draw_layer_keys(void)
     }
     uint32_t lit, dim, blink;
     key_lights(ui.keys, ui.buttons, &lit, &dim, &blink);
+    const int names = key_names_layer(ui.buttons);
     uint32_t whites = 0;
     for (uint32_t i = 0; i < APP_SCREEN_KEYS; i++) {
         whites += !screen_key_black(i);
@@ -320,13 +450,28 @@ static int draw_layer_keys(void)
             uint32_t bit = k >= 0 ? 1u << k : 0u;
             uint16_t solid = 0, c = C_MINT;
             screen_key_colours(k, bit, lit, &c, &solid, &dim);
+            uint16_t ncol = 0;
+            const char *name = key_name(names, k, &ncol);
+            if (solid == C_YELLOW) {
+                ncol = C_BLACK;                         /* (held: dark letters on the yellow) */
+            }
             if (!black) {
-                screen_key(x0 + white * ww, top, ww - 1, kh, lit & bit, dim & bit, blink & bit, c, solid);
+                int32_t x = x0 + white * ww;
+                screen_key(x, top, ww - 1, kh, lit & bit, dim & bit, blink & bit, c, solid);
+                if ((APP_SCREEN_FIRST + i) % 12u == 0u) {
+                    cv_rect(x - 1, top, 1, kh, RGB(170, 70, 0));   /* a dark orange line left of each C */
+                }
+                if (name) {
+                    name35(x + (ww - 1) / 2 - 1, top + kh - 19, name, ncol);
+                }
                 white++;
             } else {
-                int32_t bw = ww * 3 / 5 | 1;
-                cv_rect(x0 + white * ww - bw / 2 - 1, top, bw + 2, kh * 3 / 5 + 1, C_BLACK);
-                screen_key(x0 + white * ww - bw / 2, top, bw, kh * 3 / 5, lit & bit, dim & bit, blink & bit, c, solid);
+                int32_t bw = ww * 3 / 5 | 1, x = x0 + white * ww - bw / 2;
+                cv_rect(x - 1, top, bw + 2, kh * 3 / 5 + 1, C_BLACK);
+                screen_key(x, top, bw, kh * 3 / 5, lit & bit, dim & bit, blink & bit, c, solid);
+                if (name) {
+                    name35(x + bw / 2 - 1, top + 2, name, ncol);
+                }
             }
         }
     }
