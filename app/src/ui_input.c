@@ -1872,16 +1872,6 @@ static uint32_t keys_armable(uint32_t buttons)
 #define LAYER_BUTTONS_ALL ((1u << B_ARP) | (1u << B_GLO) | (1u << BTN_PERFORM) | (1u << BTN_TRACKS) | (1u << B_SAVE) \
                            | (1u << B_HOME) | (1u << BTN_PAGES))
 
-/* a breath, 0 .. 256 and back over a second (a smoothstep each way: close to a sine, without one) */
-static uint32_t breath_over(uint32_t period_ms)
-{
-    uint32_t half = period_ms / 2u, t = plat_ms() % period_ms;
-    uint32_t x = t < half ? t * 256u / half : (period_ms - t) * 256u / half;   /* 0 .. 256 .. 0 */
-    return x * x * (768u - 2u * x) / 65536u;                               /* 3x^2 - 2x^3, in 256ths */
-}
-
-static uint32_t breath_256(void) { return breath_over(1000u); }
-
 /* the keys' lights: lit, dim (it does something now), and which of them blink (*blink, may be 0) */
 static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t *dim, uint32_t *blink_mask)
 {
@@ -1916,13 +1906,8 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
         } else {
             *lit |= 1u << KEY_MUTE_ALL;
         }
-        if (avol.on) {                          /* A VOL running: a slow 2 s swell, lit first (lit, dim, off, dim) */
-            uint32_t ph = (plat_ms() - avol.start) % 2000u;
-            if (ph < 800u) {
-                *lit |= 1u << KEY_AVOL;
-            } else if (ph >= 1000u && ph < 1800u) {
-                *dim &= ~(1u << KEY_AVOL);
-            }
+        if (avol.on) {                          /* A VOL running: lit */
+            *lit |= 1u << KEY_AVOL;
         }
         if (live.quantize) {
             *lit |= 1u << WHITE_KEY[6];
@@ -1949,7 +1934,7 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
         }
     } else if (button_held(buttons, B_HOME)) {
         /* PANIC, RESTART, STOP and the three set-up screens (SOUNDS, LOOP EDIT, OPTIONS: blue on a screen keyboard)
-         * offered, breathing, as every key a layer offers */
+         * offered (dim) */
         ui.keys_conf = HOME_SETUP_KEYS;
         *dim = white_mask(0, 3) | ui.keys_conf;
     } else if (button_held(buttons, BTN_PAGES)) {
@@ -2058,17 +2043,9 @@ static void show_lights(uint32_t keys, uint32_t buttons)
     plat_play_red(live.recording);
     plat_lights(lit_b, lit_k, dim_b, dim_k & ~lit_k, 1);
 #ifdef APP_DIM_LEVELS
-    /* ARP, SEQ and GLO (the layers) breathe on the dim level, over 2 s; the other buttons offered stay at the mid
-     * level. A layer button held: the keys it offers breathe too, over a second (the mid level at the top) */
-    uint32_t breathers = dim_b & ((1u << B_ARP) | (1u << BTN_PERFORM) | (1u << B_GLO));
-    if (buttons & LAYER_BUTTONS_ALL) {
-        uint32_t b = breath_256();
-        plat_dim_ns(500u + 3500u * b / 256u);
-        plat_lights_mid(dim_b & ~breathers, b > 170u ? dim_k & ~lit_k : 0u);
-    } else {
-        plat_dim_ns(500u + 3500u * breath_over(2000u) / 256u);
-        plat_lights_mid(dim_b & ~breathers, dim_k & ~lit_k);
-    }
+    plat_dim_ns(4000u);                         /* offered, not on: the dim level, steady (no breathing); on: lit;
+                                                 * a few blink fast (MUTE ALL...) */
+    plat_lights_mid(0, 0);
 #endif
 }
 
