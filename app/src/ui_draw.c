@@ -586,6 +586,11 @@ static void help_draw(uint32_t now)
 
 static void draw_scope(void)
 {
+#ifdef APP_SCOPE_OVERLAY
+    if (APP_SCOPE_OVERLAY()) {                  /* a target's own picture in place of the scope (SMK-37: the pads' map) */
+        return;
+    }
+#endif
     if (draw_layer_keys()) {
         return;
     }

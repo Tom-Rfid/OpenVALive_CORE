@@ -183,6 +183,9 @@ void app_frame(void)
         ui.help_since = now;
         ui.help_shown = 0;
     }
+    if (ui.help && now - ui.help_since >= 6u * 3000u) {
+        ui.help = 0;                              /* three times round (six pages): they go by themselves */
+    }
     if (ui.help) {                                /* the help pages: one every 3 s, until a button or a knob */
         help_draw(now);
         return;

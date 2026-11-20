@@ -552,7 +552,7 @@ static const va_change_t METAL[] = {
     {VA_P_OSC2_FINE, 0.68f}, {VA_P_MIX_OSC2, 0.7f}, {VA_P_FILTER_MODE, FILTER_BP}, {VA_P_CUTOFF, 0.62f},
     {VA_P_RESO, 0.82f}, {VA_P_KEYTRACK, 0.8f}, {VA_P_FENV_AMT, 0.6f}, {VA_P_F_DECAY, 0.6f}, {VA_P_F_SUSTAIN, 0.1f},
     {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.7f}, {VA_P_A_SUSTAIN, 0.2f}, {VA_P_A_RELEASE, 0.65f},
-    {VA_P_DRIVE, 0.3f}, {VA_P_CHORUS_MIX, 0.3f}, {VA_P_DELAY_MIX, 0.2f}, {VA_P_DELAY_FB, 0.4f}, {VA_P_VOLUME, 0.7f},
+    {VA_P_DRIVE, 0.3f}, {VA_P_CHORUS_MIX, 0.3f}, {VA_P_DELAY_MIX, 0.2f}, {VA_P_DELAY_FB, 0.4f}, {VA_P_VOLUME, 0.665f},
 };
 
 /* Arp: cut for fast hypnotic arpeggios, a saw and a square, a snappy filter, a short body and an echo. */
@@ -686,7 +686,7 @@ static const va_change_t GOA_LEAD[] = {
     {VA_P_CUTOFF, 0.5f}, {VA_P_RESO, 0.6f}, {VA_P_FENV_AMT, 0.7f}, {VA_P_F_DECAY, 0.45f}, {VA_P_F_SUSTAIN, 0.35f},
     {VA_P_LFO1_RATE, 0.6f}, {VA_P_LFO1_PITCH, 0.1f}, {VA_P_A_ATTACK, 0.0f}, {VA_P_A_SUSTAIN, 0.85f},
     {VA_P_A_RELEASE, 0.35f}, {VA_P_GLIDE, 0.2f}, {VA_P_DELAY_TIME, 0.65f}, {VA_P_DELAY_FB, 0.5f},
-    {VA_P_DELAY_MIX, 0.3f}, {VA_P_DRIVE, 0.25f}, {VA_P_VOLUME, 0.6f},
+    {VA_P_DELAY_MIX, 0.3f}, {VA_P_DRIVE, 0.25f}, {VA_P_VOLUME, 0.57f},
 };
 
 /* Squelch: between acid and techno: a square, the filter very resonant and snapped shut on each note, the accent
