@@ -494,31 +494,48 @@ static void help_band(int32_t by)
     cv_y1 = HELP_BAND;
 }
 
-/* a key as the screen keyboard draws it, 18 x 36: offered (half filled, outlined) in colour c */
-static void help_key(int32_t x, int32_t y, uint16_t c)
+/* do ré mi as the screen keyboard draws them, white keys offered (half filled, outlined) in colour c, do# and ré#
+ * neutral: 39 x 38 */
+static void help_keys(int32_t x, int32_t y, uint16_t c)
 {
-    screen_key(x, y, 18, 36, 0, 1, 0, c, 0);
+    for (int32_t i = 0; i < 3; i++) {
+        screen_key(x + 13 * i, y, 12, 38, 0, 1, 0, c, 0);
+    }
+    for (int32_t i = 1; i < 3; i++) {
+        cv_rect(x + 13 * i - 5, y, 9, 24, C_BLACK);
+        cv_rect(x + 13 * i - 4, y, 7, 23, RGB(40, 40, 46));
+    }
+}
+
+/* a small green arrow up, 7 x 10: let go */
+static int32_t help_arrow(int32_t x, int32_t y)
+{
+    for (int32_t i = 0; i < 4; i++) {
+        cv_rect(x + 3 - i, y + i, 2 * i + 1, 1, C_GREEN);
+    }
+    cv_rect(x + 2, y + 4, 3, 6, C_GREEN);
+    return x + 7;
 }
 
 static void help_page_keys(void)
 {
-    static const struct {
-        uint16_t c;
-        const char *name, *what;
-    } ROW[3] = {
-        { RGB(60, 110, 255), "BLUE", "SET-UP SCREENS" },
-        { C_PINK, "PINK", "ON RELEASE: LET GO FIRST" },
-        { C_MINT, "MINT", "READY: ACTS AT ONCE" },
-    };
     cv_text(8, 8, &FONT_B, "KEY COLOURS", C_WHITE);
     cv_text(232 - text_w(&FONT_XS, "1/2"), 12, &FONT_XS, "1/2", C_GRAY);
-    for (int32_t i = 0; i < 3; i++) {
-        int32_t y = 44 + i * 52;
-        help_key(10, y, ROW[i].c);
-        help_key(30, y, ROW[i].c);
-        cv_text(60, y + 2, &FONT_B, ROW[i].name, ROW[i].c);
-        cv_text(60, y + 22, &FONT_XS, ROW[i].what, HELP_TEXT);
-    }
+    const uint16_t BLUE = RGB(60, 110, 255);
+    help_keys(8, 38, BLUE);
+    cv_text(60, 38, &FONT_B, "BLUE", BLUE);
+    cv_text(60, 60, &FONT_XS, "SET-UP SCREENS", HELP_TEXT);
+    help_keys(8, 88, C_PINK);                   /* valid on release: the layer button let go first, then the key */
+    cv_text(60, 88, &FONT_B, "PINK", C_PINK);
+    int32_t x = cv_text(60, 110, &FONT_XS, "ON RELEASE", HELP_TEXT);
+    help_arrow(x + 6, 111);
+    cv_text(60, 126, &FONT_XS, "LET GO BTN MENU FIRST", HELP_TEXT);
+    x = cv_text(60, 142, &FONT_XS, "THEN", HELP_TEXT);
+    x = help_arrow(x + 6, 143);
+    cv_text(x + 6, 142, &FONT_XS, "KEY", HELP_TEXT);
+    help_keys(8, 166, C_MINT);
+    cv_text(60, 166, &FONT_B, "MINT", C_MINT);
+    cv_text(60, 188, &FONT_XS, "READY: ACTS AT ONCE", HELP_TEXT);
     cv_text(8, 216, &FONT_XS, "HOLD A LAYER BUTTON TO SEE ITS KEYS", C_GRAY);
 }
 
