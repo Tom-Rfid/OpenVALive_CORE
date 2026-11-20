@@ -8,8 +8,8 @@
  *   MENU line    PRESET or OCT: MAP CONTROL / OPTIONS               a menu button (HOME FX ARP SEQ GLO SAVE): back,
  *                                                                    what changed kept past a power cycle */
 
-static const char *const FAMILY_NAME[FAMILIES] = { "ACID", "BASSES", "DRUMS", "PUNCH", "MINIMAL", "UNDER", "SFX",
-                                                   "SOFT", "USER" };
+static const char *const FAMILY_NAME[FAMILIES] = { "ACID", "BASSES", "DRUMS", "PUNCH", "MINIMAL", "UNDER", "WORLD",
+                                                   "SFX", "SOFT", "USER" };
 #define FAV_MENU_ROW FAMILIES                    /* the line under the families */
 
 static int fav_is_open(void) { return fav.open; }
@@ -154,6 +154,10 @@ static void fav_draw_family(int f, int32_t y, int sel)
     uint16_t lc = fav_colour(f);
     char ft[3] = "F1";
     ft[1] = (char)('1' + f);
+    if (f == FAMILIES - 1) {
+        ft[0] = 'U';                            /* USER: "US" (F1 .. F9 the factory families) */
+        ft[1] = 'S';
+    }
     cv_text(6, y + 2, &FONT_XS, ft, lc);
     cv_text(7, y + 2, &FONT_XS, ft, lc);
     cv_text(26, y + 2, &FONT_XS, FAMILY_NAME[f], lc);   /* the family's name stays; the sound's is on top */

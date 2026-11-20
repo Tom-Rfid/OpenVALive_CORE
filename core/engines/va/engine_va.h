@@ -186,6 +186,11 @@ typedef enum {
     VA_PRESET_RUBBER,       /* minimal */
     VA_PRESET_BLEEP,
     VA_PRESET_CLICK,
+    VA_PRESET_SAX,          /* world, electro style; and water drops */
+    VA_PRESET_LUTE,
+    VA_PRESET_FLUTE,
+    VA_PRESET_BAGPIPE,
+    VA_PRESET_DROPS,
     VA_PRESET_COUNT
 } va_preset_t;
 

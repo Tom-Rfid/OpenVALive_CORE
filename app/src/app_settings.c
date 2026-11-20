@@ -138,19 +138,42 @@ static void hidden_from(const uint8_t *old, uint32_t old_bytes, uint32_t first)
     }
 }
 
-/* OLSD: the same, without the USER sounds' origins (unknown: they show as "U3 -- NA --") */
-static int settings_migrate_vd(void)
+/* OLSE: 60 sounds (RAVE SAX .. DROPS came after); OLSD: the same without the USER sounds' origins (unknown: they
+ * show as "U3 -- NA --") */
+static uint8_t origins_migrated;                /* settings_migrate_ve set the USER sounds' origins itself */
+
+static int settings_migrate_ve(void)
 {
-    static settings_vd_t old;
+    static settings_ve_t old;
+    ols_zero(&old, sizeof old);
     int size = plat_store_load(OBJ_SETTINGS, &old, sizeof old);
-    if (size != (int)sizeof old || old.magic != SET_MAGIC_VD) {
+    int ve = size == (int)sizeof old && old.magic == SET_MAGIC_VE;
+    if (!ve && !(size == (int)SETTINGS_VD_SIZE && old.magic == SET_MAGIC_VD)) {
         return 0;
     }
     ols_zero(&set, sizeof set);
-    for (uint32_t i = 0; i < sizeof old; i++) {
+    for (uint32_t i = 0; i < sizeof(settings_v9_t); i++) {  /* the same up to `hidden` */
         ((uint8_t *)&set)[i] = ((const uint8_t *)&old)[i];
     }
+    hidden_from(old.hidden, sizeof old.hidden, VA_SOUNDS_VE);
+    for (uint32_t j = 0; j < PERC_KEYS; j++) {
+        set.perc[j] = old.perc[j];
+    }
+    for (uint32_t b = 0; b < EQ_BANDS; b++) {
+        set.eq[b] = old.eq[b];
+    }
+    for (int l = 0; l <= TRACKS; l++) {
+        set.new_page[l] = old.new_page[l];
+    }
+    set.pad_kit = old.pad_kit < DR_KIT_COUNT ? old.pad_kit : 0u;
+    for (int u = 0; u < OLS_USER_SOUNDS; u++) {   /* the origins: a drum kit moves up with the others */
+        uint8_t f = ve ? old.user_from[u] : USER_FROM_NONE;
+        set.user_from[u] = f < VA_SOUNDS_VE ? f : (f < VA_SOUNDS_VE + DR_KIT_COUNT
+                                                    ? (uint8_t)(f + (VA_PRESET_COUNT - VA_SOUNDS_VE)) : USER_FROM_NONE);
+    }
     set.magic = SET_MAGIC;
+    sounds_from(VA_SOUNDS_VE);
+    origins_migrated = 1;
     return settings_valid((int)sizeof set);
 }
 
@@ -512,13 +535,13 @@ static void settings_load(void)
 {
     int size = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
     int as_stored = settings_valid(size);       /* (migrated or new: the next SAVE writes them) */
-    if (!as_stored && !settings_migrate_vd() && !settings_migrate_vc() && !settings_migrate_vb() && !settings_migrate_va() && !settings_migrate_v9() && !settings_migrate_v8() && !settings_migrate_v7() && !settings_migrate_v6() && !settings_migrate_v5() && !settings_migrate_v4()
+    if (!as_stored && !settings_migrate_ve() && !settings_migrate_vc() && !settings_migrate_vb() && !settings_migrate_va() && !settings_migrate_v9() && !settings_migrate_v8() && !settings_migrate_v7() && !settings_migrate_v6() && !settings_migrate_v5() && !settings_migrate_v4()
         && !settings_migrate_v3() && !settings_migrate_v2() && !settings_migrate_v1()) {
         settings_defaults();
     }
-    if (!as_stored) {
+    if (!as_stored && !origins_migrated) {
         for (int u = 0; u < OLS_USER_SOUNDS; u++) {
-            set.user_from[u] = USER_FROM_NONE;  /* (an older format: where they came from is not known) */
+            set.user_from[u] = USER_FROM_NONE;  /* (an older format, or the defaults: not known) */
         }
     }
     int user_as_stored = user_sounds_load();

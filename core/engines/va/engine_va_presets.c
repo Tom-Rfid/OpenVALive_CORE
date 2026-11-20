@@ -41,7 +41,8 @@ const char *const VA_PRESET_NAMES[VA_PRESET_COUNT] = {
     [VA_PRESET_DEEP_PAD] = "DEEP PAD", [VA_PRESET_DEEP_STAB] = "DEEP STAB", [VA_PRESET_BOOM] = "BOOM",
     [VA_PRESET_RUMBLE] = "RUMBLE", [VA_PRESET_HOOVER] = "HOOVER", [VA_PRESET_GOA_LEAD] = "GOA LEAD",
     [VA_PRESET_SQUELCH] = "SQUELCH", [VA_PRESET_RUBBER] = "RUBBER", [VA_PRESET_BLEEP] = "BLEEP",
-    [VA_PRESET_CLICK] = "CLICK",
+    [VA_PRESET_CLICK] = "CLICK", [VA_PRESET_SAX] = "RAVE SAX", [VA_PRESET_LUTE] = "LUTE", [VA_PRESET_FLUTE] = "FLUTE",
+    [VA_PRESET_BAGPIPE] = "BAGPIPE", [VA_PRESET_DROPS] = "DROPS",
 };
 
 /* Choices are spread over 0..1: these values land in the middle of each one. */
@@ -724,6 +725,53 @@ static const va_change_t CLICK[] = {
     {VA_P_VOLUME, 0.75f},
 };
 
+/* Rave sax: the 90s rave / house sax, a synth's: a narrow square and a saw, a breath of noise, the filter opening
+ * on the attack, vibrato, a little glide and drive, an echo. */
+static const va_change_t SAX[] = {
+    {VA_P_MONO, 1.0f}, {VA_P_OSC1_WAVE, WAVE_SQUARE}, {VA_P_PW, 0.35f}, {VA_P_OSC2_FINE, 0.53f},
+    {VA_P_MIX_OSC2, 0.45f}, {VA_P_MIX_NOISE, 0.12f}, {VA_P_CUTOFF, 0.42f}, {VA_P_RESO, 0.3f}, {VA_P_FENV_AMT, 0.7f},
+    {VA_P_F_ATTACK, 0.15f}, {VA_P_F_DECAY, 0.5f}, {VA_P_F_SUSTAIN, 0.5f}, {VA_P_LFO1_RATE, 0.55f},
+    {VA_P_LFO1_PITCH, 0.08f}, {VA_P_A_ATTACK, 0.05f}, {VA_P_A_SUSTAIN, 0.85f}, {VA_P_A_RELEASE, 0.3f},
+    {VA_P_GLIDE, 0.15f}, {VA_P_DRIVE, 0.35f}, {VA_P_CHORUS_MIX, 0.3f}, {VA_P_DELAY_MIX, 0.25f}, {VA_P_VOLUME, 0.6f},
+};
+
+/* Lute: a dark electro lute: a pluck and its fifth (the old modes), a resonant snap, a slow phaser, a dark echo. */
+static const va_change_t LUTE[] = {
+    {VA_P_OSC1_WAVE, WAVE_SQUARE}, {VA_P_OSC2_COARSE, SEMITONES(7)}, {VA_P_MIX_OSC2, 0.45f}, {VA_P_CUTOFF, 0.38f},
+    {VA_P_RESO, 0.4f}, {VA_P_FENV_AMT, 0.8f}, {VA_P_F_DECAY, 0.35f}, {VA_P_F_SUSTAIN, 0.05f}, {VA_P_A_ATTACK, 0.0f},
+    {VA_P_A_DECAY, 0.5f}, {VA_P_A_SUSTAIN, 0.1f}, {VA_P_A_RELEASE, 0.45f}, {VA_P_PHASER_MIX, 0.2f},
+    {VA_P_DELAY_TIME, 0.55f}, {VA_P_DELAY_FB, 0.45f}, {VA_P_DELAY_TONE, 0.3f}, {VA_P_DELAY_MIX, 0.3f},
+    {VA_P_VOLUME, 0.65f},
+};
+
+/* Flute: a breathy recorder from a cave: a round triangle, breath noise, a soft attack, vibrato, a long dark echo. */
+static const va_change_t FLUTE[] = {
+    {VA_P_OSC1_WAVE, WAVE_TRIANGLE}, {VA_P_MIX_OSC2, 0.0f}, {VA_P_MIX_NOISE, 0.15f}, {VA_P_CUTOFF, 0.5f},
+    {VA_P_RESO, 0.15f}, {VA_P_FENV_AMT, 0.55f}, {VA_P_LFO1_RATE, 0.5f}, {VA_P_LFO1_PITCH, 0.06f},
+    {VA_P_A_ATTACK, 0.12f}, {VA_P_A_SUSTAIN, 0.9f}, {VA_P_A_RELEASE, 0.35f}, {VA_P_CHORUS_MIX, 0.35f},
+    {VA_P_DELAY_TIME, 0.7f}, {VA_P_DELAY_FB, 0.5f}, {VA_P_DELAY_TONE, 0.25f}, {VA_P_DELAY_MIX, 0.35f},
+    {VA_P_VOLUME, 0.65f},
+};
+
+/* Bagpipe: an electro bagpipe: two saws a fourth apart (the drone under the chanter), a nasal resonant filter,
+ * driven, held, a slow phaser. */
+static const va_change_t BAGPIPE[] = {
+    {VA_P_MONO, 1.0f}, {VA_P_OSC2_COARSE, SEMITONES(-5)}, {VA_P_OSC2_FINE, 0.52f}, {VA_P_MIX_OSC2, 0.6f},
+    {VA_P_CUTOFF, 0.55f}, {VA_P_RESO, 0.55f}, {VA_P_FENV_AMT, 0.55f}, {VA_P_A_ATTACK, 0.03f}, {VA_P_A_SUSTAIN, 1.0f},
+    {VA_P_A_RELEASE, 0.25f}, {VA_P_GLIDE, 0.05f}, {VA_P_DRIVE, 0.4f}, {VA_P_PHASER_MIX, 0.25f}, {VA_P_VOLUME, 0.55f},
+};
+
+/* Drops: water drops: a round tone whose pitch springs up as it dies (the plop), each a little apart, an echo; played
+ * fast or arpeggiated: a trickle. */
+static const va_change_t DROPS[] = {
+    {VA_P_OSC1_WAVE, WAVE_TRIANGLE}, {VA_P_MIX_OSC2, 0.0f}, {VA_P_CUTOFF, 0.6f}, {VA_P_RESO, 0.3f},
+    {VA_P_FENV_AMT, 0.5f}, {VA_P_F_ATTACK, 0.0f}, {VA_P_F_DECAY, 0.15f}, {VA_P_F_SUSTAIN, 0.0f},
+    {VA_P_MOD1_SRC, MOD_SRC(VA_SRC_FENV)}, {VA_P_MOD1_DST, MOD_DST(VA_DST_PITCH)}, {VA_P_MOD1_AMT, 0.38f},
+    {VA_P_MOD2_SRC, MOD_SRC(VA_SRC_RANDOM)}, {VA_P_MOD2_DST, MOD_DST(VA_DST_PITCH)}, {VA_P_MOD2_AMT, 0.56f},
+    {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.25f}, {VA_P_A_SUSTAIN, 0.0f}, {VA_P_A_RELEASE, 0.2f},
+    {VA_P_DELAY_TIME, 0.45f}, {VA_P_DELAY_FB, 0.45f}, {VA_P_DELAY_MIX, 0.35f}, {VA_P_VOLUME, 0.75f},
+};
+
 #define CHANGES(t) { t, (uint8_t)(sizeof t / sizeof t[0]) }
 static const struct {
     const va_change_t *c;
@@ -783,6 +831,11 @@ static const struct {
     [VA_PRESET_RUBBER] = CHANGES(RUBBER),
     [VA_PRESET_BLEEP] = CHANGES(BLEEP),
     [VA_PRESET_CLICK] = CHANGES(CLICK),
+    [VA_PRESET_SAX] = CHANGES(SAX),
+    [VA_PRESET_LUTE] = CHANGES(LUTE),
+    [VA_PRESET_FLUTE] = CHANGES(FLUTE),
+    [VA_PRESET_BAGPIPE] = CHANGES(BAGPIPE),
+    [VA_PRESET_DROPS] = CHANGES(DROPS),
 };
 
 void engine_va_load_preset(engine_va_t *e, va_preset_t preset)
