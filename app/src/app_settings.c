@@ -133,6 +133,34 @@ static void hidden_from(const uint8_t *old, uint32_t old_bytes, uint32_t first)
     }
 }
 
+/* OLSC: 48 sounds (PLATE .. CLICK came after) */
+static int settings_migrate_vc(void)
+{
+    static settings_vc_t old;
+    int size = plat_store_load(OBJ_SETTINGS, &old, sizeof old);
+    if (size != (int)sizeof old || old.magic != SET_MAGIC_VC) {
+        return 0;
+    }
+    ols_zero(&set, sizeof set);
+    for (uint32_t i = 0; i < sizeof(settings_v9_t); i++) {  /* the same up to `hidden` */
+        ((uint8_t *)&set)[i] = ((const uint8_t *)&old)[i];
+    }
+    hidden_from(old.hidden, sizeof old.hidden, VA_SOUNDS_VC);
+    for (uint32_t j = 0; j < PERC_KEYS; j++) {
+        set.perc[j] = old.perc[j];
+    }
+    for (uint32_t b = 0; b < EQ_BANDS; b++) {
+        set.eq[b] = old.eq[b];
+    }
+    for (int l = 0; l <= TRACKS; l++) {
+        set.new_page[l] = old.new_page[l];
+    }
+    set.pad_kit = old.pad_kit < DR_KIT_COUNT ? old.pad_kit : 0u;
+    set.magic = SET_MAGIC;
+    sounds_from(VA_SOUNDS_VC);
+    return settings_valid((int)sizeof set);
+}
+
 /* OLSB: 36 sounds (TALK .. SHAKER came after) */
 static int settings_migrate_vb(void)
 {
@@ -463,7 +491,7 @@ static void settings_load(void)
 {
     int size = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
     int as_stored = settings_valid(size);       /* (migrated or new: the next SAVE writes them) */
-    if (!as_stored && !settings_migrate_vb() && !settings_migrate_va() && !settings_migrate_v9() && !settings_migrate_v8() && !settings_migrate_v7() && !settings_migrate_v6() && !settings_migrate_v5() && !settings_migrate_v4()
+    if (!as_stored && !settings_migrate_vc() && !settings_migrate_vb() && !settings_migrate_va() && !settings_migrate_v9() && !settings_migrate_v8() && !settings_migrate_v7() && !settings_migrate_v6() && !settings_migrate_v5() && !settings_migrate_v4()
         && !settings_migrate_v3() && !settings_migrate_v2() && !settings_migrate_v1()) {
         settings_defaults();
     }

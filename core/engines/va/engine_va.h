@@ -174,6 +174,18 @@ typedef enum {
     VA_PRESET_RISER,
     VA_PRESET_DOWNLIFTER,
     VA_PRESET_SHAKER,
+    VA_PRESET_PLATE,        /* deep and dub, between acid, techno and psytrance */
+    VA_PRESET_DUB_CHORD,
+    VA_PRESET_DEEP_PAD,
+    VA_PRESET_DEEP_STAB,
+    VA_PRESET_BOOM,
+    VA_PRESET_RUMBLE,
+    VA_PRESET_HOOVER,
+    VA_PRESET_GOA_LEAD,
+    VA_PRESET_SQUELCH,
+    VA_PRESET_RUBBER,       /* minimal */
+    VA_PRESET_BLEEP,
+    VA_PRESET_CLICK,
     VA_PRESET_COUNT
 } va_preset_t;
 

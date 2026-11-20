@@ -61,29 +61,32 @@ static const uint8_t VOICE_LIMIT[TRACKS] = { 4, 1, 2, 4 };
 #define LIVE_VOICES 3u
 #define LIVE_DEFAULT_SOUND VA_PRESET_LEAD
 
-/* the order PRESET shows the factory sounds in (their numbers, kept in saves, do not change), by character: acid
- * first, basses, drums, the punchy ones, transitions, underground textures, the soft ones, the psytrance hits last;
- * the USER sounds follow. */
+/* the order PRESET shows the factory sounds in (their numbers, kept in saves, do not change), by character and
+ * dynamics: acid first, basses, drums, the punchy leads and stabs, minimal, the deep / dub / underground ones,
+ * effects and transitions, the soft ones last; the USER sounds follow. */
 static const uint8_t SOUND_ORDER[OLS_SOUND_COUNT] = {
-    VA_PRESET_ACID, VA_PRESET_ACID_SQUARE, VA_PRESET_ACID_SCREAM, VA_PRESET_SCREECH, VA_PRESET_GRUNGE, VA_PRESET_TALK,
-    VA_PRESET_BASS, VA_PRESET_SUB, VA_PRESET_DEEP_SUB, VA_PRESET_PSY_BASS, VA_PRESET_REESE, VA_PRESET_WOBBLE,
-    VA_PRESET_ACID_DEEP,
+    VA_PRESET_ACID, VA_PRESET_ACID_SQUARE, VA_PRESET_ACID_SCREAM, VA_PRESET_SQUELCH, VA_PRESET_SCREECH,
+    VA_PRESET_GRUNGE, VA_PRESET_TALK,
+    VA_PRESET_BASS, VA_PRESET_SUB, VA_PRESET_DEEP_SUB, VA_PRESET_BOOM, VA_PRESET_PSY_BASS, VA_PRESET_REESE,
+    VA_PRESET_WOBBLE, VA_PRESET_ACID_DEEP,
     OLS_SOUND_FIRST_DRUM + DR_KIT_808, OLS_SOUND_FIRST_DRUM + DR_KIT_909, OLS_SOUND_FIRST_DRUM + DR_KIT_TIGHT,
     OLS_SOUND_FIRST_DRUM + DR_KIT_LOFI, OLS_SOUND_FIRST_DRUM + DR_KIT_IRON,
-    VA_PRESET_LEAD, VA_PRESET_PLUCK, VA_PRESET_STAB, VA_PRESET_BRASS, VA_PRESET_ORGAN, VA_PRESET_VKEYS,
-    VA_PRESET_NOISE, VA_PRESET_RISER, VA_PRESET_DOWNLIFTER, VA_PRESET_SHAKER, VA_PRESET_THUNDER, VA_PRESET_RAIN,
-    VA_PRESET_DUB_SIREN,
-    VA_PRESET_DRONE, VA_PRESET_HOLD, VA_PRESET_CREAK, VA_PRESET_WIND,
+    VA_PRESET_LEAD, VA_PRESET_GOA_LEAD, VA_PRESET_HOOVER, VA_PRESET_ARP, VA_PRESET_PLUCK, VA_PRESET_STAB,
+    VA_PRESET_BRASS, VA_PRESET_ORGAN, VA_PRESET_VKEYS,
+    VA_PRESET_RUBBER, VA_PRESET_BLEEP, VA_PRESET_CLICK, VA_PRESET_BLIP, VA_PRESET_METAL,
+    VA_PRESET_DUB_CHORD, VA_PRESET_DEEP_STAB, VA_PRESET_DEEP_PAD, VA_PRESET_RUMBLE, VA_PRESET_DRONE, VA_PRESET_HOLD,
+    VA_PRESET_PLATE, VA_PRESET_CREAK, VA_PRESET_WIND,
+    VA_PRESET_NOISE, VA_PRESET_RISER, VA_PRESET_DOWNLIFTER, VA_PRESET_ZAP, VA_PRESET_LASER, VA_PRESET_SHAKER,
+    VA_PRESET_THUNDER, VA_PRESET_RAIN, VA_PRESET_DUB_SIREN,
     VA_PRESET_POLY, VA_PRESET_PAD, VA_PRESET_STRINGS, VA_PRESET_STRINGS70, VA_PRESET_SWEEP, VA_PRESET_WHALE,
     VA_PRESET_CHOIR, VA_PRESET_INIT,
-    VA_PRESET_ZAP, VA_PRESET_LASER, VA_PRESET_BLIP, VA_PRESET_METAL, VA_PRESET_ARP,
 };
-/* the families, by their first place in SOUND_ORDER: F1 acid, F2 basses, F3 drums, F4 punch, F5 SFX (transitions,
- * weather), F6 under (underground), F7 soft (and INIT), F8 psy (short hits); the USER sounds are F9. OCT- / OCT+ while
- * a sound is chosen jump between them. */
-static const uint8_t FAMILY_AT[] = { 0, 6, 13, 18, 24, 31, 35, 43 };
+/* the families, by their first place in SOUND_ORDER: F1 acid, F2 basses, F3 drums, F4 punch (leads, stabs, keys),
+ * F5 minimal, F6 under (deep, dub, underground), F7 SFX (transitions, zaps, weather), F8 soft (and INIT); the USER
+ * sounds are F9. 9 sounds a family at most. OCT- / OCT+ while a sound is chosen jump between them. */
+static const uint8_t FAMILY_AT[] = { 0, 7, 15, 20, 29, 34, 43, 52 };
 #define FAMILIES 9
-typedef char sound_order_complete[(OLS_SOUND_COUNT == 48) ? 1 : -1];   /* a sound added: put it in SOUND_ORDER */
+typedef char sound_order_complete[(OLS_SOUND_COUNT == 60) ? 1 : -1];   /* a sound added: put it in SOUND_ORDER */
 
 static engine_va_t lv PLAT_POOL;               /* the live voice: a VA engine without delay (the RAM goes to the loops);
                                                 * it renders into the Live Core's chunk buffers, free once it has rendered */
@@ -202,7 +205,8 @@ static const uint8_t XFADE_BARS[4] = { 0, 1, 2, 4 };      /* a scene change: a c
 
 /* ------------------------------------------------------------ settings */
 
-#define SET_MAGIC 0x4F4C5343u                   /* "OLSC": settings format; any other value loads defaults */
+#define SET_MAGIC 0x4F4C5344u                   /* "OLSD": settings format; any other value loads defaults */
+#define SET_MAGIC_VC 0x4F4C5343u                /* "OLSC": 48 sounds (the drum kits and USER 12 lower) */
 #define SET_MAGIC_VB 0x4F4C5342u                /* "OLSB": 36 sounds (the drum kits and USER 12 lower) */
 #define SET_MAGIC_VA 0x4F4C5341u                /* "OLSA": 31 sounds (the drum kits and USER 5 lower), no PERC keys,
                                                  * EQ or page per line */
@@ -236,10 +240,25 @@ typedef struct {
     uint8_t perc[PERC_KEYS];                    /* the original drum map's D# and G# keys, each its own (DRUM_PERC) */
     uint8_t eq[EQ_BANDS];                       /* the master EQ: BASS MID TREBLE (128 flat) and the MID's frequency */
     uint8_t new_page[TRACKS + 1];               /* a new sound taken on a line: 0 the page stays, else page + 1 */
-    uint8_t pad_kit;                            /* the pads' drum kit (DRUMS pads), 0..DR_KIT_COUNT-1 (in OLSC's padding:
-                                                 * an older file has 0 there) */
+    uint8_t pad_kit;                            /* the pads' drum kit (DRUMS pads), 0..DR_KIT_COUNT-1 */
 } settings_t;
 typedef char settings_size_kept[(sizeof(settings_t) == 48u) ? 1 : -1];   /* (a field more: a new format) */
+
+/* OLSC's settings: the same, `hidden` for 48 sounds + USER (7 bytes) */
+typedef struct {
+    uint32_t magic;
+    int8_t octave[TRACKS + 1];
+    uint8_t page;
+    uint8_t preset[TRACKS];
+    uint8_t controller, midi_ch, live_sound, arp_mode, drum_map, drum_ds, drum_gs, keys_screen, wheel_pan;
+    uint8_t hidden[7];
+    uint8_t perc[PERC_KEYS];
+    uint8_t eq[EQ_BANDS];
+    uint8_t new_page[TRACKS + 1];
+    uint8_t pad_kit;
+} settings_vc_t;
+#define VA_SOUNDS_VC 43u                        /* OLSC's synth sounds */
+typedef char settings_vc_size[(sizeof(settings_vc_t) == 48u) ? 1 : -1];
 
 /* OLSA's settings: the same up to `hidden`, 31 sounds then */
 typedef struct {
