@@ -8,7 +8,8 @@
  *
  * Capture: every note played is kept in a ring of the last 128 notes,
  * recording or not, transport running or not. CAPTURE turns the last phrase
- * into the selected track's loop:
+ * into the selected track's loop (a take: every note since the arm, the loop
+ * lasting until it is taken):
  *   - transport running: the phrase keeps its place in the bars;
  *   - transport stopped: the first note becomes the downbeat, and the
  *     transport starts right where you are in the phrase, so the loop
@@ -130,11 +131,12 @@ static uint32_t bars_for(uint32_t ticks)
     return bars;
 }
 
-OLS_COLD int ols_live_capture(ols_live_t *L)
+/* the selected track's notes in the ring, from the newest back: `take` = 0 the last phrase (a silence of 1.5 bars, or
+ * a change between stopped and playing, ends it), 1 every note since ols_live_capture_arm (the loop runs to now) */
+static int capture_notes(ols_live_t *L, int take)
 {
     int track = L->current;
 
-    /* walk back from the newest note of this track while the phrase goes on */
     uint32_t first = 0, count = 0;
     uint8_t grid = 0;
     uint32_t newest_t = 0, oldest_t = 0;
@@ -146,7 +148,7 @@ OLS_COLD int ols_live_capture(ols_live_t *L)
         if (count == 0) {
             grid = c->on_grid;
             newest_t = c->t;
-        } else if (c->on_grid != grid || oldest_t - c->t > PHRASE_GAP_TICKS
+        } else if (c->on_grid != grid || (!take && oldest_t - c->t > PHRASE_GAP_TICKS)
                    || newest_t - c->t >= OLS_MAX_TICKS) {
             break;
         }
@@ -158,7 +160,11 @@ OLS_COLD int ols_live_capture(ols_live_t *L)
         return 0;
     }
 
-    uint32_t bars = bars_for(newest_t - oldest_t + 1u);
+    uint32_t end = take ? capture_now(L) : newest_t;   /* a take: the loop lasts until it was stopped */
+    if (end < newest_t || end - oldest_t >= OLS_MAX_TICKS) {
+        end = newest_t;
+    }
+    uint32_t bars = bars_for(end - oldest_t + 1u);
     uint32_t length = bars * OLS_TICKS_PER_BAR;
     uint32_t origin = grid ? 0u : oldest_t;  /* stopped: the first note is the downbeat */
 
@@ -189,4 +195,19 @@ OLS_COLD int ols_live_capture(ols_live_t *L)
     L->cap_count = 0;            /* the phrase is used: the next capture starts afresh */
     L->changes++;
     return 1;
+}
+
+OLS_COLD int ols_live_capture(ols_live_t *L)
+{
+    return capture_notes(L, 0);
+}
+
+OLS_COLD void ols_live_capture_arm(ols_live_t *L)
+{
+    L->cap_count = 0;
+}
+
+OLS_COLD int ols_live_capture_take(ols_live_t *L)
+{
+    return capture_notes(L, 1);
 }

@@ -61,7 +61,7 @@ typedef enum {
     LIVE_PLAY,
     LIVE_STOP,
     LIVE_RECORD_TOGGLE,
-    LIVE_CAPTURE,
+    LIVE_CAPTURE,              /* b = 0: the last phrase played; 1: every note since LIVE_CAPTURE_ARM, the loop to now */
     LIVE_UNDO,                 /* target = a track (its own steps) or OLS_TRACK_ALL (the newest step) */
     LIVE_REDO,                 /* target: as LIVE_UNDO */
     LIVE_CLEAR,                /* empties the track (undoable) */
@@ -93,6 +93,7 @@ typedef enum {
     LIVE_RESTART,              /* every track back to its start, now (internal clock; external: the clock decides) */
     LIVE_NOTE_EDIT,            /* a loop's note: target = track, b = ols_note_edit_t, id = note index, v = the value */
     LIVE_PAN,                  /* target = track, v = -1 left .. 1 right (a spring-loaded wheel: back to 0) */
+    LIVE_CAPTURE_ARM,          /* a take starts afresh: the notes played from now on, LIVE_CAPTURE b = 1 makes the loop */
     LIVE_CMD_COUNT
 } ols_live_cmd_t;
 
@@ -285,6 +286,8 @@ void ols_live_select(ols_live_t *L, int track);
 void ols_live_mute(ols_live_t *L, int track, int mute);
 
 int  ols_live_capture(ols_live_t *L);           /* 1 = a loop was made */
+void ols_live_capture_arm(ols_live_t *L);       /* forget the notes played so far: a take starts */
+int  ols_live_capture_take(ols_live_t *L);      /* every note since the arm, the loop from the first to now: 1 = made */
 void ols_live_undo_push(ols_live_t *L, int track);
 int  ols_live_undo(ols_live_t *L);                  /* the newest step, whatever its track */
 int  ols_live_redo(ols_live_t *L);

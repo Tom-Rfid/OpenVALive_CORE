@@ -279,6 +279,30 @@ static void test_capture_running(void)
     CHECK(p->count == 6 && p->n[0].tick == 0, "keeps its place in the bars (first at %u)", p->n[0].tick);
 }
 
+static void test_capture_take(void)
+{
+    setup_probes();
+    ols_live_play(&live);
+    ols_live_note_on(&live, 0, 40, 100);       /* before the arm: not in the take */
+    run(24 * TICK);
+    ols_live_note_off(&live, 0, 40);
+    run(OLS_TICKS_PER_BAR * TICK);
+    ols_live_command(&live, LIVE_CAPTURE_ARM, 0, 0, 0.0f, 0);
+    ols_live_note_on(&live, 0, 48, 100);       /* the take: a note, two bars of silence (a phrase would end), a note */
+    run(24 * TICK);
+    ols_live_note_off(&live, 0, 48);
+    run(2 * OLS_TICKS_PER_BAR * TICK);
+    ols_live_note_on(&live, 0, 50, 100);
+    run(24 * TICK);
+    ols_live_note_off(&live, 0, 50);
+    run(OLS_TICKS_PER_BAR / 2 * TICK);
+    ols_live_command(&live, LIVE_CAPTURE, 1, 0, 0.0f, 0);
+    const ols_pattern_t *p = &live.track[0].pat;
+    CHECK(p->count == 2, "a take keeps every note since the arm, across a long silence (%u)", p->count);
+    CHECK(p->length == 4 * OLS_TICKS_PER_BAR, "the loop runs to the take's end, in bars (got %u)", p->length);
+    ols_live_stop(&live);
+}
+
 static void test_undo_depth(void)
 {
     setup_probes();
@@ -1143,6 +1167,7 @@ int main(void)
     test_length_repeats();
     test_punch();
     test_capture_running();
+    test_capture_take();
     test_undo_depth();
     test_creative();
     test_scenes_morph_override();

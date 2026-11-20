@@ -428,9 +428,11 @@ enum { KEY_NOTE, KEY_FX, KEY_NONE, KEY_ARMED_ARP, KEY_ARMED_SEQ, KEY_ARMED_GLO, 
 
 static struct {
     char msg[2][24];                            /* short message over the header */
-    uint8_t cap_on, cap_track;                  /* playing on a track (not recording): what CAPTURE would take, from the
-                                                 * first note, paints the line green (EDIT blinks fast, the infinity
-                                                 * sign shows) until CAPTURE, a stop, REC or another track */
+    uint8_t cap_on, cap_track;                  /* a loop take running (EDIT tapped, then the first note): the line paints
+                                                 * green from that note (EDIT blinks fast, the infinity sign shows) until
+                                                 * EDIT or a menu button takes it, a stop, REC or another line */
+    uint8_t cap_armed;                          /* EDIT tapped while playing: the take waits for its first note */
+    uint8_t edit_used;                          /* this EDIT press ended a take: nothing more on its release */
     uint8_t msg_inf;                            /* an infinity sign before the title (PERFORM: "∞ DIV / FILTER") */
     const char *msg_right;                      /* and at its right (SEL held: "A VOL"), 0 none */
     uint32_t msg_until;

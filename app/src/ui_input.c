@@ -1058,8 +1058,13 @@ static void change_octave(int32_t delta)
     app_say("OCTAVE", t);
 }
 
+static void take_end(void);                     /* (below) */
+
 static void button_pressed(uint32_t b, uint32_t buttons)
 {
+    if (ui.cap_armed && b != B_EDIT && b != B_OCTDN && b != B_OCTUP && b != B_ENV && b != B_LFO) {
+        take_end();                             /* a menu button (or PLAY, REC) ends the loop take, then does its job */
+    }
     if (b == B_REC) {
         ui.rec_used = 1;                        /* (a combination taking REC: no record toggle on release; the plain
                                                  * REC below clears it) */
@@ -1140,8 +1145,11 @@ static void button_pressed(uint32_t b, uint32_t buttons)
     case B_REC:                                 /* on release: record on / off, unless REC + key 1 (RESET) */
         ui.rec_used = 0;
         break;
-    case B_EDIT:                                /* on release: CAPTURE, or the end of a punch */
+    case B_EDIT:                                /* a take running: it ends here; else on release: a take armed, or the
+                                                 * end of a punch */
         ui.punch = 0;
+        ui.edit_used = ui.cap_armed;
+        take_end();
         break;
     case B_ENV:
         if (ui.on_a) {
@@ -1228,14 +1236,20 @@ static void save_layer_key(int w)
         return;
     }
     int u = w - OLS_USER_SOUNDS;
-    uint8_t from = set.preset[mirror.track];    /* the factory sound it comes from (a USER one: where that one came from) */
+    uint8_t line = ui.on_a ? (uint8_t)TRACKS : mirror.track;   /* on A: A's own sound, not the last track's */
+    uint8_t from = ui.on_a ? set.live_sound : set.preset[line];   /* the factory sound it comes from (a USER one:
+                                                 * where that one came from) */
     if (from >= OLS_SOUND_FIRST_USER) {
         from = set.user_from[(from - OLS_SOUND_FIRST_USER) % OLS_USER_SOUNDS];
     }
     set.user_from[u] = from < OLS_SOUND_COUNT ? from : USER_FROM_NONE;
-    push_event(EV_PRESET, mirror.track, (uint8_t)u, 1, 0, (float)set.octave[mirror.track]);   /* b = 1: keep as user
-                                                 * sound u, with the octave */
-    set.preset[mirror.track] = (uint8_t)(OLS_SOUND_FIRST_USER + u);
+    push_event(EV_PRESET, ui.on_a ? T_LIVE : line, (uint8_t)u, 1, 0, (float)set.octave[line]);   /* b = 1: keep as
+                                                 * user sound u, with the octave */
+    if (ui.on_a) {
+        set.live_sound = (uint8_t)(OLS_SOUND_FIRST_USER + u);
+    } else {
+        set.preset[line] = (uint8_t)(OLS_SOUND_FIRST_USER + u);
+    }
     mark_dirty();
     char t[8] = "USER ";
     int_text(u + 1, t + 5);
@@ -1276,15 +1290,36 @@ static int swap_a(int t)
     return 1;
 }
 
-/* a note played on an empty track while playing, not recording: from the first one, what CAPTURE would take paints
- * the line green (a track with its loop already: nothing shown, REC or PUNCH are the way to add to it) */
+/* a note played on the line the take was armed on (EDIT tapped): the take starts here, the line paints green */
 static void cap_note(uint8_t track)
 {
-    if (track < TRACKS && track == mirror.track && !ui.on_a && live.clock.running && !live.recording && !ui.punch
-        && !ui.cap_on && live.track[track].pat.count == 0u) {
+    if (ui.cap_armed && !ui.cap_on && track < TRACKS && track == ui.cap_track && track == mirror.track && !ui.on_a
+        && live.clock.running && !live.recording && !ui.punch) {
         ui.cap_on = 1;
-        ui.cap_track = track;
     }
+}
+
+/* the loop take (EDIT tapped, notes played) ends: EDIT pressed again, or a menu button. Notes taken: the loop, from
+ * the first note to now ("LOOP CAPTURED"); none: the take is given up */
+static void take_end(void)
+{
+    if (!ui.cap_armed) {
+        return;
+    }
+    if (ui.cap_on) {
+        send_live(LIVE_CAPTURE, 1, 0, 0.0f, 0);
+        char t[4] = "T1";                       /* "LOOP CAPTURED T1" in green */
+        t[1] = (char)('1' + ui.cap_track);
+        app_say("LOOP CAPTURED", t);
+        ui.msg_style = MSG_TAKEN;
+        ui.msg_until = plat_ms() + 1200u;
+    } else {
+        app_say(BTN_NAME[B_EDIT], "NO NOTE");
+        ui.msg_style = MSG_NOT_TAKEN;
+        ui.msg_until = plat_ms() + 700u;
+    }
+    ui.cap_armed = 0;
+    ui.cap_on = 0;
 }
 
 /* REC let go: record on / off (a take is made while the loops play: PLAY first), unless it served RESET */
@@ -1305,23 +1340,31 @@ static void edit_released(void)
 {
     if (ui.punch) {
         ui.punch = 0;
+        ui.edit_used = 0;
         send_live(LIVE_PUNCH, 0, 0, 0.0f, 0);
         app_say("PUNCH", "DONE");
         ui.msg_style = MSG_TAKEN;
         ui.msg_until = plat_ms() + 500u;
         return;
     }
-    if (!live.clock.running) {
-        say_not_now("CAPTURE");                 /* a loop is made while playing (PLAY first) */
+    if (ui.edit_used) {                         /* (this press ended a take) */
+        ui.edit_used = 0;
         return;
     }
-    send_live(LIVE_CAPTURE, 0, 0, 0.0f, 0);
-    char t[4] = "T1";                           /* "LOOP CAPTURED T1" in green, the line cyan a moment */
-    t[1] = (char)('1' + mirror.track);
-    app_say("LOOP CAPTURED", t);
-    ui.msg_style = MSG_TAKEN;
-    ui.msg_until = plat_ms() + 1200u;
-    ui.cap_on = 0;                              /* the line back to its colour, EDIT steady */
+    if (!live.clock.running || ui.on_a) {
+        say_not_now("LOOP REC");                /* a loop is made while playing (PLAY first), on a track */
+        return;
+    }
+    send_live(LIVE_CAPTURE_ARM, 0, 0, 0.0f, 0); /* tapped: a take waits for its first note, until EDIT again */
+    ui.cap_armed = 1;
+    ui.cap_on = 0;
+    ui.cap_track = mirror.track;
+    char t[24] = "PLAY: ";
+    text_cat(t, BTN_NAME[B_EDIT]);
+    text_cat(t, " ENDS");
+    app_say("LOOP REC", t);
+    ui.msg_style = MSG_ARMED;
+    ui.msg_until = plat_ms() + 1500u;
 }
 
 /* the page after `p`: DRUM EQ only when the selected line is a drum track */
@@ -2080,7 +2123,7 @@ static uint32_t button_lit(uint32_t buttons)
         lit |= 1u << B_PLAY;
         lit |= 1u << B_EDIT;                    /* playing: EDIT (CAPTURE) offered */
     }
-    if (ui.cap_on) {                            /* notes to capture (the green line): EDIT blinks fast */
+    if (ui.cap_armed) {                         /* a loop take armed or running: EDIT blinks fast */
         lit = (plat_ms() / 125u) & 1u ? lit | (1u << B_EDIT) : lit & ~(1u << B_EDIT);
     }
     if (live.recording) {

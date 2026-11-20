@@ -165,6 +165,18 @@ static void live_voice_event(const ols_event_t *e)
         ENGINE_VA_API.pressure(&lv, e->v);
         break;
     case EV_PRESET:
+        if (e->b == 1u) {                       /* b = 1: keep A's sound as user sound a, with A's octave */
+            if (e->a < OLS_USER_SOUNDS) {
+                ols_user_sound_t *u = &user_sounds[e->a];
+                for (uint16_t id = 0; id < OLS_MAX_PARAMS; id++) {
+                    float v = id < ENGINE_VA_API.param_count ? engine_va_get_param(&lv, id) : 0.0f;
+                    u->v[id] = (uint16_t)(v <= 0.0f ? 0.0f : (v >= 1.0f ? 65535.0f : v * 65535.0f + 0.5f));
+                }
+                u->kind = OLS_KIND_VA;
+                u->valid = USER_VALID((int8_t)e->v);
+            }
+            break;
+        }
         arp.count = 0;
         arp_silence();
         live_voice_sound(e->a);

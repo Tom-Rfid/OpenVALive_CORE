@@ -60,6 +60,9 @@ au tempo mesuré, et rattrapée si elle prend de l'avance. L'horloge MIDI en sor
   - si le transport **tournait**, les notes gardent leur place dans les mesures ;
   - s'il était **arrêté**, la première note devient le premier temps et le transport démarre à l'endroit de la
     phrase où l'on se trouve. La boucle continue en rythme avec ce qu'on jouait.
+- **Prise** (`LIVE_CAPTURE_ARM`, puis `LIVE_CAPTURE` avec b = 1 ; EDIT tapé sur le FM-1 et le SMK-37) : l'anneau repart
+  de zéro à l'armement ; à la fin, toutes les notes de la piste depuis l'armement font la boucle, même après un long
+  silence, et sa longueur va de la première note à la fin de la prise.
 
 ## Annuler
 

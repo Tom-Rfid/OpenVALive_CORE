@@ -110,7 +110,14 @@ OLS_COLD void ols_live_command(ols_live_t *L, ols_live_cmd_t cmd, uint8_t b, uin
         }
         break;
     case LIVE_CAPTURE:
-        ols_live_capture(L);
+        if (b) {
+            ols_live_capture_take(L);
+        } else {
+            ols_live_capture(L);
+        }
+        break;
+    case LIVE_CAPTURE_ARM:
+        ols_live_capture_arm(L);
         break;
     case LIVE_PAN: {
         int t = live_track_index(L, target);

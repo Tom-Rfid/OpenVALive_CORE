@@ -55,7 +55,7 @@ static uint16_t transport_colour(void)
  * infinity sign in place of PLAY, until EDIT is let go */
 static int edit_loop_on(void)
 {
-    return live.clock.running && (button_held(ui.buttons, B_EDIT) || ui.punch || ui.cap_on);
+    return live.clock.running && (button_held(ui.buttons, B_EDIT) || ui.punch || ui.cap_armed);
 }
 
 static const char *transport_word(void)
@@ -668,8 +668,9 @@ static void draw_track(int t)
         cv_rect(0, y0, 240, TRACK_ROW_H - 1, C_VIO_BG);      /* the selected track's line, violet */
     }
     draw_clip_take(t, y0, TRACK_ROW_H - 1);
-    if (ui.cap_on && (!live.clock.running || live.recording || ui.on_a || ui.cap_track != mirror.track)) {
-        ui.cap_on = 0;                          /* (a stop, REC, another line: nothing to capture shown) */
+    if (ui.cap_armed && (!live.clock.running || live.recording || ui.on_a || ui.cap_track != mirror.track)) {
+        ui.cap_on = 0;                          /* (a stop, REC, another line: the take is given up) */
+        ui.cap_armed = 0;
     }
     int capturing = ui.cap_on && t == ui.cap_track;
     /* recording: from the first note taken (or the punch), the playhead paints the line pink where it records, so

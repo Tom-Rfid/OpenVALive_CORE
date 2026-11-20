@@ -59,6 +59,9 @@ catches up if it falls behind. MIDI clock out sends a pulse every 4 ticks, plus 
   - if the transport **ran**, the notes keep their place in the bars;
   - if it was **stopped**, the first note becomes the downbeat and the transport starts at the point of the
     phrase where you are now. The loop carries on in time with your playing.
+- **A take** (`LIVE_CAPTURE_ARM`, then `LIVE_CAPTURE` with b = 1; EDIT tapped on the FM-1 and the SMK-37): the ring
+  starts afresh at the arm; at the end, every note of the track since the arm makes the loop, even across a long
+  silence, and its length runs from the first note to the end of the take.
 
 ## Undo
 
