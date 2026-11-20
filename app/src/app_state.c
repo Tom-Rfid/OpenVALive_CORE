@@ -61,32 +61,34 @@ static const uint8_t VOICE_LIMIT[TRACKS] = { 4, 1, 2, 4 };
 #define LIVE_VOICES 3u
 #define LIVE_DEFAULT_SOUND VA_PRESET_LEAD
 
-/* the order PRESET shows the factory sounds in (their numbers, kept in saves, do not change), by character and
- * dynamics: acid first, basses, drums, the punchy leads and stabs, minimal, the deep / dub / underground ones,
- * effects and transitions, the soft ones last; the USER sounds follow. */
+/* the order PRESET shows the factory sounds in (their numbers, kept in saves, do not change), nine families by
+ * character, the most played first in each: acid, basses, drums, short percussive tones, leads, keys and chords, soft
+ * and enveloping ones, effects and transitions, the dark and harsh ones last; the USER sounds follow. */
 static const uint8_t SOUND_ORDER[OLS_SOUND_COUNT] = {
-    VA_PRESET_ACID, VA_PRESET_ACID_SQUARE, VA_PRESET_ACID_SCREAM, VA_PRESET_SQUELCH, VA_PRESET_SCREECH,
-    VA_PRESET_GRUNGE, VA_PRESET_TALK,
-    VA_PRESET_BASS, VA_PRESET_SUB, VA_PRESET_DEEP_SUB, VA_PRESET_BOOM, VA_PRESET_PSY_BASS, VA_PRESET_REESE,
-    VA_PRESET_WOBBLE, VA_PRESET_ACID_DEEP,
+    VA_PRESET_ACID, VA_PRESET_SQUELCH, VA_PRESET_ACID_SQUARE, VA_PRESET_ACID_DEEP, VA_PRESET_ACID_SCREAM,
+    VA_PRESET_TALK,
+    VA_PRESET_BASS, VA_PRESET_SUB, VA_PRESET_REESE, VA_PRESET_PSY_BASS, VA_PRESET_DEEP_SUB, VA_PRESET_BOOM,
+    VA_PRESET_RUBBER, VA_PRESET_WOBBLE,
     OLS_SOUND_FIRST_DRUM + DR_KIT_808, OLS_SOUND_FIRST_DRUM + DR_KIT_909, OLS_SOUND_FIRST_DRUM + DR_KIT_TIGHT,
     OLS_SOUND_FIRST_DRUM + DR_KIT_LOFI, OLS_SOUND_FIRST_DRUM + DR_KIT_IRON,
-    VA_PRESET_LEAD, VA_PRESET_GOA_LEAD, VA_PRESET_HOOVER, VA_PRESET_ARP, VA_PRESET_PLUCK, VA_PRESET_STAB,
-    VA_PRESET_BRASS, VA_PRESET_ORGAN, VA_PRESET_VKEYS,
-    VA_PRESET_RUBBER, VA_PRESET_BLEEP, VA_PRESET_CLICK, VA_PRESET_DROPS, VA_PRESET_BLIP, VA_PRESET_METAL,
-    VA_PRESET_DUB_CHORD, VA_PRESET_DEEP_STAB, VA_PRESET_DEEP_PAD, VA_PRESET_RUMBLE, VA_PRESET_DRONE, VA_PRESET_HOLD,
-    VA_PRESET_PLATE, VA_PRESET_CREAK, VA_PRESET_WIND,
-    VA_PRESET_SAX, VA_PRESET_LUTE, VA_PRESET_FLUTE, VA_PRESET_BAGPIPE,
-    VA_PRESET_NOISE, VA_PRESET_RISER, VA_PRESET_DOWNLIFTER, VA_PRESET_ZAP, VA_PRESET_LASER, VA_PRESET_SHAKER,
-    VA_PRESET_THUNDER, VA_PRESET_RAIN, VA_PRESET_DUB_SIREN,
-    VA_PRESET_POLY, VA_PRESET_PAD, VA_PRESET_STRINGS, VA_PRESET_STRINGS70, VA_PRESET_SWEEP, VA_PRESET_WHALE,
-    VA_PRESET_CHOIR, VA_PRESET_INIT,
+    VA_PRESET_PLUCK, VA_PRESET_BLEEP, VA_PRESET_CLICK, VA_PRESET_METAL, VA_PRESET_PLATE, VA_PRESET_BLIP,
+    VA_PRESET_DROPS,
+    VA_PRESET_LEAD, VA_PRESET_GOA_LEAD, VA_PRESET_HOOVER, VA_PRESET_ARP, VA_PRESET_SAX, VA_PRESET_BRASS,
+    VA_PRESET_BAGPIPE, VA_PRESET_INIT,
+    VA_PRESET_STAB, VA_PRESET_DEEP_STAB, VA_PRESET_DUB_CHORD, VA_PRESET_POLY, VA_PRESET_ORGAN, VA_PRESET_VKEYS,
+    VA_PRESET_LUTE,
+    VA_PRESET_PAD, VA_PRESET_STRINGS, VA_PRESET_DEEP_PAD, VA_PRESET_STRINGS70, VA_PRESET_CHOIR, VA_PRESET_SWEEP,
+    VA_PRESET_FLUTE, VA_PRESET_WHALE,
+    VA_PRESET_RISER, VA_PRESET_DOWNLIFTER, VA_PRESET_NOISE, VA_PRESET_ZAP, VA_PRESET_LASER, VA_PRESET_DUB_SIREN,
+    VA_PRESET_SHAKER, VA_PRESET_RAIN, VA_PRESET_THUNDER,
+    VA_PRESET_DRONE, VA_PRESET_RUMBLE, VA_PRESET_WIND, VA_PRESET_HOLD, VA_PRESET_CREAK, VA_PRESET_GRUNGE,
+    VA_PRESET_SCREECH,
 };
-/* the families, by their first place in SOUND_ORDER: F1 acid, F2 basses, F3 drums, F4 punch (leads, stabs, keys),
- * F5 minimal, F6 under (deep, dub, underground), F7 world (instruments, electro style), F8 SFX (transitions, zaps,
- * weather), F9 soft (and INIT); the USER sounds last ("US"). 9 sounds a family at most. OCT- / OCT+ while a sound is
- * chosen jump between them. */
-static const uint8_t FAMILY_AT[] = { 0, 7, 15, 20, 29, 35, 44, 48, 57 };
+/* the families, by their first place in SOUND_ORDER: F1 acid, F2 bass, F3 drums, F4 perc (short tones: plucks, bleeps,
+ * metal, drops), F5 lead (and INIT), F6 keys (stabs, chords, organ, keys), F7 soft (pads, strings, choir), F8 FX
+ * (transitions, zaps, weather), F9 dark (drones, rumbles, creaks, the harsh ones); the USER sounds last ("US"). 9 sounds
+ * a family at most. OCT- / OCT+ while a sound is chosen jump between them. */
+static const uint8_t FAMILY_AT[] = { 0, 6, 14, 19, 26, 34, 41, 49, 58 };
 #define FAMILIES 10                             /* 9 factory families, then USER */
 typedef char sound_order_complete[(OLS_SOUND_COUNT == 65) ? 1 : -1];   /* a sound added: put it in SOUND_ORDER */
 
@@ -487,6 +489,7 @@ static struct {
     uint8_t help;                               /* the help pages after the boot screen (HELP AT START) are up */
     uint8_t help_shown;                         /* the help page on the screen + 1 (0: none drawn yet) */
     uint32_t help_since;                        /* when they came up: a page every 3 s */
+    uint8_t help_sel;                           /* SEL turned them off for good: that press does nothing more till let go */
 } ui;
 
 /* the MASTER position in %, for the header: fm1-base's pot, or a target's own (the SMK-37's encoder) */

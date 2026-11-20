@@ -2215,8 +2215,23 @@ static void input(void)
     touch_poll();                           /* key velocity sensing (lib/touch.h) */
     uint32_t keys = touch_keys();
 
-    if (ui.help && (buttons & ~ui.buttons & ~(1u << B_SEL))) {
-        ui.help = 0;                            /* a button (not SEL) closes the help pages, and does its job */
+    if (ui.help && (buttons & ~ui.buttons & (1u << B_SEL))) {
+        ui.help = 0;                            /* SEL on the help pages: no help at start from now on (OPTION CONTROL:
+                                                 * HELP AT START brings it back) */
+        set.no_help = 1;
+        settings_keep();
+        ui.help_sel = 1;
+        app_say("HELP AT START", "OFF");
+        ui.msg_until = plat_ms() + 1500u;
+    } else if (ui.help && (buttons & ~ui.buttons)) {
+        ui.help = 0;                            /* another button closes the help pages, and does its job */
+    }
+    if (ui.help_sel) {                          /* (that SEL press: no tracks layer, nothing on release) */
+        if (buttons & (1u << B_SEL)) {
+            buttons &= ~(1u << B_SEL);
+        } else {
+            ui.help_sel = 0;
+        }
     }
     scan_buttons(buttons);
     avol_tick();

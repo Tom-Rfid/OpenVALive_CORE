@@ -250,6 +250,8 @@ int app_expect(const char *what, int *got)
         *got = slicer_on;                         /* PERFORM SLICER on */
     } else if (!strcmp(what, "help")) {
         *got = ui.help;                           /* the help pages up (after the boot screen) */
+    } else if (!strcmp(what, "no_help")) {
+        *got = set.no_help;                       /* HELP AT START off */
     } else if (!strcmp(what, "help_page")) {
         *got = ui.help_shown;                     /* the help page drawn, 1 or 2 (0: none) */
     } else if (!strcmp(what, "cap")) {

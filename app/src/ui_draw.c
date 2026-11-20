@@ -517,26 +517,35 @@ static int32_t help_arrow(int32_t x, int32_t y)
     return x + 7;
 }
 
+/* the two lines at the foot of each page: SEL (NOTE on the SMK-37) turns the help pages off for good, another
+ * button closes them */
+static void help_footer(void)
+{
+    int32_t x = cv_text(8, 204, &FONT_XS, BTN_NAME[B_SEL], C_YELLOW);
+    cv_text(x, 204, &FONT_XS, ": NO HELP AT START", C_YELLOW);
+    cv_text(8, 222, &FONT_XS, "OTHER BUTTON: CLOSE", C_GRAY);
+}
+
 static void help_page_keys(void)
 {
     cv_text(8, 8, &FONT_B, "KEY COLOURS", C_WHITE);
     cv_text(232 - text_w(&FONT_XS, "1/2"), 12, &FONT_XS, "1/2", C_GRAY);
     const uint16_t BLUE = RGB(60, 110, 255);
-    help_keys(8, 38, BLUE);
-    cv_text(60, 38, &FONT_B, "BLUE", BLUE);
-    cv_text(60, 60, &FONT_XS, "SET-UP SCREENS", HELP_TEXT);
-    help_keys(8, 88, C_PINK);                   /* valid on release: the layer button let go first, then the key */
-    cv_text(60, 88, &FONT_B, "PINK", C_PINK);
-    int32_t x = cv_text(60, 110, &FONT_XS, "ON RELEASE", HELP_TEXT);
-    help_arrow(x + 6, 111);
-    cv_text(60, 126, &FONT_XS, "LET GO BTN MENU FIRST", HELP_TEXT);
-    x = cv_text(60, 142, &FONT_XS, "THEN", HELP_TEXT);
-    x = help_arrow(x + 6, 143);
-    cv_text(x + 6, 142, &FONT_XS, "KEY", HELP_TEXT);
-    help_keys(8, 166, C_MINT);
-    cv_text(60, 166, &FONT_B, "MINT", C_MINT);
-    cv_text(60, 188, &FONT_XS, "READY: ACTS AT ONCE", HELP_TEXT);
-    cv_text(8, 216, &FONT_XS, "HOLD A LAYER BUTTON TO SEE ITS KEYS", C_GRAY);
+    help_keys(8, 34, BLUE);
+    cv_text(60, 34, &FONT_B, "BLUE", BLUE);
+    cv_text(60, 56, &FONT_XS, "SET-UP SCREENS", HELP_TEXT);
+    help_keys(8, 80, C_PINK);                   /* valid on release: the layer button let go first, then the key */
+    cv_text(60, 80, &FONT_B, "PINK", C_PINK);
+    int32_t x = cv_text(60, 102, &FONT_XS, "ON RELEASE", HELP_TEXT);
+    help_arrow(x + 6, 103);
+    cv_text(60, 118, &FONT_XS, "LET GO BTN MENU FIRST", HELP_TEXT);
+    x = cv_text(60, 134, &FONT_XS, "THEN", HELP_TEXT);
+    x = help_arrow(x + 6, 135);
+    cv_text(x + 6, 134, &FONT_XS, "KEY", HELP_TEXT);
+    help_keys(8, 152, C_MINT);
+    cv_text(60, 152, &FONT_B, "MINT", C_MINT);
+    cv_text(60, 174, &FONT_XS, "READY: ACTS AT ONCE", HELP_TEXT);
+    help_footer();
 }
 
 static void help_page_play(void)
@@ -554,9 +563,7 @@ static void help_page_play(void)
     cv_text(16, 166, &FONT_XS, "PUSH", C_AMB);
     cv_text(70, 166, &FONT_XS, "LIVE OVERDUB", HELP_TEXT);
     cv_text(70, 184, &FONT_XS, "ADDS NOTES ON TOP", HELP_TEXT);
-    int32_t cx = cv_text(8, 216, &FONT_XS, "ANY BUTTON BUT ", C_GRAY);   /* (SEL: NOTE REPEAT on the SMK-37) */
-    cx = cv_text(cx, 216, &FONT_XS, BTN_NAME[B_SEL], C_GRAY);
-    cv_text(cx, 216, &FONT_XS, ": CLOSE", C_GRAY);
+    help_footer();
 }
 
 static void help_draw(uint32_t now)
