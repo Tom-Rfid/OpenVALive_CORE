@@ -1685,7 +1685,8 @@ static void scan_preset_encoder(uint32_t buttons)
     preset_turn(turn > 0 ? 1 : -1, 0);
 }
 
-/* SAVE + key 1-8: USER sound u on the selected line (A: a synth one only); a playing loop: it waits for SEL */
+/* SAVE + key 1-8: USER sound u on the selected line (A: a synth one only), at once, a loop playing or not (a key
+ * pressed on purpose: unlike PRESET turned, it does not wait for SEL) */
 static void load_user_sound(int u)
 {
     char t[8] = "USER ";
@@ -1706,12 +1707,8 @@ static void load_user_sound(int u)
         return;
     }
     uint8_t tr = mirror.track;
-    if (live.track[tr].pat.count > 0u) {        /* the loop plays: as PRESET, the sound waits for SEL */
-        ui.pend_sound = (int16_t)(sound == set.preset[tr] ? -1 : sound);
-        app_say(t, "SEL: LOAD");
-        ui.redraw = 1;
-        return;
-    }
+    ui.pend_sound = -1;                         /* (a sound turned on PRESET and waiting for SEL: replaced) */
+    ui.turned_at = 0;
     set.preset[tr] = (uint8_t)sound;
     sound_octave(tr, (uint32_t)sound);
     mark_dirty();
