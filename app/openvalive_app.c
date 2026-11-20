@@ -231,6 +231,8 @@ int app_expect(const char *what, int *got)
         for (int t = 0; t < TRACKS; t++) {
             *got += va[t].voice_limit;              /* the voice budget (no longer on screen) */
         }
+    } else if (!strcmp(what, "cap")) {
+        *got = ui.cap_on;                         /* CAPTURE's green line shown */
     } else if (!strcmp(what, "preset")) {
         *got = set.preset[mirror.track];
     } else if (!strcmp(what, "octave")) {

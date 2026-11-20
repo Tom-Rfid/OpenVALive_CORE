@@ -540,13 +540,14 @@ static const va_change_t BLIP[] = {
 };
 
 /* Metal: a square and a saw a ninth apart and slightly off, through a ringing band-pass: a struck metal or wood
- * (close to an FM percussion, without FM). Low notes are wood, high ones metal. */
+ * (close to an FM percussion, without FM). Low notes are wood, high ones metal. It rings on while the key is held
+ * and after, a little chorus and echo around it. */
 static const va_change_t METAL[] = {
     {VA_P_OSC1_WAVE, WAVE_SQUARE}, {VA_P_OSC2_WAVE, WAVE_SAW}, {VA_P_OSC2_COARSE, SEMITONES(14)},
     {VA_P_OSC2_FINE, 0.68f}, {VA_P_MIX_OSC2, 0.7f}, {VA_P_FILTER_MODE, FILTER_BP}, {VA_P_CUTOFF, 0.62f},
-    {VA_P_RESO, 0.8f}, {VA_P_KEYTRACK, 0.8f}, {VA_P_FENV_AMT, 0.66f}, {VA_P_F_DECAY, 0.4f}, {VA_P_F_SUSTAIN, 0.0f},
-    {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.48f}, {VA_P_A_SUSTAIN, 0.0f}, {VA_P_A_RELEASE, 0.4f},
-    {VA_P_DRIVE, 0.3f}, {VA_P_VOLUME, 0.7f},
+    {VA_P_RESO, 0.82f}, {VA_P_KEYTRACK, 0.8f}, {VA_P_FENV_AMT, 0.6f}, {VA_P_F_DECAY, 0.6f}, {VA_P_F_SUSTAIN, 0.1f},
+    {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.7f}, {VA_P_A_SUSTAIN, 0.2f}, {VA_P_A_RELEASE, 0.65f},
+    {VA_P_DRIVE, 0.3f}, {VA_P_CHORUS_MIX, 0.3f}, {VA_P_DELAY_MIX, 0.2f}, {VA_P_DELAY_FB, 0.4f}, {VA_P_VOLUME, 0.7f},
 };
 
 /* Arp: cut for fast hypnotic arpeggios, a saw and a square, a snappy filter, a short body and an echo. */

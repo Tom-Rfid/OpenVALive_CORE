@@ -1247,12 +1247,12 @@ static int swap_a(int t)
     return 1;
 }
 
-/* a note played on a track while playing, not recording: from the first one, what CAPTURE would take paints the
- * line green */
+/* a note played on an empty track while playing, not recording: from the first one, what CAPTURE would take paints
+ * the line green (a track with its loop already: nothing shown, REC or PUNCH are the way to add to it) */
 static void cap_note(uint8_t track)
 {
     if (track < TRACKS && track == mirror.track && !ui.on_a && live.clock.running && !live.recording && !ui.punch
-        && !ui.cap_on) {
+        && !ui.cap_on && live.track[track].pat.count == 0u) {
         ui.cap_on = 1;
         ui.cap_track = track;
     }
