@@ -125,7 +125,7 @@ static int live_sound_ok(uint32_t sound)
 #define C_RED RGB(235, 40, 40)
 #define C_VALUE RGB(130, 118, 178)               /* the values over their bars: grey violet, one colour
                                                   * (two colours cut a number in two as it changes) */
-enum { MSG_PLAIN, MSG_ARMED, MSG_TAKEN, MSG_NOT_TAKEN };   /* armed: "LET GO .." green; taken: mint; not: orange */
+enum { MSG_PLAIN, MSG_ARMED, MSG_TAKEN, MSG_NOT_TAKEN, MSG_PRESS };   /* press: "REC (arrow down) PLAY FIRST" in green */   /* armed: "LET GO .." green; taken: mint; not: orange */
 #define C_DARK_ORANGE RGB(200, 96, 20)
 #define C_LOOP_BG RGB(110, 18, 18)              /* a track whose loop (stutter) runs */
 
@@ -378,6 +378,8 @@ enum { KEY_NOTE, KEY_FX, KEY_NONE, KEY_ARMED_ARP, KEY_ARMED_SEQ, KEY_ARMED_GLO, 
 
 static struct {
     char msg[2][24];                            /* short message over the header */
+    uint32_t capture_at;                        /* CAPTURE: when, on which track (its line cyan a moment) */
+    uint8_t capture_track;
     uint8_t msg_inf;                            /* an infinity sign before the title (PERFORM: "∞ DIV / FILTER") */
     const char *msg_right;                      /* and at its right (SEL held: "A VOL"), 0 none */
     uint32_t msg_until;

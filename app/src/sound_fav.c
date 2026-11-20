@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT
  * OpenVALive - SOUNDS: which sounds PRESET offers (HOME + white key 8, HOME let go: the screen stays, both hands
  * free). A hidden sound still plays where it is: only PRESET and the family jumps (OCT- / OCT+) leave it out.
- *   on top the chosen sound's place (3/5), its family and ON / HIDDEN; then one line a family, F1 .. F9, its
+ *   on top the chosen sound's place (3/5), its name and ON / HIDDEN; then one line a family, F1 .. F9, its
  *   label and name green (all offered), blue (some), red (none), a square a sound, the chosen line its sound's name
  *   SELECT       the line above / below (the last line: MENU)       PRESET  the sound before / after on the line
  *   SEL          the sound offered (green) or hidden (red)           OCT- / OCT+  the whole family hidden / offered
@@ -136,7 +136,8 @@ static void fav_draw_place(void)
             uint16_t fc = fav_colour(fav.family);
             char pos[4] = { (char)('1' + at), '/', (char)('0' + n), 0 };   /* a family: 9 sounds at most */
             cv_text(26, 2, &FONT_XS, pos, fc);         /* under the family names */
-            cv_text(FAV_SQUARES, 2, &FONT_XS, FAMILY_NAME[fav.family], fc);
+            cv_text(FAV_SQUARES, 2, &FONT_XS, ols_sound_name((uint32_t)list[at]), hidden ? C_RED : C_WHITE);   /* the
+                                                 * chosen sound, over the squares (it moves with PRESET) */
             cv_text(232 - text_w(&FONT_XS, hidden ? "HIDDEN" : "ON"), 2, &FONT_XS, hidden ? "HIDDEN" : "ON",
                     hidden ? C_RED : C_GREEN);
         }
@@ -155,12 +156,7 @@ static void fav_draw_family(int f, int32_t y, int sel)
     ft[1] = (char)('1' + f);
     cv_text(6, y + 2, &FONT_XS, ft, lc);
     cv_text(7, y + 2, &FONT_XS, ft, lc);
-    if (sel && n) {                                     /* the chosen line: the chosen sound's name */
-        int32_t s = list[fav.row < n ? fav.row : n - 1u];
-        cv_text(26, y + 2, &FONT_XS, ols_sound_name((uint32_t)s), sound_hidden(s) ? C_RED : C_WHITE);
-    } else {
-        cv_text(26, y + 2, &FONT_XS, FAMILY_NAME[f], lc);
-    }
+    cv_text(26, y + 2, &FONT_XS, FAMILY_NAME[f], lc);   /* the family's name stays; the sound's is on top */
     for (uint32_t i = 0; i < n; i++) {                  /* a square a sound, the chosen one framed */
         int32_t x = FAV_SQUARES + (int32_t)i * 14;
         int empty = list[i] >= OLS_SOUND_FIRST_USER && !user_sounds[list[i] - OLS_SOUND_FIRST_USER].valid;

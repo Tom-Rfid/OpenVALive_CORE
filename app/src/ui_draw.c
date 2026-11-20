@@ -51,19 +51,11 @@ static uint16_t transport_colour(void)
     return live.clock.running ? RGB(60, 210, 90) : C_GRAY;
 }
 
-/* playing, not recording, with a loop on some track: the transport shows an infinity sign (REC, PLAY on empty
- * tracks, STOP: their words) */
-static int loops_playing(void)
+/* EDIT held while playing (a loop being made: CAPTURE on release, a punch with notes): the transport shows a red
+ * infinity sign in place of PLAY, until EDIT is let go */
+static int edit_loop_on(void)
 {
-    if (!live.clock.running || live.recording) {
-        return 0;
-    }
-    for (int t = 0; t < TRACKS; t++) {
-        if (live.track[t].pat.count) {
-            return 1;
-        }
-    }
-    return 0;
+    return live.clock.running && (button_held(ui.buttons, B_EDIT) || ui.punch);
 }
 
 static const char *transport_word(void)
@@ -100,6 +92,8 @@ static void draw_header(void)
             c0 = c1 = C_GREEN;
         } else if (ui.msg_style == MSG_ARMED) { /* "LET GO SEQ": green, it says how to take it */
             c1 = C_GREEN;
+        } else if (ui.msg_style == MSG_PRESS) { /* "REC (arrow down) PLAY FIRST": green, a button to press */
+            c0 = c1 = C_GREEN;
         }
         int32_t x = 8;
         if (ui.msg_inf) {                       /* PERFORM: the loops (divided) and the filters */
@@ -113,6 +107,13 @@ static void draw_header(void)
                 cv_rect(ax + 5 - i, 7 + i, 2 * i + 1, 1, C_GREEN);
             }
             cv_rect(ax + 3, 13, 5, 9, C_GREEN);
+            x = ax + 6;
+        } else if (ui.msg_style == MSG_PRESS) { /* an arrow down: press that button */
+            int32_t ax = x + 8;
+            cv_rect(ax + 3, 6, 5, 9, C_GREEN);
+            for (int32_t i = 0; i < 6; i++) {
+                cv_rect(ax + i, 15 + i, 11 - 2 * i, 1, C_GREEN);
+            }
             x = ax + 6;
         }
         if (ui.msg_style == MSG_TAKEN && !ui.msg[1][0]) {
@@ -129,6 +130,8 @@ static void draw_header(void)
         if (ui.msg_right) {                     /* the layer's black-key gesture, far right */
             cv_text(232 - text_w(&FONT_B, ui.msg_right), 6, &FONT_B, ui.msg_right, avol.on ? C_GREEN : C_MINT);
         }
+    } else if (ui.buttons & LAYER_BUTTONS_ALL) {
+        /* a layer button held, its title gone (a key tapped): nothing, not the main screen's title */
     } else {
         char t[4] = "T1";
         t[1] = (char)('1' + mirror.track);
@@ -164,8 +167,9 @@ static void draw_header(void)
         text_cat(bpm, " BPM");
         cv_text(232 - text_w(&FONT_XS, bpm), 0, &FONT_XS, bpm, C_GRAY);
         const char *word = transport_word();
-        if (loops_playing()) {                  /* loops playing: a green infinity sign in place of PLAY */
-            draw_inf(224, 21, transport_colour());
+        if (edit_loop_on()) {                   /* EDIT making a loop: a red infinity sign in place of PLAY */
+            draw_inf(224, 21, C_RED);
+            ui.redraw = 1;
         } else {
             cv_text(232 - text_w(&FONT_XS, word), 14, &FONT_XS, word, transport_colour());
         }
@@ -412,7 +416,8 @@ static void draw_track(int t)
     int32_t y0 = t * TRACK_ROW_H;
     int selected = ui.hovering ? t == ui.hover : (!ui.on_a && t == mirror.track);   /* SEL + SELECT: the line pointed at */
     uint16_t label = tr->mute ? C_DIM : (selected ? C_VIO : C_GRAY);
-    uint16_t note_colour = tr->mute ? C_DIM : (selected ? C_HI : C_AMB);
+    uint16_t note_colour = tr->mute ? C_DIM : (!live.clock.running ? C_MINT : (selected ? C_HI : C_AMB));   /* stopped:
+                                                 * the notes mint */
     uint32_t length = p->length;
 
     if (live.stutter && tr->stutter) {
@@ -421,6 +426,10 @@ static void draw_track(int t)
         cv_rect(0, y0, 240, TRACK_ROW_H - 1, C_VIO_BG);      /* the selected track's line, violet */
     }
     draw_clip_take(t, y0, TRACK_ROW_H - 1);
+    if (ui.capture_at && t == ui.capture_track && plat_ms() - ui.capture_at < 1200u) {
+        cv_rect(0, y0, 240, TRACK_ROW_H - 1, RGB(14, 90, 110));   /* a loop just captured: the line cyan */
+        ui.redraw = 1;
+    }
     /* recording: from the first note taken (or the punch), the playhead paints the line pink where it records, so
      * the take's start is seen coming back round (when to stop); let go, it paints it back as it passes */
     uint8_t *painting = rec_painting;

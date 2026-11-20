@@ -383,7 +383,7 @@ static const va_change_t SCREECH[] = {
     {VA_P_LFO2_CUTOFF, 0.3f},
     {VA_P_DRIVE, 0.7f},
     {VA_P_CRUSH, 0.35f},
-    {VA_P_VOLUME, 0.5f},
+    {VA_P_VOLUME, 0.45f},                       /* (20 % lower than 0.5: volume is 2 v^2) */
 };
 
 /* Grunge: two detuned saws and the sub, driven hard, through the phaser and the crusher. */
@@ -497,12 +497,13 @@ static const va_change_t TALK[] = {
     {VA_P_VEL_FILTER, 0.5f}, {VA_P_DELAY_MIX, 0.15f}, {VA_P_VOLUME, 0.7f},
 };
 
-/* The psytrance rolling bass: a short, clicky saw and sub, filter and amp shut within a 1/16, for K-B-B-B lines. */
+/* The psytrance rolling bass: two saws a hair apart and a strong sub, a clicky filter snap, driven; the note holds a
+ * little (sustain) so it sounds on the 1/16s and when held, for K-B-B-B lines. */
 static const va_change_t PSY_BASS[] = {
-    {VA_P_MONO, 1.0f}, {VA_P_MIX_OSC2, 0.0f}, {VA_P_MIX_SUB, 0.45f}, {VA_P_CUTOFF, 0.28f}, {VA_P_RESO, 0.35f},
-    {VA_P_FENV_AMT, 0.78f}, {VA_P_F_ATTACK, 0.0f}, {VA_P_F_DECAY, 0.38f}, {VA_P_F_SUSTAIN, 0.0f},
-    {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.5f}, {VA_P_A_SUSTAIN, 0.0f}, {VA_P_A_RELEASE, 0.3f},
-    {VA_P_DRIVE, 0.4f}, {VA_P_GLIDE, 0.0f}, {VA_P_VEL_SENS, 0.5f}, {VA_P_VOLUME, 0.75f},
+    {VA_P_MONO, 1.0f}, {VA_P_OSC2_FINE, 0.53f}, {VA_P_MIX_OSC2, 0.45f}, {VA_P_MIX_SUB, 0.75f}, {VA_P_CUTOFF, 0.36f},
+    {VA_P_RESO, 0.45f}, {VA_P_FENV_AMT, 0.85f}, {VA_P_F_ATTACK, 0.0f}, {VA_P_F_DECAY, 0.32f}, {VA_P_F_SUSTAIN, 0.05f},
+    {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.5f}, {VA_P_A_SUSTAIN, 0.45f}, {VA_P_A_RELEASE, 0.22f},
+    {VA_P_DRIVE, 0.6f}, {VA_P_GLIDE, 0.0f}, {VA_P_VEL_SENS, 0.3f}, {VA_P_VOLUME, 0.85f},
 };
 
 /* Zap: the pitch dives two octaves in a blink (the filter envelope on the pitch), a little echo. */

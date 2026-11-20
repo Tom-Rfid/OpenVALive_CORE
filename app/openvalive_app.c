@@ -216,6 +216,7 @@ void app_frame(void)
 void app_input_only(void)
 {
     input();
+    ui.touched |= ui.activity;                    /* (a key played between frames ends the boot screen too) */
 }
 
 #ifdef PLAT_HOST

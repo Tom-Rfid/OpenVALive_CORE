@@ -51,9 +51,10 @@
 #define SAVE_ALL 16                             /* SAVE + the 1st black key (SAVE ALL) armed: its role's w */
 /* HOME + white key, HOME let go first: the set-up screens, from the 2nd F (white key 8: F4 on the FM-1), clear of the
  * right hand on the buttons */
-#define HOME_SOUNDS 7
-#define HOME_LOOP_EDIT 8
-#define HOME_OPTIONS 9
+#define HOME_OPTIONS 6                          /* OPTIONS (7th white key: E4 on the FM-1), SOUNDS (8th: F4), and LOOP EDIT */
+#define HOME_SOUNDS 7                           /* on the 4th black key (C#4 on the FM-1): its role's w HOME_LOOP_EDIT */
+#define HOME_LOOP_EDIT 20
+#define HOME_SETUP_KEYS (white_mask(HOME_OPTIONS, HOME_SOUNDS + 1) | (1u << BLACK_KEY[3]))
 
 /* the white keys of the FM-1 (F3 .. G5), as key numbers */
 static const uint8_t WHITE_KEY[WHITE_KEYS] = { 0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26 };
@@ -232,15 +233,15 @@ static const char *armed_name(uint8_t role, int w)
     return t;
 }
 
-/* a gesture that needs the loops playing, at STOP: "REC  PLAY FIRST", in red */
+/* a gesture that needs the loops playing, at STOP: "REC (arrow down) PLAY FIRST", in green, 1.6 s */
 static void say_not_now(const char *what)
 {
     char t[16];
     copy_text(t, BTN_NAME[B_PLAY], sizeof t);
     text_cat(t, " FIRST");
     app_say(what, t);
-    ui.msg_style = MSG_NOT_TAKEN;
-    ui.msg_until = plat_ms() + 700u;
+    ui.msg_style = MSG_PRESS;
+    ui.msg_until = plat_ms() + 1600u;
 }
 
 /* "CLEAR  ENV: UNDO" (the target's name for ENV) */
@@ -915,8 +916,10 @@ static void key_pressed(uint32_t k, uint32_t buttons)
     }
     if (button_held(held, B_HOME)) {            /* HOME + white key 1 / 2 / 3 / 16, HOME let go first: PANIC / RESTART /
                                                  * STOP / the settings */
-        if ((w >= 0 && w < 3) || (w >= HOME_SOUNDS && w <= HOME_OPTIONS)) {
+        if ((w >= 0 && w < 3) || w == HOME_SOUNDS || w == HOME_OPTIONS) {
             arm_key(k, w, KEY_ARMED_HOME);
+        } else if (k == BLACK_KEY[3]) {
+            arm_key(k, HOME_LOOP_EDIT, KEY_ARMED_HOME);
         }
         return;
     }
@@ -1247,7 +1250,13 @@ static void edit_released(void)
         return;
     }
     send_live(LIVE_CAPTURE, 0, 0, 0.0f, 0);
-    say_undo("CAPTURE");                    /* not right? ENV undoes it at once */
+    char t[4] = "T1";                           /* "LOOP CAPTURED T1" in green, the line cyan a moment */
+    t[1] = (char)('1' + mirror.track);
+    app_say("LOOP CAPTURED", t);
+    ui.msg_style = MSG_TAKEN;
+    ui.msg_until = plat_ms() + 1200u;
+    ui.capture_at = plat_ms();
+    ui.capture_track = mirror.track;
 }
 
 /* the page after `p`: DRUM EQ only when the selected line is a drum track */
@@ -1851,7 +1860,7 @@ static uint32_t keys_armable(uint32_t buttons)
         return white_mask(5, 16) | 1u << KEY_AVOL;
     }
     if (button_held(buttons, B_HOME)) {
-        return white_mask(0, 3) | white_mask(HOME_SOUNDS, HOME_OPTIONS + 1);
+        return white_mask(0, 3) | HOME_SETUP_KEYS;
     }
     if (button_held(buttons, BTN_PAGES)) {
         return white_mask(0, 1) | white_mask(APP_WHEEL ? 13 : 14, 16);
@@ -1941,7 +1950,7 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
     } else if (button_held(buttons, B_HOME)) {
         /* PANIC, RESTART, STOP and the three set-up screens (SOUNDS, LOOP EDIT, OPTIONS: blue on a screen keyboard)
          * offered, breathing, as every key a layer offers */
-        ui.keys_conf = white_mask(HOME_SOUNDS, HOME_OPTIONS + 1);
+        ui.keys_conf = HOME_SETUP_KEYS;
         *dim = white_mask(0, 3) | ui.keys_conf;
     } else if (button_held(buttons, BTN_PAGES)) {
         *dim = white_mask(0, 1) | white_mask(APP_WHEEL ? 13 : 14, 16);   /* the line's reset; the wheel; the drum keys */
