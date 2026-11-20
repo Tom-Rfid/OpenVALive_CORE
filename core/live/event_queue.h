@@ -38,7 +38,8 @@ typedef enum {
     EV_PRESET,         /* a = preset number */
     EV_BEND,           /* v = semitones */
     EV_LIVE,           /* a Live Core command: a = ols_live_cmd_t, b / id / v / target = its arguments */
-    EV_PRESSURE        /* v = key pressure 0..1 (aftertouch) */
+    EV_PRESSURE,       /* v = key pressure 0..1 (aftertouch) */
+    EV_CLIP            /* a host's clips (app/src/clips.c): a = what, b = slot, target = the line */
 } ols_ev_type_t;
 
 typedef struct {

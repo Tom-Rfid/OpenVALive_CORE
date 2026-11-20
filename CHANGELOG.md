@@ -6,6 +6,14 @@
 
 
 
+## 21 November 2026 — clips, boot screen, "∞ DIV / FILTER"
+
+- `app/src/clips.c` (targets with `APP_CLIPS`): 14 clips, phrases taken on a line (a track or A) from its first
+  note, length rounded to the beat, at most 4 bars / 48 notes; played back on the audio side (`EV_CLIP`), now or on
+  the next beat, looping, on the line's sound, not recorded in the loop. The line being taken goes green on screen.
+- The boot screen goes at the first key, pad or button, even pressed in its first half second (it was missed then).
+- PERFORM's title: an infinity sign, "DIV / FILTER".
+
 ## 20 November 2026 — breathing keys, brighter glow (FM-1)
 
 - A layer held: the keys it offers breathe (a second up and down: the dim pulse swept 0.5–4 µs, the mid level at the

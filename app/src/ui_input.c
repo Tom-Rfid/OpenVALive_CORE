@@ -1132,7 +1132,8 @@ static void button_pressed(uint32_t b, uint32_t buttons)
         break;
     case BTN_PERFORM:
         ui.seq_used = 0;
-        app_say("PERFORM", running_loop() >= 0 ? "TAP: LOOP OFF" : "HOLD + KEY");
+        app_say("DIV / FILTER", running_loop() >= 0 ? "TAP: OFF" : "");   /* "∞ DIV / FILTER" */
+        ui.msg_inf = 1;
         break;
     case BTN_TRACKS:
         app_say("MUTE", "1 2 3 4 ALL");

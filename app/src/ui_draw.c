@@ -77,6 +77,17 @@ static const char *transport_word(void)
     return live.clock.external ? "EXT" : "STOP";
 }
 
+/* the infinity sign: two rings of 2-pixel dots, centred on (cx, cy), 18 wide */
+static void draw_inf(int32_t cx, int32_t cy, uint16_t c)
+{
+    static const int8_t RING[24][2] = { {4,0},{4,1},{3,2},{3,3},{2,3},{1,4},{0,4},{-1,4},{-2,3},{-3,3},
+        {-3,2},{-4,1},{-4,0},{-4,-1},{-3,-2},{-3,-3},{-2,-3},{-1,-4},{0,-4},{1,-4},{2,-3},{3,-3},{3,-2},{4,-1} };
+    for (int i = 0; i < 24; i++) {
+        cv_rect(cx - 4 + RING[i][0], cy + RING[i][1], 2, 2, c);
+        cv_rect(cx + 4 + RING[i][0], cy + RING[i][1], 2, 2, c);
+    }
+}
+
 static void draw_header(void)
 {
     cv_begin(240, HEADER_H, C_BLACK);
@@ -90,7 +101,12 @@ static void draw_header(void)
         } else if (ui.msg_style == MSG_ARMED) { /* "LET GO SEQ": green, it says how to take it */
             c1 = C_GREEN;
         }
-        int32_t x = cv_text(8, 6, &FONT_B, ui.msg[0], c0);
+        int32_t x = 8;
+        if (ui.msg_inf) {                       /* PERFORM: the loops (divided) and the filters */
+            draw_inf(x + 9, 14, c0);
+            x += 24;
+        }
+        x = cv_text(x, 6, &FONT_B, ui.msg[0], c0);
         if (ui.msg_style == MSG_ARMED) {        /* an arrow up: let the button go to take it */
             int32_t ax = x + 8;
             for (int32_t i = 0; i < 6; i++) {
@@ -149,13 +165,7 @@ static void draw_header(void)
         cv_text(232 - text_w(&FONT_XS, bpm), 0, &FONT_XS, bpm, C_GRAY);
         const char *word = transport_word();
         if (loops_playing()) {                  /* loops playing: a green infinity sign in place of PLAY */
-            static const int8_t RING[24][2] = { {4,0},{4,1},{3,2},{3,3},{2,3},{1,4},{0,4},{-1,4},{-2,3},{-3,3},
-                {-3,2},{-4,1},{-4,0},{-4,-1},{-3,-2},{-3,-3},{-2,-3},{-1,-4},{0,-4},{1,-4},{2,-3},{3,-3},{3,-2},{4,-1} };
-            int32_t cx = 224, cy = 21;
-            for (int i = 0; i < 24; i++) {
-                cv_rect(cx - 4 + RING[i][0], cy + RING[i][1], 2, 2, transport_colour());
-                cv_rect(cx + 4 + RING[i][0], cy + RING[i][1], 2, 2, transport_colour());
-            }
+            draw_inf(224, 21, transport_colour());
         } else {
             cv_text(232 - text_w(&FONT_XS, word), 14, &FONT_XS, word, transport_colour());
         }
@@ -327,6 +337,31 @@ static void pitch_range(const ols_pattern_t *p, int32_t *lo, int32_t *hi)
     }
 }
 
+/* a clip being taken on this line (a target with pads): the line goes dark green when armed, then a brighter green
+ * fills it from the left as the take goes, the whole width being the longest clip (CLIP_MAX_BARS) */
+static void draw_clip_take(int line, int32_t y0, int32_t h)
+{
+#ifdef APP_CLIPS
+    if (crec.slot < 0 || crec.line != (uint8_t)line) {
+        return;
+    }
+    cv_rect(0, y0, 240, h, RGB(10, 40, 18));
+    if (crec.started) {
+        uint32_t at = live.clock.free_tick - crec.start;
+        int32_t px = (int32_t)((at > CLIP_MAX_TICKS ? CLIP_MAX_TICKS : at) * 240u / CLIP_MAX_TICKS);
+        cv_rect(0, y0, px, h, RGB(24, 120, 52));
+        for (uint32_t b = 1; b < CLIP_MAX_BARS; b++) {      /* the bars, to see how long it already is */
+            cv_rect((int32_t)(b * 240u / CLIP_MAX_BARS), y0 + 2, 1, h - 4, RGB(60, 210, 90));
+        }
+    }
+    ui.redraw = 1;
+#else
+    (void)line;
+    (void)y0;
+    (void)h;
+#endif
+}
+
 static void draw_track(int t)
 {
     const ols_track_t *tr = &live.track[t];
@@ -342,6 +377,7 @@ static void draw_track(int t)
     } else if (selected) {
         cv_rect(0, y0, 240, TRACK_ROW_H - 1, C_VIO_BG);      /* the selected track's line, violet */
     }
+    draw_clip_take(t, y0, TRACK_ROW_H - 1);
     /* recording: from the first note taken (or the punch), the playhead paints the line pink where it records, so
      * the take's start is seen coming back round (when to stop); let go, it paints it back as it passes */
     uint8_t *painting = rec_painting;
@@ -419,6 +455,7 @@ static void draw_a(void)
 {
     int pointed = ui.hovering && ui.hover == TRACKS;
     cv_begin(240, A_H, pointed ? C_VIO_BG : (ui.on_a && !ui.hovering ? C_MINT_BG : C_BLACK));
+    draw_clip_take(T_LIVE, 0, A_H - 1);
     cv_text(6, 3, &FONT_XS, "A", pointed ? C_VIO : (ui.on_a ? C_MINT : C_GRAY));
     if (ui.on_a && !pointed) {
         cv_text(7, 3, &FONT_XS, "A", C_MINT);   /* selected: bold */

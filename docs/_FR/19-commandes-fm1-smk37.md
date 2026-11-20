@@ -12,7 +12,7 @@ pédale, plus de touches).
 |---|---|---|---|---|
 | `B_FX` (`BTN_PAGES`) | FX | FX | page de boutons suivante (ordre de MAP CONTROL) | remise à zéro de la ligne (touche 1), molette BEND / PAN (14), carte batterie (15 / 16) |
 | `B_SEL` (`BTN_TRACKS`, `BTN_VALIDATE`) | SEL | NOTE REPEAT | prend un son en attente | couche pistes : mutes (tout de suite), puis CLEAR, QUANTIZE, CLOCK, EUCLID, CONTROLLER (validés au relâché) ; touches noires MUTE ALL, A VOL ; clignote vite quand un son l'attend (+SEL) |
-| `B_SEQ` (`BTN_PERFORM`) | SEQ | SEQ | tapé : la boucle se relâche | couche jeu (16 effets) |
+| `B_SEQ` (`BTN_PERFORM`) | SEQ | SEQ | tapé : la boucle se relâche | couche jeu (16 effets), titre « ∞ DIV / FILTER » |
 | `B_ARP` | ARP | ARP | sur A : mode d'arpège | couche créative |
 | `B_GLO` | GLO | BT | — | couche scènes ; GLO + SEL : MAP CONTROL ; GLO + PLAY : chaîne |
 | `B_HOME` | HOME | PATCH | panic | PANIC / RESTART / STOP, SOUNDS (8), LOOP EDIT (9), OPTION CONTROL (10) : validés au relâché |
@@ -21,10 +21,12 @@ pédale, plus de touches).
 | `B_EDIT` | EDIT | GLOBE | CAPTURE (ENV l'annule) ; dans un menu : valeur par défaut de la ligne ; clignote pendant l'enregistrement | EDIT + note : punch ; LOOP EDIT : EDIT + touches = accord |
 | `B_PLAY` / `B_REC` | PLAY / REC | PLAY / REC | transport / enregistrement (REC et CAPTURE seulement en lecture) | SEL + PLAY tap tempo, SEL + REC métronome |
 | `B_OCTDN` / `B_OCTUP` | OCT− / OCT+ | OCT− / OCT+ | octave ; saut de famille ; boucle ×2 / ÷2 | — |
-| — | — | KNOB BANK = SHIFT | — | SHIFT + K1–K4 : page LIVE ; SHIFT + SELECT : SOUND EDIT ; SHIFT + pads 1–8 : mémoriser les scènes |
+| — | — | KNOB BANK = SHIFT | — | SHIFT + K1–K4 : page LIVE ; SHIFT + SELECT : SOUND EDIT ; SHIFT + pad (SCÈNES) : mémoriser la scène ; SHIFT + pad (CLIPS) : effacer le clip |
 | — | — | FADER BANK | faders : volumes → macros → USER | — |
 | — | — | < (Bluetooth) | TAP tempo | tenu 0,5 s : MAP CONTROL |
-| — | — | > (PAD/STEP) | pads : PERFORM → PLAY → SCÈNES | — |
+| — | — | > (PAD/STEP) | pads : CLIPS → DRUMS → PERFORM → SCÈNES → MIDI | — |
+| — | — | pad MODE (en haut à droite) | pareil : une tape = le mode suivant (sa couleur) | MODE + pad (CLIPS) : départ sur le temps |
+| — | — | pad REC (en bas à droite) | — | REC + pad, REC lâché en premier : enregistrer un clip / mémoriser une scène |
 
 ## Boutons rotatifs
 
@@ -42,8 +44,8 @@ pédale, plus de touches).
 |---|---|---|
 | emplacements 1–16 | les 16 touches blanches Fa3 … Sol5 | les 16 premières blanches Do3 … Ré5 |
 | touches noires (`BLACK_KEY[]`) | Fa#3 Sol#3 La#3 Do#4 Ré#4 Fa#4 … (11) | Do#3 Ré#3 Fa#3 Sol#3 La#3 … (la n-ième noire = la n-ième du FM-1) |
-| SEL + 1re noire : MUTE ALL | Fa#3 | Do#3 (et pad 13 en SCÈNES) |
-| SEL + 4e noire : A VOL | Do#4 | Sol#3 (et pad 14 en SCÈNES) |
+| SEL + 1re noire : MUTE ALL | Fa#3 | Do#3 (et 13e pad de jeu en SCÈNES) |
+| SEL + 4e noire : A VOL | Do#4 | Sol#3 (et 14e pad de jeu en SCÈNES) |
 | touches PERC de batterie (OPTION CONTROL) | PERC 1–4 : Sol#3 Ré#4 Sol#4 Ré#5 | PERC 1–6 : Ré#3 Sol#3 Ré#4 Sol#4 Ré#5 Sol#5 (`APP_PERC_FIRST` / `APP_PERC_COUNT`) |
 | lumières des touches | les LED des touches | le clavier à l'écran (KEYS ON SCREEN), couche tenue |
 

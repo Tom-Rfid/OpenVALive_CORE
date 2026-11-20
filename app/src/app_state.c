@@ -374,6 +374,7 @@ enum { KEY_NOTE, KEY_FX, KEY_NONE, KEY_ARMED_ARP, KEY_ARMED_SEQ, KEY_ARMED_GLO, 
 
 static struct {
     char msg[2][24];                            /* short message over the header */
+    uint8_t msg_inf;                            /* an infinity sign before the title (PERFORM: "∞ DIV / FILTER") */
     const char *msg_right;                      /* and at its right (SEL held: "A VOL"), 0 none */
     uint32_t msg_until;
     uint8_t msg_style;                          /* MSG_*: how the header message shows */
@@ -423,6 +424,7 @@ static struct {
     uint8_t pages_used;                         /* SEL did something else while held: no page turn on release */
     uint32_t splash_until;                      /* the boot screen stays until then, or until a hand touches something */
     uint8_t activity;                           /* something was touched since the last frame */
+    uint8_t touched;                            /* a key, a pad or a button since power-on: the boot screen goes */
 } ui;
 
 /* the MASTER position in %, for the header: fm1-base's pot, or a target's own (the SMK-37's encoder) */

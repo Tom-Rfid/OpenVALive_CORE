@@ -231,6 +231,15 @@ static void swap_with_a(int t)
 
 static void apply_event(const ols_event_t *e)
 {
+#ifdef APP_CLIPS
+    if (e->type == EV_CLIP) {
+        clip_event(e);
+        return;
+    }
+    if (e->type == EV_NOTE_ON || e->type == EV_NOTE_OFF) {    /* a take listens to its line */
+        clip_note_seen(e->target, e->a, e->type == EV_NOTE_ON ? e->b : 0u);
+    }
+#endif
     if (e->target == T_LIVE) {
         live_voice_event(e);
         return;
@@ -356,6 +365,9 @@ void app_render(int32_t *lr, uint32_t n, uint32_t master_q12)
     load_pending_project();
     apply_pending_events();
     read_midi_input();
+#ifdef APP_CLIPS
+    clips_advance();
+#endif
 
     if (n > APP_BLOCK) {
         n = APP_BLOCK;

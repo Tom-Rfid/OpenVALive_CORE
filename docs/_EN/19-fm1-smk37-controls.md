@@ -11,7 +11,7 @@ Same behaviour on both; the SMK-37 only adds what it has more (pads, faders, whe
 |---|---|---|---|---|
 | `B_FX` (`BTN_PAGES`) | FX | FX | next knob page (MAP CONTROL's order) | line reset (key 1), wheel BEND / PAN (key 14), drum map (keys 15 / 16) |
 | `B_SEL` (`BTN_TRACKS`, `BTN_VALIDATE`) | SEL | NOTE REPEAT | takes a waiting sound | tracks layer: mutes (at once), then CLEAR, QUANTIZE, CLOCK, EUCLID, CONTROLLER (valid on release); black keys MUTE ALL, A VOL; blinks fast while a sound waits for it (+SEL) |
-| `B_SEQ` (`BTN_PERFORM`) | SEQ | SEQ | tapped: a loop lets go | perform layer (16 effects) |
+| `B_SEQ` (`BTN_PERFORM`) | SEQ | SEQ | tapped: a loop lets go | perform layer (16 effects), title "∞ DIV / FILTER" |
 | `B_ARP` | ARP | ARP | on A: arpeggio mode | creative layer |
 | `B_GLO` | GLO | BT | — | scenes layer; GLO + SEL: MAP CONTROL; GLO + PLAY: chain |
 | `B_HOME` | HOME | PATCH | panic | PANIC / RESTART / STOP, SOUNDS (8), LOOP EDIT (9), OPTION CONTROL (10): valid on release |
@@ -20,10 +20,12 @@ Same behaviour on both; the SMK-37 only adds what it has more (pads, faders, whe
 | `B_EDIT` | EDIT | GLOBE | CAPTURE (ENV undoes it); in a menu: the row's default; blinks while recording | EDIT + note: punch; LOOP EDIT: EDIT + keys = chord |
 | `B_PLAY` / `B_REC` | PLAY / REC | PLAY / REC | transport / record (REC and CAPTURE only while playing) | SEL + PLAY tap tempo, SEL + REC metronome |
 | `B_OCTDN` / `B_OCTUP` | OCT− / OCT+ | OCT− / OCT+ | octave; family jump; loop ×2 / ÷2 | — |
-| — | — | KNOB BANK = SHIFT | — | SHIFT + K1–K4: LIVE page; SHIFT + SELECT: SOUND EDIT; SHIFT + pads 1–8: store scenes |
+| — | — | KNOB BANK = SHIFT | — | SHIFT + K1–K4: LIVE page; SHIFT + SELECT: SOUND EDIT; SHIFT + pad (SCENES): store the scene; SHIFT + pad (CLIPS): delete the clip |
 | — | — | FADER BANK | faders: levels → macros → USER | — |
 | — | — | < (Bluetooth) | TAP tempo | held 0.5 s: MAP CONTROL |
-| — | — | > (PAD/STEP) | pads: PERFORM → PLAY → SCENES | — |
+| — | — | > (PAD/STEP) | pads: CLIPS → DRUMS → PERFORM → SCENES → MIDI | — |
+| — | — | MODE pad (top right) | the same: a tap = the next mode (its colour) | MODE + pad (CLIPS): start on the beat |
+| — | — | REC pad (bottom right) | — | REC + pad, REC let go first: record a clip / store a scene |
 
 ## Knobs
 
@@ -41,8 +43,8 @@ Same behaviour on both; the SMK-37 only adds what it has more (pads, faders, whe
 |---|---|---|
 | layer slots 1–16 | the 16 white keys F3 … G5 | the first 16 white keys C3 … D5 |
 | black keys (`BLACK_KEY[]`) | F#3 G#3 A#3 C#4 D#4 F#4 … (11) | C#3 D#3 F#3 G#3 A#3 … (the n-th black = the FM-1's n-th) |
-| SEL + 1st black key: MUTE ALL | F#3 | C#3 (and SCENES pad 13) |
-| SEL + 4th black key: A VOL | C#4 | G#3 (and SCENES pad 14) |
+| SEL + 1st black key: MUTE ALL | F#3 | C#3 (and the 13th playing pad in SCENES) |
+| SEL + 4th black key: A VOL | C#4 | G#3 (and the 14th playing pad in SCENES) |
 | drum PERC keys (OPTION CONTROL) | PERC 1–4: G#3 D#4 G#4 D#5 | PERC 1–6: D#3 G#3 D#4 G#4 D#5 G#5 (`APP_PERC_FIRST` / `APP_PERC_COUNT`) |
 | key lights | the keys' LEDs | the screen keyboard (KEYS ON SCREEN), while a layer is held |
 

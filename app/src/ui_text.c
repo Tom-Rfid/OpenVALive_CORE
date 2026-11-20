@@ -58,6 +58,7 @@ void app_say(const char *a, const char *b)
     ui.msg_until = plat_ms() + 1200u;
     ui.msg_style = MSG_PLAIN;
     ui.msg_right = 0;
+    ui.msg_inf = 0;
     ui.redraw = 1;
 
     if (ann_on()) {

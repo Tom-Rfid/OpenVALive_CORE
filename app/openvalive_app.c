@@ -31,6 +31,9 @@
 #include "../core/dsp/eq3.h"
 
 #include "src/app_state.c"
+#ifdef APP_CLIPS
+#include "src/clips.c"
+#endif
 #include "src/app_audio.c"
 #include "src/app_events.c"
 #include "src/app_settings.c"
@@ -155,7 +158,9 @@ void app_frame(void)
     ui.activity = 0;
     input();
     if (ui.splash_until) {                        /* the boot screen: until its time, or the first touch */
-        if (now < ui.splash_until && (!ui.activity || ui.splash_until - now > 2500u)) {   /* (the first 0.5 s: noise) */
+        ui.touched |= ui.activity;
+        if (now < ui.splash_until && (!ui.touched || ui.splash_until - now > 2500u)) {   /* (the first 0.5 s: noise;
+                                                 * a touch then still ends it right after) */
             return;
         }
         ui.splash_until = 0;
