@@ -90,7 +90,8 @@ typedef char sound_order_complete[(OLS_SOUND_COUNT == 60) ? 1 : -1];   /* a soun
 
 static engine_va_t lv PLAT_POOL;               /* the live voice: a VA engine without delay (the RAM goes to the loops);
                                                 * it renders into the Live Core's chunk buffers, free once it has rendered */
-static volatile float lv_gain = 1.0f;          /* its level (LIVE page, LEVEL with A selected) */
+static volatile float lv_gain = 1.0f;
+static volatile uint8_t slicer_on;              /* PERFORM SLICER: the whole mix gated in 1/16s (audio side reads it) */          /* its level (LIVE page, LEVEL with A selected) */
 
 /* the arpeggiator of the live line: the keys held, played one at a time on the 16ths */
 enum { ARP_OFF, ARP_UP, ARP_DOWN, ARP_UPDOWN, ARP_RANDOM, ARP_MODES };
@@ -394,7 +395,8 @@ enum { KEY_NOTE, KEY_FX, KEY_NONE, KEY_ARMED_ARP, KEY_ARMED_SEQ, KEY_ARMED_GLO, 
                                                                          * the gesture; letting ARP / SEQ go first applies it */
 
 /* the perform effects on the white keys while FX is held: tap = latch, hold = momentary */
-#define FX_KEYS 16
+#define FX_KEYS 16                              /* the perform effects on the keys */
+#define FX_ALL 17                               /* ...and LOOP 1/32, reached by OCT+ from LOOP 1/16 only */
 #define FX_TAP_MS 250u
 
 static struct {
@@ -421,9 +423,9 @@ static struct {
     uint8_t key_role[NKEYS];                    /* KEY_* */
     uint8_t key_fx[NKEYS];                      /* the perform effect a held key started (KEY_FX) */
     uint32_t key_down_at[NKEYS];                /* when it was pressed: a short tap latches */
-    uint8_t fx_on[FX_KEYS];                     /* perform effects running (held or latched) */
-    uint8_t fx_latched[FX_KEYS];                /* ...and those that stay after the key is let go */
-    uint8_t fx_target[FX_KEYS];                 /* the track it acts on, or OLS_TRACK_ALL (A selected) */
+    uint8_t fx_on[FX_ALL];                      /* perform effects running (held or latched) */
+    uint8_t fx_latched[FX_ALL];                 /* ...and those that stay after the key is let go */
+    uint8_t fx_target[FX_ALL];                 /* the track it acts on, or OLS_TRACK_ALL (A selected) */
     uint8_t on_a;                               /* A is selected (mirror.track stays the last track selected) */
     uint32_t arp_down_at;                       /* ARP went down: a tap (no key, short) changes A's arpeggio */
     uint8_t arp_used;                           /* a key was played while ARP was held */

@@ -190,6 +190,24 @@ static void live_voice_render(uint32_t n)
     }
 }
 
+/* PERFORM SLICER: the whole mix opened and shut in 1/16s on the clock (the beat when playing, the tempo when
+ * stopped), each edge smoothed over ~2 ms (no click); let go, it opens back smoothly */
+static void slicer_render(uint32_t n)
+{
+    static float g = 1.0f;
+    if (!slicer_on && g > 0.999f) {
+        g = 1.0f;
+        return;
+    }
+    uint32_t tick = live.clock.running ? live.clock.tick : live.clock.free_tick;
+    float target = (!slicer_on || (tick % 24u) < 12u) ? 1.0f : 0.05f;
+    for (uint32_t i = 0; i < n; i++) {
+        g += (target - g) * 0.01f;
+        buf_l[i] *= g;
+        buf_r[i] *= g;
+    }
+}
+
 /* The master EQ (EQ page): the knobs are bytes of the settings the UI writes (one store each, no tearing); the
  * filters follow when one moves (control rate), and cost nothing while all is flat. */
 static eq3_t master_eq = { .flat = 1 };
@@ -394,6 +412,7 @@ void app_render(int32_t *lr, uint32_t n, uint32_t master_q12)
         done += c;
     }
 #endif
+    slicer_render(n);
     master_eq_render(n);
     write_output(lr, n, master_q12);
 

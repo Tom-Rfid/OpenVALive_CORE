@@ -231,6 +231,8 @@ int app_expect(const char *what, int *got)
         for (int t = 0; t < TRACKS; t++) {
             *got += va[t].voice_limit;              /* the voice budget (no longer on screen) */
         }
+    } else if (!strcmp(what, "slicer")) {
+        *got = slicer_on;                         /* PERFORM SLICER on */
     } else if (!strcmp(what, "cap")) {
         *got = ui.cap_on;                         /* CAPTURE's green line shown */
     } else if (!strcmp(what, "preset")) {
@@ -278,7 +280,7 @@ int app_expect(const char *what, int *got)
     } else if (!strcmp(what, "drum_key_d#")) {
         *got = drum_key_note(63);               /* D#4: the original map's chosen sound, GM's clap (39) */
     } else if (!strcmp(what, "loop")) {
-        *got = running_loop();                  /* the perform key of the loop running (0 = 1 BAR .. 5 = 1/32), -1 none */
+        *got = running_loop();                  /* the perform key of the loop running (0 = 1 BAR .. 4 = 1/16, 16 = 1/32), -1 none */
     } else if (!strcmp(what, "swap")) {
         *got = ui.swap_undone ? -(int)ui.swap_track : (int)ui.swap_track;   /* last A swap: track + 1, < 0 undone */
     } else if (!strcmp(what, "on_a")) {

@@ -702,7 +702,7 @@ static void draw_status_line(void)
     /* the perform effects running, else the octave */
     char fx[24] = "";
     int running = 0, looping = 0;
-    for (int w = 0; w < FX_KEYS; w++) {
+    for (int w = 0; w < FX_ALL; w++) {
         if (ui.fx_on[w]) {
             if (running == 0 || (PERFORM_KEY[w].type == FX_LOOP && !looping)) {
                 copy_text(fx, PERFORM_KEY[w].name, sizeof fx);   /* a loop comes first: it holds the music */

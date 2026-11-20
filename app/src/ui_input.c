@@ -81,7 +81,7 @@ static const struct {
 };
 
 /* The perform effects (FX held + white key). */
-enum { FX_LOOP, FX_ROLE, FX_MUTE, FX_ALL_OFF };
+enum { FX_LOOP, FX_ROLE, FX_MUTE, FX_ALL_OFF, FX_SLICE };
 enum { MUTE_DRUMS, MUTE_SOLO, MUTE_SYNTHS, MUTE_ALL };
 
 static const struct {
@@ -89,13 +89,13 @@ static const struct {
     uint16_t arg;           /* loop: ticks; role: OLS_ROLE_*; mute: MUTE_* */
     float value;            /* role: the value held */
     const char *name;
-} PERFORM_KEY[FX_KEYS] = {
+} PERFORM_KEY[FX_ALL] = {
     { FX_LOOP, 384, 0.0f, "LOOP 1 BAR" },
     { FX_LOOP, 192, 0.0f, "LOOP 1/2" },
     { FX_LOOP, 96, 0.0f, "LOOP 1/4" },
     { FX_LOOP, 48, 0.0f, "LOOP 1/8" },
     { FX_LOOP, 24, 0.0f, "LOOP 1/16" },
-    { FX_LOOP, 12, 0.0f, "LOOP 1/32" },
+    { FX_SLICE, 24, 0.0f, "SLICER" },         /* the whole mix cut in 1/16s */
     { FX_ROLE, OLS_ROLE_CUTOFF, 0.04f, "FILTER SHUT" },
     { FX_ROLE, OLS_ROLE_CUTOFF, 1.0f, "FILTER OPEN" },
     { FX_ROLE, OLS_ROLE_DELAY_MIX, 0.9f, "DELAY THROW" },
@@ -106,7 +106,22 @@ static const struct {
     { FX_MUTE, MUTE_SYNTHS, 0.0f, "DRUMS ONLY" },
     { FX_MUTE, MUTE_ALL, 0.0f, "ALL OUT" },
     { FX_ALL_OFF, 0, 0.0f, "ALL FX OFF" },
+    { FX_LOOP, 12, 0.0f, "LOOP 1/32" },         /* no key: OCT+ from LOOP 1/16 (OCT- back) */
 };
+#define LOOP_1_32 16
+/* the loops, from the longest: OCT- / OCT+ step along them while one runs */
+static const uint8_t LOOP_ORDER[] = { 0, 1, 2, 3, 4, LOOP_1_32 };
+
+static int loop_step(int w, int dir)            /* the loop dir steps from w, -1 none */
+{
+    for (int i = 0; i < (int)sizeof LOOP_ORDER; i++) {
+        if (LOOP_ORDER[i] == w) {
+            int j = i + dir;
+            return j >= 0 && j < (int)sizeof LOOP_ORDER ? (int)LOOP_ORDER[j] : -1;
+        }
+    }
+    return -1;
+}
 
 /* UI mirrors of Live Core settings (the UI sends changes, the audio side applies them) */
 static struct {
@@ -340,7 +355,7 @@ static void fx_engage(int w)
     switch (PERFORM_KEY[w].type) {
     case FX_LOOP:
         /* one loop at a time: a new length replaces the running one */
-        for (int i = 0; i < FX_KEYS; i++) {
+        for (int i = 0; i < FX_ALL; i++) {
             if (PERFORM_KEY[i].type == FX_LOOP) {
                 ui.fx_on[i] = 0;
                 ui.fx_latched[i] = 0;
@@ -353,6 +368,9 @@ static void fx_engage(int w)
         break;
     case FX_MUTE:
         send_live(LIVE_HOLD_MUTE, 1, mute_mask_for(PERFORM_KEY[w].arg), 0.0f, 0);
+        break;
+    case FX_SLICE:
+        slicer_on = 1;
         break;
     default:
         break;
@@ -376,7 +394,7 @@ static void fx_release(int w)
         break;
     case FX_MUTE: {
         /* the tracks come back together, on the next bar: every break key lets go */
-        for (int i = 0; i < FX_KEYS; i++) {
+        for (int i = 0; i < FX_ALL; i++) {
             if (PERFORM_KEY[i].type == FX_MUTE) {
                 ui.fx_on[i] = 0;
                 ui.fx_latched[i] = 0;
@@ -385,6 +403,9 @@ static void fx_release(int w)
         send_live(LIVE_HOLD_MUTE, 0, 0, 0.0f, 0);
         break;
     }
+    case FX_SLICE:
+        slicer_on = 0;
+        break;
     default:
         break;
     }
@@ -392,7 +413,7 @@ static void fx_release(int w)
 
 static void fx_all_off(void)
 {
-    for (int w = 0; w < FX_KEYS; w++) {
+    for (int w = 0; w < FX_ALL; w++) {
         fx_release(w);
     }
     send_live(LIVE_STUTTER, 0, 1, 0.0f, OLS_TRACK_ALL);         /* id 1: at once */
@@ -400,7 +421,8 @@ static void fx_all_off(void)
 
 static void perform_key(uint32_t k, int w, int armable)
 {
-    if (!ui.on_a && armable) {
+    if (!ui.on_a && armable && PERFORM_KEY[w].type == FX_LOOP) {   /* a loop: valid on release (SEQ let go first);
+                                                 * the effects and breaks act at once (hold: while held, tap: latched) */
         arm_key(k, w, KEY_ARMED_SEQ);
         return;
     }
@@ -475,7 +497,7 @@ static void home_key(int w)
 static void line_reset(void)
 {
     uint8_t t = mirror.track;
-    for (int w = 0; w < FX_KEYS; w++) {
+    for (int w = 0; w < FX_ALL; w++) {
         if (ui.fx_on[w] && (ui.on_a || ui.fx_target[w] == t)) {
             fx_release(w);
         }
@@ -561,7 +583,7 @@ static void layer_released(uint8_t role)
 /* the running loop (its perform key), or -1 */
 static int running_loop(void)
 {
-    for (int w = 0; w < FX_KEYS; w++) {
+    for (int w = 0; w < FX_ALL; w++) {
         if (ui.fx_on[w] && PERFORM_KEY[w].type == FX_LOOP) {
             return w;
         }
@@ -577,7 +599,7 @@ static void seq_released(void)
         return;
     }
     int any = 0;
-    for (int w = 0; w < FX_KEYS; w++) {
+    for (int w = 0; w < FX_ALL; w++) {
         if (ui.fx_on[w] && PERFORM_KEY[w].type == FX_LOOP
             && (ui.on_a || ui.fx_target[w] == mirror.track || ui.fx_target[w] == OLS_TRACK_ALL)) {
             fx_release(w);
@@ -586,7 +608,7 @@ static void seq_released(void)
     }
     if (!any) {                                 /* none on this line (a loop left running on another track, then
                                                  * another line selected): SEQ tapped still lets every loop go */
-        for (int w = 0; w < FX_KEYS; w++) {
+        for (int w = 0; w < FX_ALL; w++) {
             if (ui.fx_on[w] && PERFORM_KEY[w].type == FX_LOOP) {
                 fx_release(w);
                 any = 2;
@@ -602,8 +624,8 @@ static void seq_released(void)
 static void loop_resize(int dir)
 {
     int w = running_loop();
-    int to = w + dir;
-    if (w < 0 || to < 0 || to >= FX_KEYS || PERFORM_KEY[to].type != FX_LOOP) {
+    int to = w < 0 ? -1 : loop_step(w, dir);
+    if (to < 0) {
         return;
     }
     uint8_t latched = ui.fx_latched[w];
@@ -1896,7 +1918,7 @@ static uint32_t keys_armable(uint32_t buttons)
         return ui.on_a ? 0u : white_mask(0, 15);
     }
     if (button_held(buttons, BTN_PERFORM)) {
-        return ui.on_a ? 0u : white_mask(0, FX_KEYS);
+        return ui.on_a ? 0u : white_mask(0, 5);   /* the loops (the effects act at once) */
     }
     if (button_held(buttons, BTN_TRACKS)) {
         return white_mask(5, 16) | 1u << KEY_AVOL;
@@ -1966,12 +1988,13 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
     } else if (button_held(buttons, BTN_PERFORM)) {
         int blink = (plat_ms() / 125u) & 1u;
         *dim = white_mask(0, FX_KEYS);
-        for (int w = 0; w < FX_KEYS; w++) {
+        for (int w = 0; w < FX_ALL; w++) {
+            uint32_t key = 1u << WHITE_KEY[w < FX_KEYS ? w : 4];   /* (LOOP 1/32: on LOOP 1/16's key) */
             if (ui.fx_on[w] && (!ui.fx_latched[w] || blink)) {
-                *lit |= 1u << WHITE_KEY[w];
+                *lit |= key;
             }
             if (ui.fx_on[w] && ui.fx_latched[w]) {
-                *bl |= 1u << WHITE_KEY[w];
+                *bl |= key;
             }
         }
     } else if (button_held(buttons, B_HOME)) {
@@ -2052,7 +2075,7 @@ static uint32_t button_lit(uint32_t buttons)
     if (ui.on_a && set.arp_mode != ARP_OFF) {
         lit |= 1u << B_ARP;                     /* A arpeggiates */
     }
-    for (int w = 0; w < FX_KEYS; w++) {
+    for (int w = 0; w < FX_ALL; w++) {
         if (ui.fx_on[w] && PERFORM_KEY[w].type == FX_LOOP) {
             lit = (plat_ms() / 60u) & 1u ? lit | (1u << BTN_PERFORM) : lit & ~(1u << BTN_PERFORM);
             break;                                /* a loop runs: SEQ flickers fast */
@@ -2079,7 +2102,7 @@ static void show_lights(uint32_t keys, uint32_t buttons)
         uint32_t oct = (1u << B_OCTDN) | (1u << B_OCTUP);
         lit_b &= ~oct;
         dim_b &= ~oct;
-        lit_b |= (loop > 0 ? 1u << B_OCTDN : 0u) | (loop + 1 < FX_KEYS && PERFORM_KEY[loop + 1].type == FX_LOOP ? 1u << B_OCTUP : 0u);
+        lit_b |= (loop_step(loop, -1) >= 0 ? 1u << B_OCTDN : 0u) | (loop_step(loop, 1) >= 0 ? 1u << B_OCTUP : 0u);
     }
     uint32_t play = 1u << B_PLAY;
     key_lights(keys, buttons, &lit_k, &dim_k, 0);
