@@ -19,6 +19,7 @@
 #define CLIP_MAX_BARS 4u
 #define CLIP_MAX_TICKS (CLIP_MAX_BARS * OLS_TICKS_PER_BAR)
 #define CLIP_SOUNDING 8u
+#define CLIP_POOL 160u                          /* the notes of every clip, in one pool (RAM: the SDK's heap needs it) */
 
 enum { CLIP_ARM, CLIP_END, CLIP_PLAY, CLIP_PLAY_SYNC, CLIP_STOP, CLIP_DELETE, CLIP_LATCH };
 
@@ -30,16 +31,37 @@ typedef struct {
 typedef struct {
     uint8_t used, line, count, playing, loop;  /* loop: LOOP (latched) or once (SINGLE) */
     uint8_t sound;                              /* the line's sound when it was taken (its colour) */
-    uint16_t length;
+    uint16_t length, first;                     /* its notes: clip_pool[first .. first + count) */
     uint32_t origin;                            /* free tick of its first note's first play */
     uint32_t done;                              /* how far it has played (ticks since origin) */
-    clip_note_t n[CLIP_NOTES];
     uint8_t on_note[CLIP_SOUNDING];             /* its notes sounding now, and when each ends */
     uint32_t on_end[CLIP_SOUNDING];
     uint8_t on_count;
 } clip_t;
 
 static clip_t clips[CLIP_SLOTS];
+static clip_note_t clip_pool[CLIP_POOL];
+static uint16_t pool_used;
+#define CN(c) (&clip_pool[(c)->first])
+
+/* a clip's notes out of the pool: the ones after them move down (audio side) */
+static void clip_free(clip_t *c)
+{
+    uint32_t from = c->first, n = c->count;
+    if (n == 0u) {
+        return;
+    }
+    for (uint32_t i = from; i + n < pool_used; i++) {
+        clip_pool[i] = clip_pool[i + n];
+    }
+    pool_used = (uint16_t)(pool_used - n);
+    for (uint32_t s = 0; s < CLIP_SLOTS; s++) {
+        if (clips[s].first > from) {
+            clips[s].first = (uint16_t)(clips[s].first - n);
+        }
+    }
+    c->count = 0;
+}
 static struct {
     int8_t slot;                                /* armed or recording, -1 none */
     uint8_t started, line;
@@ -113,8 +135,9 @@ static void clip_note_seen(uint8_t line, uint8_t note, uint8_t vel)
         }
         clip_silence(c);
         c->playing = 0;
-        c->count = 0;
         c->used = 0;
+        clip_free(c);
+        c->first = pool_used;                   /* its notes go at the pool's end */
         c->line = line;
         c->sound = line == T_LIVE ? set.live_sound
                    : (line == T_PADS ? (uint8_t)(OLS_SOUND_FIRST_DRUM + set.pad_kit) : set.preset[line]);
@@ -123,8 +146,9 @@ static void clip_note_seen(uint8_t line, uint8_t note, uint8_t vel)
     }
     uint32_t at = now - crec.start;
     if (vel) {
-        if (c->count < CLIP_NOTES && at < CLIP_MAX_TICKS) {
-            clip_note_t *n = &c->n[c->count++];
+        if (c->count < CLIP_NOTES && pool_used < CLIP_POOL && at < CLIP_MAX_TICKS) {
+            clip_note_t *n = &clip_pool[pool_used++];
+            c->count++;
             n->tick = (uint16_t)at;
             n->len = 0;                         /* (still held) */
             n->note = note;
@@ -133,9 +157,9 @@ static void clip_note_seen(uint8_t line, uint8_t note, uint8_t vel)
         return;
     }
     for (uint32_t i = c->count; i-- > 0;) {     /* the latest held one of that note */
-        if (c->n[i].note == note && c->n[i].len == 0u) {
-            uint32_t len = at - c->n[i].tick;
-            c->n[i].len = (uint16_t)(len < 6u ? 6u : len);
+        if (CN(c)[i].note == note && CN(c)[i].len == 0u) {
+            uint32_t len = at - CN(c)[i].tick;
+            CN(c)[i].len = (uint16_t)(len < 6u ? 6u : len);
             break;
         }
     }
@@ -153,15 +177,16 @@ static void clip_end_take(void)
         len = len < OLS_PPQN ? OLS_PPQN : (len > CLIP_MAX_TICKS ? CLIP_MAX_TICKS : len);
         uint32_t kept = 0;
         for (uint32_t i = 0; i < c->count; i++) {
-            if (c->n[i].tick >= len) {
+            if (CN(c)[i].tick >= len) {
                 continue;                       /* past the rounded end */
             }
-            c->n[kept] = c->n[i];
-            if (c->n[kept].len == 0u || c->n[kept].tick + c->n[kept].len > len) {
-                c->n[kept].len = (uint16_t)(len - c->n[kept].tick);   /* held to the end */
+            CN(c)[kept] = CN(c)[i];
+            if (CN(c)[kept].len == 0u || CN(c)[kept].tick + CN(c)[kept].len > len) {
+                CN(c)[kept].len = (uint16_t)(len - CN(c)[kept].tick);   /* held to the end */
             }
             kept++;
         }
+        pool_used = (uint16_t)(pool_used - (c->count - kept));   /* (the take is the pool's last) */
         c->count = (uint8_t)kept;
         c->length = (uint16_t)len;
         c->used = kept > 0u;
@@ -212,7 +237,7 @@ static void clip_event(const ols_event_t *e)
         clip_silence(c);
         c->playing = 0;
         c->used = 0;
-        c->count = 0;
+        clip_free(c);
         break;
     }
 }
@@ -246,10 +271,10 @@ static void clips_advance(void)
         while (c->done < upto && (c->loop || c->done < c->length)) {   /* every note due in (done, upto] */
             uint32_t pos = c->done % c->length;
             for (uint32_t i = 0; i < c->count; i++) {
-                if (c->n[i].tick == pos && c->on_count < CLIP_SOUNDING) {
-                    clip_engine_note(c->line, c->n[i].note, c->n[i].vel);
-                    c->on_note[c->on_count] = c->n[i].note;
-                    c->on_end[c->on_count] = c->origin + c->done + c->n[i].len;
+                if (CN(c)[i].tick == pos && c->on_count < CLIP_SOUNDING) {
+                    clip_engine_note(c->line, CN(c)[i].note, CN(c)[i].vel);
+                    c->on_note[c->on_count] = CN(c)[i].note;
+                    c->on_end[c->on_count] = c->origin + c->done + CN(c)[i].len;
                     c->on_count++;
                 }
             }

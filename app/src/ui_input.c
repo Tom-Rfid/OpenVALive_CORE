@@ -1247,6 +1247,17 @@ static int swap_a(int t)
     return 1;
 }
 
+/* a note played on a track while playing, not recording: from the first one, what CAPTURE would take paints the
+ * line green */
+static void cap_note(uint8_t track)
+{
+    if (track < TRACKS && track == mirror.track && !ui.on_a && live.clock.running && !live.recording && !ui.punch
+        && !ui.cap_on) {
+        ui.cap_on = 1;
+        ui.cap_track = track;
+    }
+}
+
 /* REC let go: record on / off (a take is made while the loops play: PLAY first), unless it served RESET */
 static void rec_released(void)
 {
@@ -1281,8 +1292,7 @@ static void edit_released(void)
     app_say("LOOP CAPTURED", t);
     ui.msg_style = MSG_TAKEN;
     ui.msg_until = plat_ms() + 1200u;
-    ui.capture_at = plat_ms();
-    ui.capture_track = mirror.track;
+    ui.cap_on = 0;                              /* the line back to its colour, EDIT steady */
 }
 
 /* the page after `p`: DRUM EQ only when the selected line is a drum track */
@@ -2018,6 +2028,9 @@ static uint32_t button_lit(uint32_t buttons)
     if (live.clock.running) {
         lit |= 1u << B_PLAY;
         lit |= 1u << B_EDIT;                    /* playing: EDIT (CAPTURE) offered */
+    }
+    if (ui.cap_on) {                            /* notes to capture (the green line): EDIT blinks fast */
+        lit = (plat_ms() / 125u) & 1u ? lit | (1u << B_EDIT) : lit & ~(1u << B_EDIT);
     }
     if (live.recording) {
         lit |= 1u << B_REC;

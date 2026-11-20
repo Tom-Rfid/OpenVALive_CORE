@@ -24,6 +24,7 @@ static void send_note_on(uint8_t track, uint8_t note, uint8_t velocity)
         ledit.heard = 1;
     }
     push_event(EV_NOTE_ON, track, note, velocity, 0, 0.0f);
+    cap_note(track);
 }
 
 static void send_note_off(uint8_t track, uint8_t note)

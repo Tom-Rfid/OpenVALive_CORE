@@ -153,6 +153,7 @@ static void track_key(int w);
 static uint8_t rec_painting[TRACKS];             /* a take started (its first note): the line paints pink */
 static void map_load(void);
 static int map_save(void);
+static void cap_note(uint8_t track);            /* (ui_input.c) a note played: CAPTURE's green line may start */
 /* SOUND EDIT (src/sound_edit.c) */
 static int sedit_is_open(void);
 static void sedit_open(void);
@@ -379,8 +380,9 @@ enum { KEY_NOTE, KEY_FX, KEY_NONE, KEY_ARMED_ARP, KEY_ARMED_SEQ, KEY_ARMED_GLO, 
 
 static struct {
     char msg[2][24];                            /* short message over the header */
-    uint32_t capture_at;                        /* CAPTURE: when, on which track (its line cyan a moment) */
-    uint8_t capture_track;
+    uint8_t cap_on, cap_track;                  /* playing on a track (not recording): what CAPTURE would take, from the
+                                                 * first note, paints the line green (EDIT blinks fast, the infinity
+                                                 * sign shows) until CAPTURE, a stop, REC or another track */
     uint8_t msg_inf;                            /* an infinity sign before the title (PERFORM: "∞ DIV / FILTER") */
     const char *msg_right;                      /* and at its right (SEL held: "A VOL"), 0 none */
     uint32_t msg_until;

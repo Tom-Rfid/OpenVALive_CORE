@@ -55,7 +55,7 @@ static uint16_t transport_colour(void)
  * infinity sign in place of PLAY, until EDIT is let go */
 static int edit_loop_on(void)
 {
-    return live.clock.running && (button_held(ui.buttons, B_EDIT) || ui.punch);
+    return live.clock.running && (button_held(ui.buttons, B_EDIT) || ui.punch || ui.cap_on);
 }
 
 static const char *transport_word(void)
@@ -426,20 +426,29 @@ static void draw_track(int t)
         cv_rect(0, y0, 240, TRACK_ROW_H - 1, C_VIO_BG);      /* the selected track's line, violet */
     }
     draw_clip_take(t, y0, TRACK_ROW_H - 1);
-    if (ui.capture_at && t == ui.capture_track && plat_ms() - ui.capture_at < 1200u) {
-        cv_rect(0, y0, 240, TRACK_ROW_H - 1, RGB(14, 90, 110));   /* a loop just captured: the line cyan */
-        ui.redraw = 1;
+    if (ui.cap_on && (!live.clock.running || live.recording || ui.on_a || ui.cap_track != mirror.track)) {
+        ui.cap_on = 0;                          /* (a stop, REC, another line: nothing to capture shown) */
     }
+    int capturing = ui.cap_on && t == ui.cap_track;
     /* recording: from the first note taken (or the punch), the playhead paints the line pink where it records, so
      * the take's start is seen coming back round (when to stop); let go, it paints it back as it passes */
     uint8_t *painting = rec_painting;
-    if (!(live.recording && !ui.on_a && t == mirror.track)) {
+    if (capturing) {
+        painting[t] = 1;                        /* CAPTURE's notes: green, from the first one */
+    } else if (!(live.recording && !ui.on_a && t == mirror.track)) {
         painting[t] = 0;
     } else if (tr->held_count || live.punch) {
         painting[t] = 1;                        /* a note is being recorded: the take starts here */
     }
+    static uint8_t pink[TRACKS][30];
+    static uint8_t was_capturing[TRACKS];
+    if (was_capturing[t] && !capturing) {       /* CAPTURE taken (or given up): the line back to its colour at once */
+        for (uint32_t i = 0; i < sizeof pink[t]; i++) {
+            pink[t][i] = 0;
+        }
+    }
+    was_capturing[t] = (uint8_t)capturing;
     if (length && live.clock.running) {
-        static uint8_t pink[TRACKS][30];
         static int16_t last_x[TRACKS] = { -1, -1, -1, -1 };
         int rec = painting[t];
         int32_t px = (int32_t)(ols_live_step(&live, t) * OLS_TICKS_PER_STEP * 240u / length);
@@ -458,7 +467,7 @@ static void draw_track(int t)
         last_x[t] = (int16_t)px;
         for (int32_t c = 0; c < 240; c++) {
             if ((pink[t][c >> 3] >> (c & 7)) & 1u) {
-                cv_rect(c, y0, 1, TRACK_ROW_H - 1, C_PINK_BG);
+                cv_rect(c, y0, 1, TRACK_ROW_H - 1, capturing ? RGB(24, 120, 52) : C_PINK_BG);
             }
         }
     }
