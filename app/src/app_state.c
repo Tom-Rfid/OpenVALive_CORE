@@ -62,12 +62,12 @@ static const uint8_t VOICE_LIMIT[TRACKS] = { 4, 1, 2, 4 };
 #define LIVE_DEFAULT_SOUND VA_PRESET_LEAD
 
 /* the order PRESET shows the factory sounds in (their numbers, kept in saves, do not change), by character: acid
- * first, the psytrance tools, basses, drums, the punchy ones, transitions, underground textures, the soft ones last; the
- * USER sounds follow. */
+ * first, basses, drums, the punchy ones, transitions, underground textures, the soft ones, the psytrance hits last;
+ * the USER sounds follow. */
 static const uint8_t SOUND_ORDER[OLS_SOUND_COUNT] = {
     VA_PRESET_ACID, VA_PRESET_ACID_SQUARE, VA_PRESET_ACID_SCREAM, VA_PRESET_SCREECH, VA_PRESET_GRUNGE, VA_PRESET_TALK,
-    VA_PRESET_PSY_BASS, VA_PRESET_ZAP, VA_PRESET_LASER, VA_PRESET_BLIP, VA_PRESET_METAL, VA_PRESET_ARP,
-    VA_PRESET_BASS, VA_PRESET_SUB, VA_PRESET_DEEP_SUB, VA_PRESET_REESE, VA_PRESET_WOBBLE, VA_PRESET_ACID_DEEP,
+    VA_PRESET_BASS, VA_PRESET_SUB, VA_PRESET_DEEP_SUB, VA_PRESET_PSY_BASS, VA_PRESET_REESE, VA_PRESET_WOBBLE,
+    VA_PRESET_ACID_DEEP,
     OLS_SOUND_FIRST_DRUM + DR_KIT_808, OLS_SOUND_FIRST_DRUM + DR_KIT_909, OLS_SOUND_FIRST_DRUM + DR_KIT_TIGHT,
     OLS_SOUND_FIRST_DRUM + DR_KIT_LOFI, OLS_SOUND_FIRST_DRUM + DR_KIT_IRON,
     VA_PRESET_LEAD, VA_PRESET_PLUCK, VA_PRESET_STAB, VA_PRESET_BRASS, VA_PRESET_ORGAN, VA_PRESET_VKEYS,
@@ -76,11 +76,12 @@ static const uint8_t SOUND_ORDER[OLS_SOUND_COUNT] = {
     VA_PRESET_DRONE, VA_PRESET_HOLD, VA_PRESET_CREAK, VA_PRESET_WIND,
     VA_PRESET_POLY, VA_PRESET_PAD, VA_PRESET_STRINGS, VA_PRESET_STRINGS70, VA_PRESET_SWEEP, VA_PRESET_WHALE,
     VA_PRESET_CHOIR, VA_PRESET_INIT,
+    VA_PRESET_ZAP, VA_PRESET_LASER, VA_PRESET_BLIP, VA_PRESET_METAL, VA_PRESET_ARP,
 };
-/* the families, by their first place in SOUND_ORDER: F1 acid, F2 psy, F3 basses, F4 drums, F5 punch, F6 SFX
- * (transitions, weather), F7 under (underground), F8 soft (and INIT); the USER sounds are F9. OCT- / OCT+ while a sound is chosen
- * jump between them. */
-static const uint8_t FAMILY_AT[] = { 0, 6, 12, 18, 23, 29, 36, 40 };
+/* the families, by their first place in SOUND_ORDER: F1 acid, F2 basses, F3 drums, F4 punch, F5 SFX (transitions,
+ * weather), F6 under (underground), F7 soft (and INIT), F8 psy (short hits); the USER sounds are F9. OCT- / OCT+ while
+ * a sound is chosen jump between them. */
+static const uint8_t FAMILY_AT[] = { 0, 6, 13, 18, 24, 31, 35, 43 };
 #define FAMILIES 9
 typedef char sound_order_complete[(OLS_SOUND_COUNT == 48) ? 1 : -1];   /* a sound added: put it in SOUND_ORDER */
 
