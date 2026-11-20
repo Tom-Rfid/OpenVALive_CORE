@@ -6,6 +6,11 @@
 
 
 
+## 20 November 2026 — help page KEY COLOURS redrawn
+
+- KEY COLOURS shows do ré mi (do# ré# neutral) in each colour; pink reads ON RELEASE, LET GO BTN MENU FIRST, THEN KEY,
+  with green arrows up.
+
 ## 20 November 2026 — help pages at start
 
 - After the logo, two help pages in turn every 3 s: KEY COLOURS (blue set-up screens, pink on release, mint ready)
