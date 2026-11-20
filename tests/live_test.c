@@ -852,6 +852,18 @@ static void test_transitions(void)
     CHECK(probe[3].on_count == before + 1 && probe[3].on_at[before] == OLS_TICKS_PER_BAR * TICK,
           "and drops back exactly on the one");
 
+    ols_live_command(&live, LIVE_SLICE, 1, 0, 0.0f, 1);         /* the slicer on track 2 only */
+    float cut_max = 0.0f, other_max = 0.0f;
+    for (int i = 0; i < 48; i++) {                             /* two 1/16s, a tick at a time */
+        run(TICK);
+        cut_max = live.slice_cut[1] > cut_max ? live.slice_cut[1] : cut_max;
+        other_max = live.slice_cut[0] > other_max ? live.slice_cut[0] : other_max;
+    }
+    CHECK(cut_max > 0.9f && other_max == 0.0f, "the slicer cuts its track only (%.2f, others %.2f)", cut_max, other_max);
+    ols_live_command(&live, LIVE_SLICE, 0, 0, 0.0f, 1);
+    run(24 * TICK);
+    CHECK(live.slice_mask == 0 && live.slice_cut[1] < 0.01f, "let go, it opens back");
+
     setup_va();
     engine_va_set_param(&va[0], VA_P_CUTOFF, 0.2f);
     ols_live_scene_store(&live, 0);

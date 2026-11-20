@@ -370,21 +370,22 @@ static void name57(int32_t x, int32_t y, const char *s, uint16_t col)
 }
 
 enum { NAMES_SEL, NAMES_SEQ, NAMES_GLO, NAMES_ARP, NAMES_HOME, NAMES_FX, NAMES_SAVE, NAMES_REC };
-enum { NAME_WHITE, NAME_YELLOW, NAME_RED, NAME_GREEN };
+enum { NAME_WHITE, NAME_YELLOW, NAME_RED, NAME_GREEN, NAME_BLUE, NAME_ORANGE, NAME_VIOLET };
 #define NB(b) (16u + (b))                       /* a black key: its index among the black keys */
 static const struct {
     uint8_t layer, key, col;                    /* key: a white key's index 0-15, or NB(the black key's) */
     char name[4];
 } KEY_NAME[] = {
     { NAMES_SEL, 0, 0, "M1" }, { NAMES_SEL, 1, 0, "M2" }, { NAMES_SEL, 2, 0, "M3" }, { NAMES_SEL, 3, 0, "M4" },
-    { NAMES_SEL, 5, 0, "CLR" }, { NAMES_SEL, 6, 0, "QNT" }, { NAMES_SEL, 7, 0, "CKI" }, { NAMES_SEL, 8, 0, "CKO" },
+    { NAMES_SEL, 5, 0, "AV" }, { NAMES_SEL, 6, 0, "QNT" }, { NAMES_SEL, 7, 0, "CKI" }, { NAMES_SEL, 8, 0, "CKO" },
     { NAMES_SEL, 9, NAME_YELLOW, "E3" }, { NAMES_SEL, 10, NAME_YELLOW, "E4" }, { NAMES_SEL, 11, NAME_YELLOW, "E5" },
     { NAMES_SEL, 12, 0, "E6" }, { NAMES_SEL, 13, 0, "E7" }, { NAMES_SEL, 14, 0, "E8" }, { NAMES_SEL, 15, 0, "MID" },
-    { NAMES_SEL, NB(0), 0, "MA" }, { NAMES_SEL, NB(3), 0, "AV" },
+    { NAMES_SEL, NB(0), 0, "MA" }, { NAMES_SEL, NB(2), NAME_BLUE, "LE" }, { NAMES_SEL, NB(3), NAME_RED, "CLR" },
     { NAMES_SEQ, 0, 0, "L1" }, { NAMES_SEQ, 1, 0, "L2" }, { NAMES_SEQ, 2, 0, "L4" }, { NAMES_SEQ, 3, 0, "L8" },
-    { NAMES_SEQ, 4, 0, "L16" }, { NAMES_SEQ, 5, 0, "SLC" }, { NAMES_SEQ, 6, 0, "FL-" }, { NAMES_SEQ, 7, 0, "FL+" },
-    { NAMES_SEQ, 8, 0, "DLY" }, { NAMES_SEQ, 9, 0, "DRV" }, { NAMES_SEQ, 10, 0, "CRU" }, { NAMES_SEQ, 11, 0, "BRK" },
-    { NAMES_SEQ, 12, 0, "SOL" }, { NAMES_SEQ, 13, 0, "DRM" }, { NAMES_SEQ, 14, 0, "OUT" }, { NAMES_SEQ, 15, 0, "OFF" },
+    { NAMES_SEQ, 4, 0, "L16" }, { NAMES_SEQ, 5, NAME_VIOLET, "SLC" }, { NAMES_SEQ, 6, NAME_YELLOW, "DLY" },
+    { NAMES_SEQ, 7, NAME_ORANGE, "FL-" }, { NAMES_SEQ, 8, NAME_ORANGE, "FL+" }, { NAMES_SEQ, 9, NAME_YELLOW, "DRV" },
+    { NAMES_SEQ, 10, NAME_YELLOW, "CRU" }, { NAMES_SEQ, 11, NAME_RED, "BRK" }, { NAMES_SEQ, 12, NAME_RED, "SOL" },
+    { NAMES_SEQ, 13, NAME_RED, "DRM" }, { NAMES_SEQ, 14, NAME_RED, "OUT" }, { NAMES_SEQ, 15, 0, "OFF" },
     { NAMES_GLO, 0, 0, "SC1" }, { NAMES_GLO, 1, 0, "SC2" }, { NAMES_GLO, 2, 0, "SC3" }, { NAMES_GLO, 3, 0, "SC4" },
     { NAMES_GLO, 4, 0, "SC5" }, { NAMES_GLO, 5, 0, "SC6" }, { NAMES_GLO, 6, 0, "SC7" }, { NAMES_GLO, 7, 0, "SC8" },
     { NAMES_GLO, 8, NAME_YELLOW, "SV1" }, { NAMES_GLO, 9, NAME_YELLOW, "SV2" }, { NAMES_GLO, 10, NAME_YELLOW, "SV3" },
@@ -401,7 +402,7 @@ static const struct {
 #if APP_WHEEL
     { NAMES_FX, 13, 0, "PAN" },
 #endif
-    { NAMES_FX, 14, 0, "ORG" }, { NAMES_FX, 15, 0, "GM" },
+    { NAMES_FX, 5, 0, "ORG" }, { NAMES_FX, 6, 0, "GM" },
     { NAMES_SAVE, 0, 0, "U1" }, { NAMES_SAVE, 1, 0, "U2" }, { NAMES_SAVE, 2, 0, "U3" }, { NAMES_SAVE, 3, 0, "U4" },
     { NAMES_SAVE, 4, 0, "U5" }, { NAMES_SAVE, 5, 0, "U6" }, { NAMES_SAVE, 6, 0, "U7" }, { NAMES_SAVE, 7, 0, "U8" },
     { NAMES_SAVE, 8, 0, "SU1" }, { NAMES_SAVE, 9, 0, "SU2" }, { NAMES_SAVE, 10, 0, "SU3" }, { NAMES_SAVE, 11, 0, "SU4" },
@@ -456,7 +457,8 @@ static const char *key_name(int layer, int32_t k, uint16_t *col)
     }
     for (uint32_t i = 0; i < sizeof KEY_NAME / sizeof KEY_NAME[0]; i++) {
         if (KEY_NAME[i].layer == layer && KEY_NAME[i].key == idx) {
-            static const uint16_t COL[] = { RGB(235, 235, 235), RGB(255, 214, 40), RGB(255, 70, 60), RGB(60, 230, 90) };
+            static const uint16_t COL[] = { RGB(235, 235, 235), RGB(255, 214, 40), RGB(255, 70, 60), RGB(60, 230, 90),
+                                            RGB(90, 160, 255), RGB(255, 140, 40), RGB(190, 130, 255) };
             *col = COL[KEY_NAME[i].col];
             return KEY_NAME[i].name;
         }
@@ -468,8 +470,8 @@ static int draw_layer_keys(void)
 {
     const uint32_t LAYERS = (1u << B_ARP) | (1u << B_GLO) | (1u << BTN_PERFORM) | (1u << BTN_TRACKS) | (1u << B_SAVE)
                             | (1u << B_HOME) | (1u << BTN_PAGES) | (1u << B_REC);
-    if (!set.keys_screen || !(ui.buttons & LAYERS)) {
-        return 0;
+    if (!set.keys_screen || !(ui.buttons & LAYERS) || ui.hovering) {
+        return 0;                                       /* (SEL + SELECT pointing at a line: the title says it) */
     }
     uint32_t lit, dim, blink;
     key_lights(ui.keys, ui.buttons, &lit, &dim, &blink);
@@ -502,7 +504,7 @@ static int draw_layer_keys(void)
                 int32_t x = x0 + white * ww;
                 screen_key(x, top, ww - 1, kh, lit & bit, dim & bit, blink & bit, c, solid);
                 if ((APP_SCREEN_FIRST + i) % 12u == 0u) {
-                    cv_rect(x - 1, top, 1, kh, RGB(170, 70, 0));   /* a dark orange line left of each C */
+                    cv_rect(x - 2, top, 2, kh, RGB(170, 70, 0));   /* a dark orange line left of each C */
                 }
                 if (name) {
                     name57(x + (ww - 6) / 2, top + kh - 3 * NAME_LINE, name, ncol);

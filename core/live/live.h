@@ -94,6 +94,8 @@ typedef enum {
     LIVE_NOTE_EDIT,            /* a loop's note: target = track, b = ols_note_edit_t, id = note index, v = the value */
     LIVE_PAN,                  /* target = track, v = -1 left .. 1 right (a spring-loaded wheel: back to 0) */
     LIVE_CAPTURE_ARM,          /* a take starts afresh: the notes played from now on, LIVE_CAPTURE b = 1 makes the loop */
+    LIVE_SLICE,                /* b = 1 on / 0 off: the target track (or OLS_TRACK_ALL) opened and shut; id (on, !0):
+                                * the slice's length in ticks (24 = a 1/16; open the first half, shut the second) */
     LIVE_CMD_COUNT
 } ols_live_cmd_t;
 
@@ -230,6 +232,12 @@ typedef struct {
     float duck_env;            /* the source's level, follows its peaks */
     float duck_gain;           /* the gain the others got last chunk */
     float duck_release;        /* per-sample release of the envelope */
+
+    /* the slicer (PERFORM): the tracks of slice_mask cut in the second half of every 1/16 (the beat when playing,
+     * the tempo when stopped); slice_cut: how far each is cut now, 0 open .. 0.95, smoothed (no click) */
+    uint8_t slice_mask;
+    uint8_t slice_len;         /* ticks a slice (0: 24, a 1/16) */
+    float slice_cut[OLS_TRACKS];
 
     /* MIDI out (optional): sequenced notes on channels 1..4, clock and transport */
     void (*midi_out)(void *ctx, uint8_t status, uint8_t d1, uint8_t d2);

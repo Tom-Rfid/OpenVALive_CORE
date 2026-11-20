@@ -202,7 +202,7 @@ static void live_voice_render(uint32_t n)
     }
 }
 
-/* PERFORM SLICER: the whole mix opened and shut in 1/16s on the clock (the beat when playing, the tempo when
+/* PERFORM SLICER with A selected: the whole mix opened and shut on the clock (slice_len: 1/16 at first) (the beat when playing, the tempo when
  * stopped), each edge smoothed over ~2 ms (no click); let go, it opens back smoothly */
 static void slicer_render(uint32_t n)
 {
@@ -212,7 +212,8 @@ static void slicer_render(uint32_t n)
         return;
     }
     uint32_t tick = live.clock.running ? live.clock.tick : live.clock.free_tick;
-    float target = (!slicer_on || (tick % 24u) < 12u) ? 1.0f : 0.05f;
+    uint32_t len = slice_len;
+    float target = (!slicer_on || (tick % len) < len / 2u) ? 1.0f : 0.05f;
     for (uint32_t i = 0; i < n; i++) {
         g += (target - g) * 0.01f;
         buf_l[i] *= g;
@@ -354,7 +355,7 @@ static void usb_midi_out(void *ctx, uint8_t status, uint8_t d1, uint8_t d2)
 static void write_output(int32_t *lr, uint32_t n, uint32_t master_q12)
 {
     /* full scale of a Q23 sample is 8388607 */
-    float gain_target = (float)master_q12 * (1.0f / 4096.0f) * 8388000.0f;
+    float gain_target = out_hold ? 0.0f : (float)master_q12 * (1.0f / 4096.0f) * 8388000.0f;
     uint32_t w = scope_write;
 
     const int speaker = on_speaker;

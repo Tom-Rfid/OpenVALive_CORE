@@ -162,6 +162,7 @@ void app_frame(void)
     }
     ui.activity = 0;
     input();
+    keep_tick();                                  /* (a setting kept at once whose write was refused: again) */
     if (settings_save_tick()) {                   /* SAVE ended (it goes in steps) */
         app_say(saving.ok ? "SAVED" : "SAVE", saving.ok ? "LIVE SET" : "FAILED");
         if (saving.ok) {
@@ -250,7 +251,7 @@ int app_expect(const char *what, int *got)
             *got += va[t].voice_limit;              /* the voice budget (no longer on screen) */
         }
     } else if (!strcmp(what, "slicer")) {
-        *got = slicer_on;                         /* PERFORM SLICER on */
+        *got = slicer_on ? 2 : (live.slice_mask != 0);   /* PERFORM SLICER: 1 on a track, 2 on the whole mix (A) */
     } else if (!strcmp(what, "help")) {
         *got = ui.help;                           /* the help pages up (after the boot screen) */
     } else if (!strcmp(what, "no_help")) {

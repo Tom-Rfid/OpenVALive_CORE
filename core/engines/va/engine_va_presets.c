@@ -80,6 +80,7 @@ static const va_change_t BASS[] = {
     {VA_P_DRIVE, 0.45f},
     {VA_P_GLIDE, 0.35f},
     {VA_P_VEL_SENS, 0.8f},
+    {VA_P_VOLUME, 0.545f},
 };
 
 /* Two detuned saws, slow attacks, moving filter, chorus I and delay. */
@@ -95,7 +96,7 @@ static const va_change_t PAD[] = {
     {VA_P_CHORUS_MODE, 0.3f}, /* chorus I */
     {VA_P_CHORUS_MIX, 0.7f},
     {VA_P_DELAY_MIX, 0.25f},
-    {VA_P_VOLUME, 0.66f},
+    {VA_P_VOLUME, 0.662f},
 };
 
 /* Mono legato: PWM square + saw one octave up, vibrato, delay. */
@@ -109,6 +110,7 @@ static const va_change_t LEAD[] = {
     {VA_P_CUTOFF, 0.7f},
     {VA_P_GLIDE, 0.25f},
     {VA_P_DELAY_MIX, 0.3f},
+    {VA_P_VOLUME, 0.55f},
 };
 
 /* TB-303-style: one saw, high resonance, a short envelope, accent from velocity. */
@@ -130,7 +132,7 @@ static const va_change_t ACID[] = {
     {VA_P_VEL_FILTER, 0.6f}, /* accents: hard notes squelch */
     {VA_P_CUTOFF, 0.24f},
     {VA_P_DELAY_MIX, 0.15f},
-    {VA_P_VOLUME, 0.6f},
+    {VA_P_VOLUME, 0.587f},
 };
 
 /* The 303's other wave: a square, hollower, the same squelch. */
@@ -138,7 +140,7 @@ static const va_change_t ACID_SQUARE[] = {
     {VA_P_MONO, 1.0f}, {VA_P_OSC1_WAVE, WAVE_SQUARE}, {VA_P_MIX_OSC2, 0.0f}, {VA_P_CUTOFF, 0.26f},
     {VA_P_RESO, 0.82f}, {VA_P_FENV_AMT, 0.8f}, {VA_P_F_DECAY, 0.3f}, {VA_P_F_SUSTAIN, 0.0f}, {VA_P_A_ATTACK, 0.0f},
     {VA_P_A_DECAY, 0.4f}, {VA_P_A_SUSTAIN, 0.6f}, {VA_P_A_RELEASE, 0.2f}, {VA_P_DRIVE, 0.45f}, {VA_P_GLIDE, 0.2f},
-    {VA_P_VEL_SENS, 0.9f}, {VA_P_VEL_FILTER, 0.6f}, {VA_P_DELAY_MIX, 0.15f}, {VA_P_VOLUME, 0.6f},
+    {VA_P_VEL_SENS, 0.9f}, {VA_P_VEL_FILTER, 0.6f}, {VA_P_DELAY_MIX, 0.15f}, {VA_P_VOLUME, 0.559f},
 };
 
 /* Acid that screams: resonance at the edge, a short hard envelope, pushed drive (for the build-ups). */
@@ -146,7 +148,7 @@ static const va_change_t ACID_SCREAM[] = {
     {VA_P_MONO, 1.0f}, {VA_P_MIX_OSC2, 0.0f}, {VA_P_CUTOFF, 0.2f}, {VA_P_RESO, 0.95f}, {VA_P_FENV_AMT, 0.95f},
     {VA_P_F_DECAY, 0.22f}, {VA_P_F_SUSTAIN, 0.0f}, {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.35f},
     {VA_P_A_SUSTAIN, 0.55f}, {VA_P_A_RELEASE, 0.15f}, {VA_P_DRIVE, 0.85f}, {VA_P_GLIDE, 0.15f}, {VA_P_VEL_SENS, 0.9f},
-    {VA_P_VEL_FILTER, 0.8f}, {VA_P_DELAY_MIX, 0.1f}, {VA_P_VOLUME, 0.5f},
+    {VA_P_VEL_FILTER, 0.8f}, {VA_P_DELAY_MIX, 0.1f}, {VA_P_VOLUME, 0.563f},
 };
 
 /* Round, hypnotic acid: the filter low, a long decay, a longer glide (minimal, dub techno). */
@@ -155,7 +157,7 @@ static const va_change_t ACID_DEEP[] = {
     {VA_P_FENV_AMT, 0.68f}, {VA_P_F_DECAY, 0.55f}, {VA_P_F_SUSTAIN, 0.1f}, {VA_P_A_ATTACK, 0.0f},
     {VA_P_A_DECAY, 0.55f}, {VA_P_A_SUSTAIN, 0.7f}, {VA_P_A_RELEASE, 0.3f}, {VA_P_DRIVE, 0.3f}, {VA_P_GLIDE, 0.35f},
     {VA_P_VEL_SENS, 0.7f}, {VA_P_VEL_FILTER, 0.4f}, {VA_P_DELAY_MIX, 0.25f}, {VA_P_DELAY_FB, 0.5f},
-    {VA_P_VOLUME, 0.65f},
+    {VA_P_VOLUME, 0.648f},
 };
 
 /* Drum & bass Reese: two saws detuned against each other, low-passed, mono. */
@@ -163,7 +165,7 @@ static const va_change_t REESE[] = {
     {VA_P_MONO, 1.0f}, {VA_P_OSC2_FINE, 0.68f}, {VA_P_MIX_OSC1, 0.8f}, {VA_P_MIX_OSC2, 0.8f}, {VA_P_MIX_SUB, 0.35f},
     {VA_P_CUTOFF, 0.38f}, {VA_P_RESO, 0.25f}, {VA_P_FENV_AMT, 0.55f}, {VA_P_F_DECAY, 0.6f}, {VA_P_F_SUSTAIN, 0.6f},
     {VA_P_A_ATTACK, 0.02f}, {VA_P_A_SUSTAIN, 0.9f}, {VA_P_A_RELEASE, 0.3f}, {VA_P_DRIVE, 0.45f},
-    {VA_P_GLIDE, 0.12f}, {VA_P_VOLUME, 0.6f},
+    {VA_P_GLIDE, 0.12f}, {VA_P_VOLUME, 0.498f},
 };
 
 /* Wobble: an LFO on the tempo (1/8, from each note) opens and shuts the filter. */
@@ -172,14 +174,14 @@ static const va_change_t WOBBLE[] = {
     {VA_P_RESO, 0.55f}, {VA_P_FENV_AMT, 0.5f}, {VA_P_LFO2_CUTOFF, 0.75f}, {VA_P_LFO2_WAVE, LFO_TRIANGLE},
     {VA_P_LFO2_SYNC, (9.0f + 0.5f) / (float)VA_LFO_SYNCS}, {VA_P_LFO2_TRIG, (1.0f + 0.5f) / (float)VA_TRIG_COUNT},
     {VA_P_A_ATTACK, 0.01f}, {VA_P_A_SUSTAIN, 0.9f}, {VA_P_A_RELEASE, 0.25f}, {VA_P_DRIVE, 0.6f},
-    {VA_P_VOLUME, 0.6f},
+    {VA_P_VOLUME, 0.491f},
 };
 
 /* Dub's deep sub: a sine-like triangle, round, the sub under it, little filter movement. */
 static const va_change_t DEEP_SUB[] = {
     {VA_P_MONO, 1.0f}, {VA_P_OSC1_WAVE, WAVE_TRIANGLE}, {VA_P_MIX_OSC2, 0.0f}, {VA_P_MIX_SUB, 1.0f},
     {VA_P_CUTOFF, 0.2f}, {VA_P_RESO, 0.05f}, {VA_P_FENV_AMT, 0.52f}, {VA_P_A_ATTACK, 0.02f}, {VA_P_A_DECAY, 0.6f},
-    {VA_P_A_SUSTAIN, 0.85f}, {VA_P_A_RELEASE, 0.35f}, {VA_P_GLIDE, 0.1f}, {VA_P_DRIVE, 0.15f}, {VA_P_VOLUME, 0.9f},
+    {VA_P_A_SUSTAIN, 0.85f}, {VA_P_A_RELEASE, 0.35f}, {VA_P_GLIDE, 0.1f}, {VA_P_DRIVE, 0.15f}, {VA_P_VOLUME, 0.705f},
 };
 
 /* Dub siren: a square swept up and down by a slow LFO on the pitch, into a long delay. */
@@ -187,7 +189,7 @@ static const va_change_t DUB_SIREN[] = {
     {VA_P_MONO, 1.0f}, {VA_P_OSC1_WAVE, WAVE_SQUARE}, {VA_P_MIX_OSC2, 0.0f}, {VA_P_CUTOFF, 0.7f},
     {VA_P_RESO, 0.3f}, {VA_P_FENV_AMT, 0.5f}, {VA_P_LFO1_WAVE, LFO_TRIANGLE}, {VA_P_LFO1_RATE, 0.42f},
     {VA_P_LFO1_PITCH, 0.6f}, {VA_P_A_ATTACK, 0.02f}, {VA_P_A_SUSTAIN, 0.9f}, {VA_P_A_RELEASE, 0.5f},
-    {VA_P_DELAY_MIX, 0.45f}, {VA_P_DELAY_FB, 0.65f}, {VA_P_DELAY_TIME, 0.75f}, {VA_P_VOLUME, 0.5f},
+    {VA_P_DELAY_MIX, 0.45f}, {VA_P_DELAY_FB, 0.65f}, {VA_P_DELAY_TIME, 0.75f}, {VA_P_VOLUME, 0.517f},
 };
 
 /* House / techno chord stab: two saws and a little sub, a snappy filter envelope on the attack, then a body that
@@ -197,7 +199,7 @@ static const va_change_t STAB[] = {
     {VA_P_FENV_AMT, 0.8f}, {VA_P_F_DECAY, 0.32f}, {VA_P_F_SUSTAIN, 0.2f}, {VA_P_A_ATTACK, 0.0f},
     {VA_P_A_DECAY, 0.45f}, {VA_P_A_SUSTAIN, 0.4f}, {VA_P_A_RELEASE, 0.35f}, {VA_P_VEL_FILTER, 0.5f},
     {VA_P_CHORUS_MODE, (1.0f + 0.5f) / 4.0f}, {VA_P_CHORUS_MIX, 0.5f}, {VA_P_DELAY_MIX, 0.3f},
-    {VA_P_DELAY_FB, 0.4f}, {VA_P_VOLUME, 0.6f},
+    {VA_P_DELAY_FB, 0.4f}, {VA_P_VOLUME, 0.944f},
 };
 
 /* Warm poly chords, Juno style: two saws gently detuned, the filter half open, a soft attack, both choruses. */
@@ -205,7 +207,7 @@ static const va_change_t POLY[] = {
     {VA_P_OSC2_FINE, 0.58f}, {VA_P_MIX_OSC2, 0.7f}, {VA_P_MIX_SUB, 0.15f}, {VA_P_CUTOFF, 0.5f},
     {VA_P_RESO, 0.2f}, {VA_P_FENV_AMT, 0.6f}, {VA_P_F_DECAY, 0.55f}, {VA_P_F_SUSTAIN, 0.45f},
     {VA_P_A_ATTACK, 0.12f}, {VA_P_A_DECAY, 0.6f}, {VA_P_A_SUSTAIN, 0.8f}, {VA_P_A_RELEASE, 0.5f},
-    {VA_P_CHORUS_MODE, (3.0f + 0.5f) / 4.0f}, {VA_P_CHORUS_MIX, 0.6f}, {VA_P_VOLUME, 0.605f},
+    {VA_P_CHORUS_MODE, (3.0f + 0.5f) / 4.0f}, {VA_P_CHORUS_MIX, 0.6f}, {VA_P_VOLUME, 0.717f},
 };
 
 /* String ensemble: detuned saws, slow attack, both choruses. */
@@ -220,7 +222,7 @@ static const va_change_t STRINGS[] = {
     {VA_P_LFO1_PITCH, 0.05f},
     {VA_P_CHORUS_MODE, CHORUS_BOTH},
     {VA_P_CHORUS_MIX, 0.8f},
-    {VA_P_VOLUME, 0.66f},
+    {VA_P_VOLUME, 0.636f},
 };
 
 /* Brass: the filter opens slowly after the attack, like a breath. */
@@ -236,6 +238,7 @@ static const va_change_t BRASS[] = {
     {VA_P_A_RELEASE, 0.4f},
     {VA_P_DRIVE, 0.2f},
     {VA_P_LFO1_PITCH, 0.04f},
+    {VA_P_VOLUME, 0.575f},
 };
 
 /* Pluck: a bright attack that dies down to a soft tone held with the key, a ringing release, chorus and echoes
@@ -256,7 +259,7 @@ static const va_change_t PLUCK[] = {
     {VA_P_CHORUS_MIX, 0.35f},
     {VA_P_DELAY_MIX, 0.35f},
     {VA_P_DELAY_FB, 0.5f},
-    {VA_P_VOLUME, 0.715f},
+    {VA_P_VOLUME, 0.946f},
 };
 
 /* Organ: triangle + square an octave up + sub, no envelope, chorus II as a rotary. */
@@ -274,6 +277,7 @@ static const va_change_t ORGAN[] = {
     {VA_P_A_RELEASE, 0.15f},
     {VA_P_CHORUS_MODE, CHORUS_II},
     {VA_P_CHORUS_MIX, 0.6f},
+    {VA_P_VOLUME, 0.682f},
 };
 
 /* Sub bass: a round triangle and its sub-octave, a touch of drive. */
@@ -288,6 +292,7 @@ static const va_change_t SUB[] = {
     {VA_P_A_RELEASE, 0.25f},
     {VA_P_GLIDE, 0.15f},
     {VA_P_DRIVE, 0.25f},
+    {VA_P_VOLUME, 0.651f},
 };
 
 /* Sweep: a slow pad through the phaser. */
@@ -304,7 +309,7 @@ static const va_change_t SWEEP[] = {
     {VA_P_CHORUS_MODE, 0.3f}, /* chorus I */
     {VA_P_CHORUS_MIX, 0.7f},
     {VA_P_DELAY_MIX, 0.25f},
-    {VA_P_VOLUME, 0.66f},
+    {VA_P_VOLUME, 0.71f},
     {VA_P_CHORUS_MODE, 0.0f},
     {VA_P_PHASER_RATE, 0.25f},
     {VA_P_PHASER_DEPTH, 0.75f},
@@ -327,7 +332,7 @@ static const va_change_t WIND[] = {
     {VA_P_A_RELEASE, 0.8f},
     {VA_P_DELAY_MIX, 0.3f},
     {VA_P_CHORUS_MODE, CHORUS_BOTH},
-    {VA_P_VOLUME, 0.855f},
+    {VA_P_VOLUME, 1.0f},
 };
 
 
@@ -353,7 +358,7 @@ static const va_change_t HOLD[] = {
     {VA_P_DELAY_FB, 0.6f},
     {VA_P_DELAY_TONE, 0.2f},
     {VA_P_DELAY_MIX, 0.35f},
-    {VA_P_VOLUME, 0.76f},
+    {VA_P_VOLUME, 0.656f},
 };
 
 
@@ -376,7 +381,7 @@ static const va_change_t WHALE[] = {
     {VA_P_DELAY_TONE, 0.15f},
     {VA_P_DELAY_MIX, 0.4f},
     {VA_P_CHORUS_MODE, CHORUS_BOTH},
-    {VA_P_VOLUME, 0.99f},
+    {VA_P_VOLUME, 0.849f},
 };
 
 
@@ -393,7 +398,7 @@ static const va_change_t SCREECH[] = {
     {VA_P_LFO2_CUTOFF, 0.3f},
     {VA_P_DRIVE, 0.7f},
     {VA_P_CRUSH, 0.35f},
-    {VA_P_VOLUME, 0.427f},                       /* (20 % lower than 0.5: volume is 2 v^2) */
+    {VA_P_VOLUME, 0.41f},                       /* (20 % lower than 0.5: volume is 2 v^2) */
 };
 
 /* Grunge: two detuned saws and the sub, driven hard, through the phaser and the crusher. */
@@ -409,7 +414,7 @@ static const va_change_t GRUNGE[] = {
     {VA_P_PHASER_RATE, 0.4f},
     {VA_P_PHASER_MIX, 0.6f},
     {VA_P_A_ATTACK, 0.0f},
-    {VA_P_VOLUME, 0.522f},
+    {VA_P_VOLUME, 0.475f},
 };
 
 
@@ -428,7 +433,7 @@ static const va_change_t DRONE[] = {
     {VA_P_PHASER_MIX, 0.7f},
     {VA_P_DELAY_MIX, 0.3f},
     {VA_P_DELAY_FB, 0.6f},
-    {VA_P_VOLUME, 0.57f},
+    {VA_P_VOLUME, 0.798f},
 };
 
 /* the modulation matrix's choices, in the middle of their range */
@@ -445,7 +450,7 @@ static const va_change_t THUNDER[] = {
     {VA_P_LFO2_RATE, 0.4f}, {VA_P_LFO2_WAVE, LFO_SH}, {VA_P_LFO2_CUTOFF, 0.3f},
     {VA_P_MOD1_SRC, MOD_SRC(VA_SRC_LFO2)}, {VA_P_MOD1_DST, MOD_DST(VA_DST_LEVEL)}, {VA_P_MOD1_AMT, 0.68f},
     {VA_P_DRIVE, 0.5f}, {VA_P_VEL_FILTER, 0.5f}, {VA_P_DELAY_TIME, 0.8f}, {VA_P_DELAY_FB, 0.45f},
-    {VA_P_DELAY_TONE, 0.15f}, {VA_P_DELAY_MIX, 0.2f}, {VA_P_VOLUME, 0.75f},
+    {VA_P_DELAY_TONE, 0.15f}, {VA_P_DELAY_MIX, 0.2f}, {VA_P_VOLUME, 0.702f},
 };
 
 /* Rain: bright noise in a band-pass, drops from a fast random level and cutoff; the note sets the drops' pitch,
@@ -457,7 +462,7 @@ static const va_change_t RAIN[] = {
     {VA_P_LFO2_RATE, 0.88f}, {VA_P_LFO2_WAVE, LFO_SH}, {VA_P_LFO2_CUTOFF, 0.35f},
     {VA_P_MOD1_SRC, MOD_SRC(VA_SRC_LFO2)}, {VA_P_MOD1_DST, MOD_DST(VA_DST_LEVEL)}, {VA_P_MOD1_AMT, 0.8f},
     {VA_P_MOD2_SRC, MOD_SRC(VA_SRC_LFO2)}, {VA_P_MOD2_DST, MOD_DST(VA_DST_RESO)}, {VA_P_MOD2_AMT, 0.7f},
-    {VA_P_CHORUS_MODE, CHORUS_BOTH}, {VA_P_CHORUS_MIX, 0.7f}, {VA_P_VOLUME, 0.65f},
+    {VA_P_CHORUS_MODE, CHORUS_BOTH}, {VA_P_CHORUS_MIX, 0.7f}, {VA_P_VOLUME, 0.698f},
 };
 
 /* Creak: a door or a hull, a low saw through a sharp band-pass, its level cut into grains by a fast random
@@ -470,7 +475,7 @@ static const va_change_t CREAK[] = {
     {VA_P_LFO2_RATE, 0.78f}, {VA_P_LFO2_WAVE, LFO_SH}, {VA_P_LFO2_CUTOFF, 0.2f},
     {VA_P_MOD1_SRC, MOD_SRC(VA_SRC_LFO2)}, {VA_P_MOD1_DST, MOD_DST(VA_DST_LEVEL)}, {VA_P_MOD1_AMT, 0.92f},
     {VA_P_MOD2_SRC, MOD_SRC(VA_SRC_VELOCITY)}, {VA_P_MOD2_DST, MOD_DST(VA_DST_LFO2_RATE)}, {VA_P_MOD2_AMT, 0.7f},
-    {VA_P_DRIVE, 0.35f}, {VA_P_GLIDE, 0.5f}, {VA_P_DELAY_MIX, 0.15f}, {VA_P_VOLUME, 0.617f},
+    {VA_P_DRIVE, 0.35f}, {VA_P_GLIDE, 0.5f}, {VA_P_DELAY_MIX, 0.15f}, {VA_P_VOLUME, 0.505f},
 };
 
 /* A 70s string machine: two saws close together, no resonance, a gentle attack and both choruses deep (the
@@ -479,7 +484,7 @@ static const va_change_t STRINGS70[] = {
     {VA_P_OSC2_FINE, 0.56f}, {VA_P_MIX_OSC2, 0.75f}, {VA_P_CUTOFF, 0.6f}, {VA_P_RESO, 0.0f}, {VA_P_FENV_AMT, 0.5f},
     {VA_P_A_ATTACK, 0.45f}, {VA_P_A_SUSTAIN, 1.0f}, {VA_P_A_RELEASE, 0.6f},
     {VA_P_CHORUS_MODE, CHORUS_BOTH}, {VA_P_CHORUS_MIX, 0.9f},
-    {VA_P_PHASER_RATE, 0.12f}, {VA_P_PHASER_DEPTH, 0.5f}, {VA_P_PHASER_MIX, 0.45f}, {VA_P_VOLUME, 0.605f},
+    {VA_P_PHASER_RATE, 0.12f}, {VA_P_PHASER_DEPTH, 0.5f}, {VA_P_PHASER_MIX, 0.45f}, {VA_P_VOLUME, 0.611f},
 };
 
 /* An electric piano of the 70s: triangle and a quiet one an octave up, a bell-like start that fades, the softer
@@ -491,7 +496,7 @@ static const va_change_t VKEYS[] = {
     {VA_P_A_RELEASE, 0.45f}, {VA_P_VEL_SENS, 0.85f}, {VA_P_VEL_FILTER, 0.4f},
     {VA_P_LFO1_RATE, 0.45f}, {VA_P_LFO1_WAVE, LFO_TRIANGLE},
     {VA_P_MOD1_SRC, MOD_SRC(VA_SRC_LFO1)}, {VA_P_MOD1_DST, MOD_DST(VA_DST_LEVEL)}, {VA_P_MOD1_AMT, 0.58f},
-    {VA_P_CHORUS_MODE, CHORUS_I}, {VA_P_CHORUS_MIX, 0.5f}, {VA_P_VOLUME, 0.715f},
+    {VA_P_CHORUS_MODE, CHORUS_I}, {VA_P_CHORUS_MIX, 0.5f}, {VA_P_VOLUME, 1.0f},
 };
 
 /* LFO timing choices: a tempo length (VA_LFO_SYNC_NAMES: 9 = 1/8, 11 = 1/16), restarted by each first key */
@@ -513,7 +518,7 @@ static const va_change_t PSY_BASS[] = {
     {VA_P_MONO, 1.0f}, {VA_P_OSC2_FINE, 0.53f}, {VA_P_MIX_OSC2, 0.45f}, {VA_P_MIX_SUB, 0.75f}, {VA_P_CUTOFF, 0.36f},
     {VA_P_RESO, 0.45f}, {VA_P_FENV_AMT, 0.85f}, {VA_P_F_ATTACK, 0.0f}, {VA_P_F_DECAY, 0.32f}, {VA_P_F_SUSTAIN, 0.15f},
     {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.4f}, {VA_P_A_SUSTAIN, 0.85f}, {VA_P_A_RELEASE, 0.22f},
-    {VA_P_DRIVE, 0.6f}, {VA_P_GLIDE, 0.0f}, {VA_P_VEL_SENS, 0.3f}, {VA_P_VOLUME, 0.68f},
+    {VA_P_DRIVE, 0.6f}, {VA_P_GLIDE, 0.0f}, {VA_P_VEL_SENS, 0.3f}, {VA_P_VOLUME, 0.474f},
 };
 
 /* Zap: the pitch dives two octaves in a blink (the filter envelope on the pitch), a little echo. */
@@ -522,7 +527,7 @@ static const va_change_t ZAP[] = {
     {VA_P_FENV_AMT, 0.7f}, {VA_P_F_ATTACK, 0.0f}, {VA_P_F_DECAY, 0.45f}, {VA_P_F_SUSTAIN, 0.0f},
     {VA_P_MOD1_SRC, MOD_SRC(VA_SRC_FENV)}, {VA_P_MOD1_DST, MOD_DST(VA_DST_PITCH)}, {VA_P_MOD1_AMT, 0.95f},
     {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.5f}, {VA_P_A_SUSTAIN, 0.0f}, {VA_P_A_RELEASE, 0.35f},
-    {VA_P_DELAY_MIX, 0.25f}, {VA_P_VOLUME, 0.75f},
+    {VA_P_DELAY_MIX, 0.25f}, {VA_P_VOLUME, 0.938f},
 };
 
 /* Laser: a longer dive, the filter singing on the way down, echoes that keep it flying. */
@@ -532,7 +537,7 @@ static const va_change_t LASER[] = {
     {VA_P_F_SUSTAIN, 0.0f}, {VA_P_MOD1_SRC, MOD_SRC(VA_SRC_FENV)}, {VA_P_MOD1_DST, MOD_DST(VA_DST_PITCH)},
     {VA_P_MOD1_AMT, 1.0f}, {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.62f}, {VA_P_A_SUSTAIN, 0.0f},
     {VA_P_A_RELEASE, 0.45f}, {VA_P_DELAY_TIME, 0.55f}, {VA_P_DELAY_FB, 0.55f}, {VA_P_DELAY_MIX, 0.4f},
-    {VA_P_VOLUME, 0.55f},
+    {VA_P_VOLUME, 0.672f},
 };
 
 /* Blip: a tiny square, each note at a random pitch and brightness, for glitchy fast patterns behind the mix. */
@@ -541,7 +546,7 @@ static const va_change_t BLIP[] = {
     {VA_P_FENV_AMT, 0.5f}, {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.58f}, {VA_P_A_SUSTAIN, 0.0f},
     {VA_P_A_RELEASE, 0.4f}, {VA_P_MOD1_SRC, MOD_SRC(VA_SRC_RANDOM)}, {VA_P_MOD1_DST, MOD_DST(VA_DST_PITCH)},
     {VA_P_MOD1_AMT, 0.75f}, {VA_P_MOD2_SRC, MOD_SRC(VA_SRC_RANDOM)}, {VA_P_MOD2_DST, MOD_DST(VA_DST_CUTOFF)},
-    {VA_P_MOD2_AMT, 0.7f}, {VA_P_DELAY_MIX, 0.25f}, {VA_P_VOLUME, 0.8f},
+    {VA_P_MOD2_AMT, 0.7f}, {VA_P_DELAY_MIX, 0.25f}, {VA_P_VOLUME, 0.827f},
 };
 
 /* Metal: a square and a saw a ninth apart and slightly off, through a ringing band-pass: a struck metal or wood
@@ -552,7 +557,7 @@ static const va_change_t METAL[] = {
     {VA_P_OSC2_FINE, 0.68f}, {VA_P_MIX_OSC2, 0.7f}, {VA_P_FILTER_MODE, FILTER_BP}, {VA_P_CUTOFF, 0.62f},
     {VA_P_RESO, 0.82f}, {VA_P_KEYTRACK, 0.8f}, {VA_P_FENV_AMT, 0.6f}, {VA_P_F_DECAY, 0.6f}, {VA_P_F_SUSTAIN, 0.1f},
     {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.7f}, {VA_P_A_SUSTAIN, 0.2f}, {VA_P_A_RELEASE, 0.65f},
-    {VA_P_DRIVE, 0.3f}, {VA_P_CHORUS_MIX, 0.3f}, {VA_P_DELAY_MIX, 0.2f}, {VA_P_DELAY_FB, 0.4f}, {VA_P_VOLUME, 0.665f},
+    {VA_P_DRIVE, 0.3f}, {VA_P_CHORUS_MIX, 0.3f}, {VA_P_DELAY_MIX, 0.2f}, {VA_P_DELAY_FB, 0.4f}, {VA_P_VOLUME, 0.663f},
 };
 
 /* Arp: cut for fast hypnotic arpeggios, a saw and a square, a snappy filter, a short body and an echo. */
@@ -561,7 +566,7 @@ static const va_change_t ARP[] = {
     {VA_P_RESO, 0.45f}, {VA_P_FENV_AMT, 0.72f}, {VA_P_F_DECAY, 0.42f}, {VA_P_F_SUSTAIN, 0.1f},
     {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.5f}, {VA_P_A_SUSTAIN, 0.15f}, {VA_P_A_RELEASE, 0.3f},
     {VA_P_VEL_FILTER, 0.35f}, {VA_P_DELAY_TIME, 0.5f}, {VA_P_DELAY_FB, 0.4f}, {VA_P_DELAY_MIX, 0.3f},
-    {VA_P_VOLUME, 0.72f},
+    {VA_P_VOLUME, 0.992f},
 };
 
 /* Choir: detuned saws through a band-pass around the voice, a slow breath in, vibrato and both choruses: the
@@ -570,14 +575,14 @@ static const va_change_t CHOIR[] = {
     {VA_P_OSC2_FINE, 0.6f}, {VA_P_MIX_OSC2, 0.8f}, {VA_P_FILTER_MODE, FILTER_BP}, {VA_P_CUTOFF, 0.5f},
     {VA_P_RESO, 0.42f}, {VA_P_KEYTRACK, 0.6f}, {VA_P_FENV_AMT, 0.5f}, {VA_P_A_ATTACK, 0.55f}, {VA_P_A_SUSTAIN, 1.0f},
     {VA_P_A_RELEASE, 0.65f}, {VA_P_LFO1_RATE, 0.45f}, {VA_P_LFO1_PITCH, 0.05f}, {VA_P_CHORUS_MODE, CHORUS_BOTH},
-    {VA_P_CHORUS_MIX, 0.85f}, {VA_P_DELAY_MIX, 0.2f}, {VA_P_VOLUME, 0.682f},
+    {VA_P_CHORUS_MIX, 0.85f}, {VA_P_DELAY_MIX, 0.2f}, {VA_P_VOLUME, 0.76f},
 };
 
 /* Noise: white noise in a low-pass, held: K1 (cutoff) opens it for a build-up of your own. */
 static const va_change_t NOISE[] = {
     {VA_P_MIX_OSC1, 0.0f}, {VA_P_MIX_OSC2, 0.0f}, {VA_P_MIX_NOISE, 1.0f}, {VA_P_CUTOFF, 0.5f}, {VA_P_RESO, 0.3f},
     {VA_P_KEYTRACK, 0.0f}, {VA_P_FENV_AMT, 0.5f}, {VA_P_A_ATTACK, 0.2f}, {VA_P_A_SUSTAIN, 1.0f}, {VA_P_A_RELEASE, 0.5f},
-    {VA_P_VOLUME, 0.85f},
+    {VA_P_VOLUME, 1.0f},
 };
 
 /* Riser: noise and a saw, heard at once, the filter and the pitch (an octave) rising for about 8 s (4 bars at 120
@@ -587,7 +592,7 @@ static const va_change_t RISER[] = {
     {VA_P_FENV_AMT, 0.95f}, {VA_P_F_ATTACK, 1.0f}, {VA_P_F_SUSTAIN, 1.0f}, {VA_P_F_RELEASE, 0.6f},
     {VA_P_MOD1_SRC, MOD_SRC(VA_SRC_FENV)}, {VA_P_MOD1_DST, MOD_DST(VA_DST_PITCH)}, {VA_P_MOD1_AMT, 0.75f},
     {VA_P_A_ATTACK, 0.3f}, {VA_P_A_SUSTAIN, 1.0f}, {VA_P_A_RELEASE, 0.6f}, {VA_P_PHASER_MIX, 0.3f},
-    {VA_P_DELAY_FB, 0.5f}, {VA_P_DELAY_MIX, 0.25f}, {VA_P_VOLUME, 0.8f},
+    {VA_P_DELAY_FB, 0.5f}, {VA_P_DELAY_MIX, 0.25f}, {VA_P_VOLUME, 1.0f},
 };
 
 /* Downlifter: the other way: it starts open and an octave up, then falls and fades for about 8 s (held). */
@@ -596,7 +601,7 @@ static const va_change_t DOWNLIFTER[] = {
     {VA_P_FENV_AMT, 0.95f}, {VA_P_F_ATTACK, 0.0f}, {VA_P_F_DECAY, 1.0f}, {VA_P_F_SUSTAIN, 0.0f},
     {VA_P_MOD1_SRC, MOD_SRC(VA_SRC_FENV)}, {VA_P_MOD1_DST, MOD_DST(VA_DST_PITCH)}, {VA_P_MOD1_AMT, 0.75f},
     {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 1.0f}, {VA_P_A_SUSTAIN, 0.45f}, {VA_P_A_RELEASE, 0.8f},
-    {VA_P_DELAY_FB, 0.55f}, {VA_P_DELAY_MIX, 0.3f}, {VA_P_VOLUME, 0.7f},
+    {VA_P_DELAY_FB, 0.55f}, {VA_P_DELAY_MIX, 0.3f}, {VA_P_VOLUME, 0.868f},
 };
 
 /* Shaker: high-passed noise pulsing on the 1/16 (an LFO on the level, on the tempo): a hat loop to hold. */
@@ -605,7 +610,7 @@ static const va_change_t SHAKER[] = {
     {VA_P_CUTOFF, 0.75f}, {VA_P_RESO, 0.2f}, {VA_P_KEYTRACK, 0.3f}, {VA_P_FENV_AMT, 0.5f},
     {VA_P_LFO2_WAVE, LFO_TRIANGLE}, {VA_P_LFO2_SYNC, LFO_SYNC(11)}, {VA_P_LFO2_TRIG, LFO_RETRIG},
     {VA_P_MOD1_SRC, MOD_SRC(VA_SRC_LFO2)}, {VA_P_MOD1_DST, MOD_DST(VA_DST_LEVEL)}, {VA_P_MOD1_AMT, 1.0f},
-    {VA_P_A_ATTACK, 0.1f}, {VA_P_A_SUSTAIN, 1.0f}, {VA_P_A_RELEASE, 0.3f}, {VA_P_VOLUME, 0.4f},
+    {VA_P_A_ATTACK, 0.1f}, {VA_P_A_SUSTAIN, 1.0f}, {VA_P_A_RELEASE, 0.3f}, {VA_P_VOLUME, 0.423f},
 };
 
 /* Plate: a struck metal sheet that rings: two squares an odd interval apart (a minor tenth and a bit), through a
@@ -617,7 +622,7 @@ static const va_change_t PLATE[] = {
     {VA_P_F_SUSTAIN, 0.2f}, {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.85f}, {VA_P_A_SUSTAIN, 0.35f},
     {VA_P_A_RELEASE, 0.8f}, {VA_P_CHORUS_MODE, (3.0f + 0.5f) / 4.0f}, {VA_P_CHORUS_MIX, 0.45f},
     {VA_P_DELAY_TIME, 0.7f}, {VA_P_DELAY_FB, 0.5f}, {VA_P_DELAY_TONE, 0.25f}, {VA_P_DELAY_MIX, 0.3f},
-    {VA_P_VOLUME, 0.6f},
+    {VA_P_VOLUME, 0.561f},
 };
 
 /* Dub chord: the dub techno chord: two saws, a dark, muted filter, a short body, thrown into a long dark echo that
@@ -627,7 +632,7 @@ static const va_change_t DUB_CHORD[] = {
     {VA_P_F_DECAY, 0.35f}, {VA_P_F_SUSTAIN, 0.1f}, {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.42f},
     {VA_P_A_SUSTAIN, 0.2f}, {VA_P_A_RELEASE, 0.4f}, {VA_P_CHORUS_MODE, (1.0f + 0.5f) / 4.0f}, {VA_P_CHORUS_MIX, 0.4f},
     {VA_P_DELAY_TIME, 0.8f}, {VA_P_DELAY_FB, 0.75f}, {VA_P_DELAY_TONE, 0.2f}, {VA_P_DELAY_MIX, 0.5f},
-    {VA_P_VOLUME, 0.96f},
+    {VA_P_VOLUME, 1.0f},
 };
 
 /* Deep pad: dark and slow: two saws and the sub, a low filter breathing on a slow LFO, a long attack and release,
@@ -637,7 +642,7 @@ static const va_change_t DEEP_PAD[] = {
     {VA_P_FENV_AMT, 0.55f}, {VA_P_F_ATTACK, 0.6f}, {VA_P_F_SUSTAIN, 0.5f}, {VA_P_LFO2_RATE, 0.12f},
     {VA_P_LFO2_WAVE, LFO_TRIANGLE}, {VA_P_LFO2_CUTOFF, 0.6f}, {VA_P_A_ATTACK, 0.55f}, {VA_P_A_DECAY, 0.6f},
     {VA_P_A_SUSTAIN, 0.9f}, {VA_P_A_RELEASE, 0.75f}, {VA_P_CHORUS_MODE, (3.0f + 0.5f) / 4.0f},
-    {VA_P_CHORUS_MIX, 0.6f}, {VA_P_DELAY_MIX, 0.15f}, {VA_P_DELAY_TONE, 0.25f}, {VA_P_VOLUME, 0.66f},
+    {VA_P_CHORUS_MIX, 0.6f}, {VA_P_DELAY_MIX, 0.15f}, {VA_P_DELAY_TONE, 0.25f}, {VA_P_VOLUME, 0.906f},
 };
 
 /* Deep stab: the deep house stab, rounder and warmer than STAB: a square and a saw, a soft filter snap, a body
@@ -647,7 +652,7 @@ static const va_change_t DEEP_STAB[] = {
     {VA_P_CUTOFF, 0.32f}, {VA_P_RESO, 0.2f}, {VA_P_FENV_AMT, 0.68f}, {VA_P_F_DECAY, 0.4f}, {VA_P_F_SUSTAIN, 0.2f},
     {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.5f}, {VA_P_A_SUSTAIN, 0.4f}, {VA_P_A_RELEASE, 0.4f},
     {VA_P_CHORUS_MODE, (2.0f + 0.5f) / 4.0f}, {VA_P_CHORUS_MIX, 0.5f}, {VA_P_DELAY_MIX, 0.25f},
-    {VA_P_DELAY_FB, 0.45f}, {VA_P_DELAY_TONE, 0.3f}, {VA_P_VOLUME, 0.65f},
+    {VA_P_DELAY_FB, 0.45f}, {VA_P_DELAY_TONE, 0.3f}, {VA_P_VOLUME, 0.986f},
 };
 
 /* Boom: a big 808-style bass: a round triangle and its sub, the pitch falling a little on the attack, a long hold,
@@ -657,7 +662,7 @@ static const va_change_t BOOM[] = {
     {VA_P_CUTOFF, 0.3f}, {VA_P_RESO, 0.05f}, {VA_P_FENV_AMT, 0.5f}, {VA_P_F_ATTACK, 0.0f}, {VA_P_F_DECAY, 0.3f},
     {VA_P_F_SUSTAIN, 0.0f}, {VA_P_MOD1_SRC, MOD_SRC(VA_SRC_FENV)}, {VA_P_MOD1_DST, MOD_DST(VA_DST_PITCH)},
     {VA_P_MOD1_AMT, 0.62f}, {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.85f}, {VA_P_A_SUSTAIN, 0.6f},
-    {VA_P_A_RELEASE, 0.45f}, {VA_P_GLIDE, 0.25f}, {VA_P_DRIVE, 0.35f}, {VA_P_VOLUME, 0.85f},
+    {VA_P_A_RELEASE, 0.45f}, {VA_P_GLIDE, 0.25f}, {VA_P_DRIVE, 0.35f}, {VA_P_VOLUME, 0.535f},
 };
 
 /* Rumble: the techno rumble under the kick: a dark sub and a little noise, the filter low, a dark echo feeding back
@@ -667,7 +672,7 @@ static const va_change_t RUMBLE[] = {
     {VA_P_MIX_NOISE, 0.15f}, {VA_P_CUTOFF, 0.18f}, {VA_P_RESO, 0.3f}, {VA_P_FENV_AMT, 0.6f}, {VA_P_F_DECAY, 0.35f},
     {VA_P_F_SUSTAIN, 0.0f}, {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.55f}, {VA_P_A_SUSTAIN, 0.3f},
     {VA_P_A_RELEASE, 0.35f}, {VA_P_DRIVE, 0.55f}, {VA_P_DELAY_TIME, 0.45f}, {VA_P_DELAY_FB, 0.65f},
-    {VA_P_DELAY_TONE, 0.1f}, {VA_P_DELAY_MIX, 0.45f}, {VA_P_VOLUME, 0.76f},
+    {VA_P_DELAY_TONE, 0.1f}, {VA_P_DELAY_MIX, 0.45f}, {VA_P_VOLUME, 0.725f},
 };
 
 /* Hoover: the rave / hard techno hoover: two saws pulled far apart, both choruses, a slow glide, driven. */
@@ -676,7 +681,7 @@ static const va_change_t HOOVER[] = {
     {VA_P_MIX_SUB, 0.3f}, {VA_P_CUTOFF, 0.55f}, {VA_P_RESO, 0.25f}, {VA_P_FENV_AMT, 0.6f}, {VA_P_F_ATTACK, 0.2f},
     {VA_P_F_DECAY, 0.5f}, {VA_P_F_SUSTAIN, 0.5f}, {VA_P_A_ATTACK, 0.02f}, {VA_P_A_SUSTAIN, 0.9f},
     {VA_P_A_RELEASE, 0.35f}, {VA_P_GLIDE, 0.4f}, {VA_P_CHORUS_MODE, (3.0f + 0.5f) / 4.0f}, {VA_P_CHORUS_MIX, 0.75f},
-    {VA_P_DRIVE, 0.45f}, {VA_P_VOLUME, 0.55f},
+    {VA_P_DRIVE, 0.45f}, {VA_P_VOLUME, 0.528f},
 };
 
 /* Goa lead: the psytrance / goa lead: a saw and a square an octave up, a resonant filter, vibrato after the attack,
@@ -686,7 +691,7 @@ static const va_change_t GOA_LEAD[] = {
     {VA_P_CUTOFF, 0.5f}, {VA_P_RESO, 0.6f}, {VA_P_FENV_AMT, 0.7f}, {VA_P_F_DECAY, 0.45f}, {VA_P_F_SUSTAIN, 0.35f},
     {VA_P_LFO1_RATE, 0.6f}, {VA_P_LFO1_PITCH, 0.1f}, {VA_P_A_ATTACK, 0.0f}, {VA_P_A_SUSTAIN, 0.85f},
     {VA_P_A_RELEASE, 0.35f}, {VA_P_GLIDE, 0.2f}, {VA_P_DELAY_TIME, 0.65f}, {VA_P_DELAY_FB, 0.5f},
-    {VA_P_DELAY_MIX, 0.3f}, {VA_P_DRIVE, 0.25f}, {VA_P_VOLUME, 0.57f},
+    {VA_P_DELAY_MIX, 0.3f}, {VA_P_DRIVE, 0.25f}, {VA_P_VOLUME, 0.565f},
 };
 
 /* Squelch: between acid and techno: a square, the filter very resonant and snapped shut on each note, the accent
@@ -695,7 +700,7 @@ static const va_change_t SQUELCH[] = {
     {VA_P_MONO, 1.0f}, {VA_P_OSC1_WAVE, WAVE_SQUARE}, {VA_P_MIX_OSC2, 0.0f}, {VA_P_MIX_SUB, 0.3f},
     {VA_P_CUTOFF, 0.22f}, {VA_P_RESO, 0.9f}, {VA_P_FENV_AMT, 0.9f}, {VA_P_F_DECAY, 0.24f}, {VA_P_F_SUSTAIN, 0.0f},
     {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.45f}, {VA_P_A_SUSTAIN, 0.6f}, {VA_P_A_RELEASE, 0.2f},
-    {VA_P_VEL_FILTER, 0.7f}, {VA_P_GLIDE, 0.25f}, {VA_P_DRIVE, 0.65f}, {VA_P_VOLUME, 0.55f},
+    {VA_P_VEL_FILTER, 0.7f}, {VA_P_GLIDE, 0.25f}, {VA_P_DRIVE, 0.65f}, {VA_P_VOLUME, 0.506f},
 };
 
 /* Rubber: the minimal bass: a triangle and a square, a low resonant filter bumped open on each note, short, bouncy,
@@ -704,7 +709,7 @@ static const va_change_t RUBBER[] = {
     {VA_P_MONO, 1.0f}, {VA_P_OSC1_WAVE, WAVE_TRIANGLE}, {VA_P_OSC2_WAVE, WAVE_SQUARE}, {VA_P_MIX_OSC2, 0.35f},
     {VA_P_MIX_SUB, 0.5f}, {VA_P_CUTOFF, 0.22f}, {VA_P_RESO, 0.55f}, {VA_P_FENV_AMT, 0.72f}, {VA_P_F_DECAY, 0.22f},
     {VA_P_F_SUSTAIN, 0.0f}, {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.4f}, {VA_P_A_SUSTAIN, 0.3f},
-    {VA_P_A_RELEASE, 0.15f}, {VA_P_GLIDE, 0.12f}, {VA_P_DRIVE, 0.3f}, {VA_P_VOLUME, 0.88f},
+    {VA_P_A_RELEASE, 0.15f}, {VA_P_GLIDE, 0.12f}, {VA_P_DRIVE, 0.3f}, {VA_P_VOLUME, 1.0f},
 };
 
 /* Bleep: the minimal bleep: a round tone, short, high, into a ping-pong of echoes. */
@@ -712,7 +717,7 @@ static const va_change_t BLEEP[] = {
     {VA_P_OSC1_WAVE, WAVE_TRIANGLE}, {VA_P_MIX_OSC2, 0.0f}, {VA_P_CUTOFF, 0.6f}, {VA_P_RESO, 0.2f},
     {VA_P_FENV_AMT, 0.6f}, {VA_P_F_DECAY, 0.25f}, {VA_P_F_SUSTAIN, 0.2f}, {VA_P_A_ATTACK, 0.0f},
     {VA_P_A_DECAY, 0.35f}, {VA_P_A_SUSTAIN, 0.2f}, {VA_P_A_RELEASE, 0.3f}, {VA_P_DELAY_TIME, 0.5f},
-    {VA_P_DELAY_FB, 0.55f}, {VA_P_DELAY_MIX, 0.4f}, {VA_P_VOLUME, 0.7f},
+    {VA_P_DELAY_FB, 0.55f}, {VA_P_DELAY_MIX, 0.4f}, {VA_P_VOLUME, 1.0f},
 };
 
 /* Click: minimal's tiny pitched percussion: a square and a breath of noise through a narrow band-pass that follows
@@ -734,7 +739,7 @@ static const va_change_t SAX[] = {
     {VA_P_MOD1_SRC, MOD_SRC(VA_SRC_FENV)}, {VA_P_MOD1_DST, MOD_DST(VA_DST_PITCH)}, {VA_P_MOD1_AMT, 0.47f},
     {VA_P_LFO1_RATE, 0.55f}, {VA_P_LFO1_PITCH, 0.06f}, {VA_P_A_ATTACK, 0.04f}, {VA_P_A_SUSTAIN, 0.85f},
     {VA_P_A_RELEASE, 0.3f}, {VA_P_GLIDE, 0.12f}, {VA_P_DRIVE, 0.5f}, {VA_P_CHORUS_MIX, 0.3f}, {VA_P_DELAY_MIX, 0.2f},
-    {VA_P_VOLUME, 0.55f},
+    {VA_P_VOLUME, 0.496f},
 };
 
 /* Lute: a dark electro lute: a pluck and its fifth (the old modes), a resonant snap, a slow phaser, a dark echo. */
@@ -743,7 +748,7 @@ static const va_change_t LUTE[] = {
     {VA_P_RESO, 0.4f}, {VA_P_FENV_AMT, 0.8f}, {VA_P_F_DECAY, 0.35f}, {VA_P_F_SUSTAIN, 0.05f}, {VA_P_A_ATTACK, 0.0f},
     {VA_P_A_DECAY, 0.5f}, {VA_P_A_SUSTAIN, 0.1f}, {VA_P_A_RELEASE, 0.45f}, {VA_P_PHASER_MIX, 0.2f},
     {VA_P_DELAY_TIME, 0.55f}, {VA_P_DELAY_FB, 0.45f}, {VA_P_DELAY_TONE, 0.3f}, {VA_P_DELAY_MIX, 0.3f},
-    {VA_P_VOLUME, 0.715f},
+    {VA_P_VOLUME, 1.0f},
 };
 
 /* Flute: a breathy recorder from a cave: a round triangle, breath noise, a soft attack, vibrato, a long dark echo. */
@@ -752,7 +757,7 @@ static const va_change_t FLUTE[] = {
     {VA_P_RESO, 0.15f}, {VA_P_FENV_AMT, 0.55f}, {VA_P_LFO1_RATE, 0.5f}, {VA_P_LFO1_PITCH, 0.06f},
     {VA_P_A_ATTACK, 0.12f}, {VA_P_A_SUSTAIN, 0.9f}, {VA_P_A_RELEASE, 0.35f}, {VA_P_CHORUS_MIX, 0.35f},
     {VA_P_DELAY_TIME, 0.7f}, {VA_P_DELAY_FB, 0.5f}, {VA_P_DELAY_TONE, 0.25f}, {VA_P_DELAY_MIX, 0.35f},
-    {VA_P_VOLUME, 0.715f},
+    {VA_P_VOLUME, 0.684f},
 };
 
 /* Bagpipe: an electro bagpipe: two saws a fourth apart (the drone under the chanter), a nasal resonant filter,
@@ -760,7 +765,7 @@ static const va_change_t FLUTE[] = {
 static const va_change_t BAGPIPE[] = {
     {VA_P_MONO, 1.0f}, {VA_P_OSC2_COARSE, SEMITONES(-5)}, {VA_P_OSC2_FINE, 0.52f}, {VA_P_MIX_OSC2, 0.6f},
     {VA_P_CUTOFF, 0.55f}, {VA_P_RESO, 0.55f}, {VA_P_FENV_AMT, 0.55f}, {VA_P_A_ATTACK, 0.03f}, {VA_P_A_SUSTAIN, 1.0f},
-    {VA_P_A_RELEASE, 0.25f}, {VA_P_GLIDE, 0.05f}, {VA_P_DRIVE, 0.4f}, {VA_P_PHASER_MIX, 0.25f}, {VA_P_VOLUME, 0.55f},
+    {VA_P_A_RELEASE, 0.25f}, {VA_P_GLIDE, 0.05f}, {VA_P_DRIVE, 0.4f}, {VA_P_PHASER_MIX, 0.25f}, {VA_P_VOLUME, 0.559f},
 };
 
 /* Drops: water drops: a round tone whose pitch springs up as it dies (the plop), each a little apart, an echo; played

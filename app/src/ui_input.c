@@ -29,13 +29,15 @@
  *                    CONTRACT CHANCE RATCHET OCT- OCT+   (the harder you hit, the stronger)
  *   GLO  scenes      keys 1-8 recall scene 1-8 (playing: on the next bar, cut or cross-fade: SETUP page),
  *                    keys 9-16 store scene 1-8
- *   SEQ  perform     LOOP 1 BAR 1/2 1/4 1/8 1/16 1/32, FILTER SHUT, FILTER OPEN, DELAY THROW, DRIVE, CRUSH,
+ *   SEQ  perform     LOOP 1 BAR 1/2 1/4 1/8 1/16 (1/32), SLICER, DELAY THROW (the time effects), FILTER SHUT, FILTER
+ *                    OPEN, DRIVE, CRUSH,
  *                    BREAK (drums out), SOLO, DRUMS ONLY, ALL OUT, ALL FX OFF. Taken: on, latched (again: off);
  *                    on A: hold the key = while held, tap = latched. SEQ tapped: the loop lets go (A: every loop).
  *                    Tracks taken out come back on the next bar, on the one.
- *   SEL  tracks      MUTE 1 2 3 4 (at once), (free), then valid on release (SEL let go first): CLEAR (A: every
- *                    track), QUANTIZE, CLOCK IN, CLOCK OUT, EUCLID 3..8 hits, CONTROLLER; black keys: 1st MUTE ALL 4 (A plays on), 4th A VOL
- *                    (the levels brought together over the longest loop)
+ *   SEL  tracks      MUTE 1 2 3 4 (at once), (free), A VOL (the levels brought together over the longest loop), then
+ *                    valid on release (SEL let go first): QUANTIZE, CLOCK IN, CLOCK OUT, EUCLID 3..8 hits, CONTROLLER;
+ *                    black keys: 1st MUTE ALL 4 (A plays on), 3rd LOOP EDIT (at once), 4th CLEAR TRACK (A: every
+ *                    track; valid on release)
  *
  * Hold SEL and turn PRESET: MIDI IN channel (ALL, 1..16, CLOCK only: follow a drum machine
  * without playing its notes). Key pressure (aftertouch) opens the filter and deepens the vibrato.
@@ -63,7 +65,11 @@ static const uint8_t WHITE_KEY[WHITE_KEYS] = { 0, 2, 4, 6, 7, 9, 11, 12, 14, 16,
 static const uint8_t BLACK_KEY[BLACK_KEYS] = { 1, 3, 5, 8, 10, 13, 15, 17, 20, 22, 25 };
 #define KEY_MUTE_ALL 1u                         /* SEL + the first black key (F#3): every track out / back */
 #define KEY_SAVE_ALL 13u                        /* SAVE + the sixth black key (between LOAD 8 and SAVE 1): SAVE ALL */
-#define KEY_AVOL 8u                             /* SEL + the fourth (C#4): A VOL, the levels brought together */
+#define KEY_AVOL 9u                             /* SEL + the 6th white key (D4): A VOL, the levels brought together */
+#define KEY_SEL_CLEAR 8u                        /* SEL + the 4th black key (C#4): CLEAR (its role's w: 5) */
+#define KEY_SEL_LEDIT 5u                        /* SEL + the 3rd black key (A#3): LOOP EDIT, at once (as HOME + C#4) */
+#define FX_DRUMS_ORIGINAL 5                     /* FX + the 6th / 7th white keys (D4 / E4): the drum keys ORIGINAL / GM */
+#define FX_DRUMS_GM 6
 
 /* the Creative Engine on the white keys (ARP held): operation and argument */
 static const struct {
@@ -96,10 +102,11 @@ static const struct {
     { FX_LOOP, 96, 0.0f, "LOOP 1/4" },
     { FX_LOOP, 48, 0.0f, "LOOP 1/8" },
     { FX_LOOP, 24, 0.0f, "LOOP 1/16" },
-    { FX_SLICE, 24, 0.0f, "SLICER" },         /* the whole mix cut in 1/16s */
+    { FX_SLICE, 24, 0.0f, "SLICER" },         /* the selected track cut in 1/16s, OCT- / OCT+ longer / shorter (A
+                                                 * selected: the whole mix) */
+    { FX_ROLE, OLS_ROLE_DELAY_MIX, 0.9f, "DELAY THROW" },   /* (with the loops and the slicer: the time effects) */
     { FX_ROLE, OLS_ROLE_CUTOFF, 0.04f, "FILTER SHUT" },
     { FX_ROLE, OLS_ROLE_CUTOFF, 1.0f, "FILTER OPEN" },
-    { FX_ROLE, OLS_ROLE_DELAY_MIX, 0.9f, "DELAY THROW" },
     { FX_ROLE, OLS_ROLE_DRIVE, 1.0f, "DRIVE" },
     { FX_ROLE, OLS_ROLE_CRUSH, 0.7f, "CRUSH" },
     { FX_MUTE, MUTE_DRUMS, 0.0f, "BREAK" },
@@ -229,7 +236,7 @@ static const char *armed_name(uint8_t role, int w)
         return set.wheel_pan ? "WHEEL BEND" : "WHEEL PAN";   /* what letting go switches the wheel to */
     }
     if (role == KEY_ARMED_SEL) {                /* the tracks layer's set-up keys */
-        static const char *const SEL_NAME[11] = { "CLEAR", "QUANTIZE", "CLOCK IN", "CLOCK OUT", "EUCLID 3", "EUCLID 4",
+        static const char *const SEL_NAME[11] = { "CLEAR TRACK", "QUANTIZE", "CLOCK IN", "CLOCK OUT", "EUCLID 3", "EUCLID 4",
                                                   "EUCLID 5", "EUCLID 6", "EUCLID 7", "EUCLID 8", "FULL MIDI" };
         return w >= 5 && w <= 15 ? SEL_NAME[w - 5] : (w == SEL_AVOL ? "A VOL" : "");
     }
@@ -247,7 +254,7 @@ static const char *armed_name(uint8_t role, int w)
         return t;
     }
     if (role == KEY_ARMED_FX) {
-        return w == 14 ? "DRUMS ORIGINAL" : (w == 15 ? "DRUMS GM" : (ui.on_a ? "A RESET" : "TRACK RESET"));
+        return w == FX_DRUMS_ORIGINAL ? "DRUMS ORIGINAL" : (w == FX_DRUMS_GM ? "DRUMS GM" : (ui.on_a ? "A RESET" : "TRACK RESET"));
     }
     copy_text(t, w >= 8 ? "SAVE " : "LOAD ", sizeof t);       /* GLO: LOAD 1-8 on the left, SAVE 1-8 on the right */
     int_text(w % 8 + 1, t + 5);
@@ -370,13 +377,54 @@ static void fx_engage(int w)
     case FX_MUTE:
         send_live(LIVE_HOLD_MUTE, 1, mute_mask_for(PERFORM_KEY[w].arg), 0.0f, 0);
         break;
-    case FX_SLICE:
-        slicer_on = 1;
+    case FX_SLICE:                              /* the selected track only; with A selected, the whole mix (A too) */
+        if (target == OLS_TRACK_ALL) {
+            slicer_on = 1;
+        } else {
+            send_live(LIVE_SLICE, 1, slice_len, 0.0f, target);
+        }
         break;
     default:
         break;
     }
     ui.fx_on[w] = 1;
+}
+
+/* the SLICER key held or latched: its key's index, -1 none */
+static int slicer_key(void)
+{
+    for (int w = 0; w < FX_ALL; w++) {
+        if (ui.fx_on[w] && PERFORM_KEY[w].type == FX_SLICE) {
+            return w;
+        }
+    }
+    return -1;
+}
+
+/* SLICER running, OCT- / OCT+: slices twice as long / half as long (1/4 .. 1/64), as for the loops */
+static const uint8_t SLICE_LENS[] = { 96u, 48u, 24u, 12u, 6u };
+static int slice_step(int dir)
+{
+    int i = 0;
+    while (i < 4 && SLICE_LENS[i] != slice_len) {
+        i++;
+    }
+    i += dir < 0 ? -1 : 1;
+    return i >= 0 && i < 5 ? i : -1;
+}
+
+static void slicer_resize(int dir)
+{
+    int w = slicer_key(), i = slice_step(dir);
+    if (w < 0 || i < 0) {
+        return;
+    }
+    slice_len = SLICE_LENS[i];
+    if (ui.fx_target[w] != OLS_TRACK_ALL) {
+        send_live(LIVE_SLICE, 1, slice_len, 0.0f, ui.fx_target[w]);
+    }
+    static const char *const NAME[5] = { "1/4", "1/8", "1/16", "1/32", "1/64" };
+    app_say("SLICER", NAME[i]);
 }
 
 static void fx_release(int w)
@@ -405,7 +453,11 @@ static void fx_release(int w)
         break;
     }
     case FX_SLICE:
-        slicer_on = 0;
+        if (ui.fx_target[w] == OLS_TRACK_ALL) {
+            slicer_on = 0;
+        } else {
+            send_live(LIVE_SLICE, 0, 0, 0.0f, ui.fx_target[w]);
+        }
         break;
     default:
         break;
@@ -560,7 +612,7 @@ static void layer_released(uint8_t role)
             set.wheel_pan = (uint8_t)!set.wheel_pan;   /* the pitch wheel: bend, or pan the selected track */
             settings_keep();
         } else {
-            set.drum_map = ui.key_fx[k] == 15 ? DRUM_MAP_GM : DRUM_MAP_ORIGINAL;
+            set.drum_map = ui.key_fx[k] == FX_DRUMS_GM ? DRUM_MAP_GM : DRUM_MAP_ORIGINAL;
             settings_keep();                    /* kept at once, past a power cycle (no SAVE needed) */
         }
         say_taken();
@@ -937,16 +989,22 @@ static void key_pressed(uint32_t k, uint32_t buttons)
         return;
     }
     if (button_held(buttons, BTN_TRACKS)) {
-        if (w >= 5 && button_held(held, BTN_TRACKS)) {
-            arm_key(k, w, KEY_ARMED_SEL);       /* CLEAR .. FULL MIDI: SEL let go first takes it (valid on release) */
-        } else if (k == KEY_AVOL && button_held(held, BTN_TRACKS)) {
-            arm_key(k, SEL_AVOL, KEY_ARMED_SEL);   /* A VOL too */
-        } else if (w >= 0) {
-            track_key(w);
+        int sw = k == KEY_SEL_CLEAR ? 5 : (k == KEY_AVOL ? -1 : w);   /* (CLEAR on the 4th black key, A VOL in
+                                                 * its place on the 6th white key) */
+        if (k == KEY_AVOL) {
+            if (button_held(held, BTN_TRACKS)) {
+                arm_key(k, SEL_AVOL, KEY_ARMED_SEL);   /* A VOL: SEL let go first takes it */
+            } else {
+                avol_key();
+            }
+        } else if (k == KEY_SEL_LEDIT) {
+            home_key(HOME_LOOP_EDIT);           /* LOOP EDIT at once (a copy of HOME + the 4th black key) */
+        } else if (sw >= 5 && button_held(held, BTN_TRACKS)) {
+            arm_key(k, sw, KEY_ARMED_SEL);      /* CLEAR .. FULL MIDI: SEL let go first takes it (valid on release) */
+        } else if (sw >= 0) {
+            track_key(sw);
         } else if (k == KEY_MUTE_ALL) {
             mute_all_key();
-        } else if (k == KEY_AVOL) {
-            avol_key();
         }
         return;
     }
@@ -962,7 +1020,7 @@ static void key_pressed(uint32_t k, uint32_t buttons)
     if (button_held(held, BTN_PAGES)) {         /* FX + white key 1 / 15 / 16, FX let go first: the line's reset,
                                                  * the drum keys original / GM */
         ui.pages_used = 1;
-        if (w == 0 || w == 14 || w == 15 || (APP_WHEEL && w == 13)) {
+        if (w == 0 || w == FX_DRUMS_ORIGINAL || w == FX_DRUMS_GM || (APP_WHEEL && w == 13)) {
             arm_key(k, w, KEY_ARMED_FX);
         }
         return;
@@ -1058,7 +1116,8 @@ static void change_octave(int32_t delta)
     app_say("OCTAVE", t);
 }
 
-static void take_end(void);                     /* (below) */
+static void take_end(void);
+static void hover_cancel(void);                     /* (below) */
 
 static void button_pressed(uint32_t b, uint32_t buttons)
 {
@@ -1115,12 +1174,19 @@ static void button_pressed(uint32_t b, uint32_t buttons)
         app_say("METRONOME", ui.metronome ? "ON" : "OFF");
         return;
     }
+    if (ui.hovering && (b == B_OCTDN || b == B_OCTUP)) {
+        hover_cancel();                         /* SEL + SELECT pointing at a line: OCT- / OCT+ give it up */
+        return;
+    }
     switch (b) {
     case B_OCTDN:
         if (choosing_sound()) {
             preset_turn(-1, 1);                 /* a sound being chosen: the previous family */
         } else if (running_loop() >= 0) {
             loop_resize(-1);                    /* a loop runs: OCT- makes it twice as long */
+            ui.seq_used = 1;
+        } else if (slicer_key() >= 0) {
+            slicer_resize(-1);                  /* the slicer: slices twice as long */
             ui.seq_used = 1;
         } else {
             change_octave(-1);
@@ -1131,6 +1197,9 @@ static void button_pressed(uint32_t b, uint32_t buttons)
             preset_turn(1, 1);                  /* ...the next one */
         } else if (running_loop() >= 0) {
             loop_resize(1);                     /* ...OCT+ half as long */
+            ui.seq_used = 1;
+        } else if (slicer_key() >= 0) {
+            slicer_resize(1);                   /* ...half as long */
             ui.seq_used = 1;
         } else {
             change_octave(1);
@@ -1477,6 +1546,34 @@ static void select_line(int32_t to)
     app_say(t, sound_name(set.preset[track]));
 }
 
+/* SEL held + SELECT: the title says what letting SEL go will do (on A: swap A with the track pointed at; else go
+ * to that line); OCT- / OCT+ give it up, and SELECT starts again while SEL is held */
+static void hover_title(void)
+{
+    char t[12] = "A <> T";
+    if (ui.on_a && ui.hover < TRACKS) {
+        int_text(ui.hover + 1, t + 6);
+        app_say("SWAP TRACK", t);
+    } else {
+        copy_text(t, ui.hover < TRACKS ? "T" : "A", sizeof t);
+        if (ui.hover < TRACKS) {
+            int_text(ui.hover + 1, t + 1);
+        }
+        app_say("SELECT LINE", t);
+    }
+    ui.msg_style = MSG_ARMED;
+}
+
+static void hover_cancel(void)
+{
+    ui.hovering = 0;
+    ui.hover = ui.on_a ? TRACKS : mirror.track;
+    app_say(ui.on_a ? "SWAP TRACK" : "SELECT LINE", "CANCELLED");
+    ui.msg_style = MSG_NOT_TAKEN;
+    ui.msg_until = plat_ms() + 700u;
+    ui.redraw = 1;
+}
+
 static void scan_track_encoder(uint32_t buttons)
 {
     int32_t turn = detents(EN_SELECT);
@@ -1494,6 +1591,7 @@ static void scan_track_encoder(uint32_t buttons)
         ui.hover = (uint8_t)to;
         ui.hovering = 1;
         ui.redraw = 1;
+        hover_title();
         return;
     }
     select_line(to);
@@ -1989,13 +2087,13 @@ static uint32_t keys_armable(uint32_t buttons)
         return ui.on_a ? 0u : white_mask(0, 5);   /* the loops (the effects act at once) */
     }
     if (button_held(buttons, BTN_TRACKS)) {
-        return white_mask(5, 16) | 1u << KEY_AVOL;
+        return white_mask(6, 16) | 1u << KEY_AVOL | 1u << KEY_SEL_CLEAR;
     }
     if (button_held(buttons, B_HOME)) {
         return white_mask(0, 3) | HOME_SETUP_KEYS;
     }
     if (button_held(buttons, BTN_PAGES)) {
-        return white_mask(0, 1) | white_mask(APP_WHEEL ? 13 : 14, 16);
+        return white_mask(0, 1) | white_mask(FX_DRUMS_ORIGINAL, FX_DRUMS_GM + 1) | (APP_WHEEL ? white_mask(13, 14) : 0u);
     }
     return 0;
 }
@@ -2022,7 +2120,8 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
         }
     } else if (button_held(buttons, BTN_TRACKS)) {
         int all_out = 1, fast = (plat_ms() / 125u) & 1u;
-        *dim = (white_mask(0, 16) & ~(1u << WHITE_KEY[4])) | (1u << KEY_MUTE_ALL) | (1u << KEY_AVOL);
+        *dim = (white_mask(0, 16) & ~(1u << WHITE_KEY[4])) | (1u << KEY_MUTE_ALL) | (1u << KEY_AVOL)
+               | (1u << KEY_SEL_CLEAR);
         for (int t = 0; t < TRACKS; t++) {      /* a track playing: lit; muted: fast blink */
             if (!live.track[t].mute) {
                 *lit |= 1u << WHITE_KEY[t];
@@ -2040,6 +2139,9 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
         }
         if (avol.on) {                          /* A VOL running: lit */
             *lit |= 1u << KEY_AVOL;
+        }
+        if (!ui.on_a) {
+            *lit |= 1u << KEY_SEL_LEDIT;        /* LOOP EDIT: acts at once (violet) */
         }
         if (live.quantize) {
             *lit |= 1u << WHITE_KEY[6];
@@ -2073,8 +2175,9 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
     } else if (button_held(buttons, B_REC) && !ui.on_a) {   /* REC held: the leftmost white key RESETs the track */
         *dim = white_mask(0, 1);
     } else if (button_held(buttons, BTN_PAGES)) {
-        *dim = white_mask(0, 1) | white_mask(APP_WHEEL ? 13 : 14, 16);   /* the line's reset; the wheel; the drum keys */
-        *lit |= 1u << WHITE_KEY[set.drum_map == DRUM_MAP_GM ? 15 : 14];
+        *dim = white_mask(0, 1) | white_mask(FX_DRUMS_ORIGINAL, FX_DRUMS_GM + 1) | (APP_WHEEL ? white_mask(13, 14) : 0u);
+                                                 /* the line's reset; the drum keys; the wheel */
+        *lit |= 1u << WHITE_KEY[set.drum_map == DRUM_MAP_GM ? FX_DRUMS_GM : FX_DRUMS_ORIGINAL];
         if (APP_WHEEL && set.wheel_pan) {
             *lit |= 1u << WHITE_KEY[13];        /* the wheel pans */
         }
@@ -2110,11 +2213,11 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
 
 static uint32_t button_lit(uint32_t buttons)
 {
-    uint32_t lit = buttons | (1u << BTN_PAGES) | (1u << BTN_TRACKS);   /* FX and SEL always lit */
+    uint32_t lit = buttons | (1u << BTN_PAGES) | (1u << BTN_TRACKS) | (1u << BTN_PERFORM);   /* FX, SEL and SEQ
+                                                 * always lit (SAVE no longer lit for something to save: SAVE + the
+                                                 * SAVE ALL key blinks then) */
     if (settings_saving()) {
         lit = (plat_ms() / 125u) & 1u ? lit | (1u << B_SAVE) : lit & ~(1u << B_SAVE);   /* saving: SAVE blinks */
-    } else if (set_dirty || live.changes != saved_changes) {
-        lit |= 1u << B_SAVE;                    /* something to save (not a mute: that is played) */
     }
     if (live.clock.running) {
         lit |= 1u << B_PLAY;
@@ -2148,8 +2251,9 @@ static uint32_t button_lit(uint32_t buttons)
             lit = (plat_ms() / 60u) & 1u ? lit | (1u << BTN_PERFORM) : lit & ~(1u << BTN_PERFORM);
             break;                                /* a loop runs: SEQ flickers fast */
         }
-        if (ui.fx_latched[w] && ((plat_ms() / 125u) & 1u)) {
-            lit |= 1u << BTN_PERFORM;             /* something latched: SEQ (perform) blinks */
+        if (ui.fx_latched[w]) {                 /* something latched: SEQ (perform) blinks */
+            lit = (plat_ms() / 125u) & 1u ? lit | (1u << BTN_PERFORM) : lit & ~(1u << BTN_PERFORM);
+            break;
         }
     }
     return lit;
@@ -2171,6 +2275,11 @@ static void show_lights(uint32_t keys, uint32_t buttons)
         lit_b &= ~oct;
         dim_b &= ~oct;
         lit_b |= (loop_step(loop, -1) >= 0 ? 1u << B_OCTDN : 0u) | (loop_step(loop, 1) >= 0 ? 1u << B_OCTUP : 0u);
+    } else if (slicer_key() >= 0) {             /* the slicer: OCT- / OCT+ = longer / shorter slices, lit when they can */
+        uint32_t oct = (1u << B_OCTDN) | (1u << B_OCTUP);
+        lit_b &= ~oct;
+        dim_b &= ~oct;
+        lit_b |= (slice_step(-1) >= 0 ? 1u << B_OCTDN : 0u) | (slice_step(1) >= 0 ? 1u << B_OCTUP : 0u);
     }
     uint32_t play = 1u << B_PLAY;
     key_lights(keys, buttons, &lit_k, &dim_k, 0);

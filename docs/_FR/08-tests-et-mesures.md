@@ -39,6 +39,17 @@ build/ols_sim sweep x.wav    # balayage 50 Hz -> 15 kHz : écouter l'aliasing
 make bench                   # coût CPU par cas, RAM statique
 ```
 
+## Les niveaux des sons
+
+`python3 tools/level_sounds.py` règle le VOLUME de chaque son de synthé pour qu'ils sonnent à peu près aussi fort ;
+`--check` mesure seulement. Chaque son joue la même phrase (Do3 Sol3 Do4 Sol4, 1 s chacune, vélocité 100) ; son
+intensité est un niveau pondéré K (la courbe de l'oreille de l'UIT-R BS.1770) sur des fenêtres de 100 ms, chaque note
+comptée par sa fenêtre la plus forte (un pluck par son attaque, une nappe une fois montée), moyenne en puissance des
+quatre notes. La cible est la médiane des sons ; un son ne monte pas au-delà de 3 dB sous le maximum en crête (la
+sortie est une tanh). Trois passes, car la tanh plie les sons forts. À relancer après avoir ajouté ou changé un son.
+Mesuré le 20/11/2026 : 50 des 59 sons à 0,1 dB de la cible (-17,6 dB) ; les autres (CLICK, BLEEP, DUB CHORD, DROPS,
+NOISE, WIND, RUBBER, VINTAGE KEYS, RISER) sont tenus par leur crête ou leur VOLUME au maximum.
+
 ## Mesures sur le FM-1 réel (V0.1, 17/11/2026)
 
 | Preset | À vide | 4 touches | Remarque |

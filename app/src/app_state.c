@@ -95,6 +95,8 @@ typedef char sound_order_complete[(OLS_SOUND_COUNT == 65) ? 1 : -1];   /* a soun
 static engine_va_t lv PLAT_POOL;               /* the live voice: a VA engine without delay (the RAM goes to the loops);
                                                 * it renders into the Live Core's chunk buffers, free once it has rendered */
 static volatile float lv_gain = 1.0f;
+static volatile uint8_t slice_len = 24u;       /* PERFORM SLICER: ticks a slice (24 = 1/16), OCT- / OCT+ while it runs */
+static volatile uint8_t out_hold;               /* 1: the output fades to silence (before a SAVE that stops it) */
 static volatile uint8_t slicer_on;              /* PERFORM SLICER: the whole mix gated in 1/16s (audio side reads it) */          /* its level (LIVE page, LEVEL with A selected) */
 
 /* the arpeggiator of the live line: the keys held, played one at a time on the 16ths */

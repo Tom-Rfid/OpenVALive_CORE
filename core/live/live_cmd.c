@@ -221,6 +221,14 @@ OLS_COLD void ols_live_command(ols_live_t *L, ols_live_cmd_t cmd, uint8_t b, uin
     case LIVE_HOLD_MUTE:
         ols_live_hold_mute(L, (uint8_t)id, b);
         break;
+    case LIVE_SLICE: {
+        uint8_t mask = target == OLS_TRACK_ALL ? 0xFFu : (target < OLS_TRACKS ? (uint8_t)(1u << target) : 0u);
+        L->slice_mask = b ? (uint8_t)(L->slice_mask | mask) : (uint8_t)(L->slice_mask & ~mask);
+        if (b && id >= 2u && id <= 192u) {
+            L->slice_len = (uint8_t)id;
+        }
+        break;
+    }
     case LIVE_XFADE:
         L->xfade_bars = (uint8_t)(b > 8u ? 8u : b);
         break;

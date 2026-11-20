@@ -39,6 +39,17 @@ build/ols_sim sweep x.wav    # 50 Hz -> 15 kHz sweep: listen to the aliasing
 make bench                   # CPU cost per case, static RAM
 ```
 
+## The sounds' levels
+
+`python3 tools/level_sounds.py` sets every synth sound's VOLUME so they all sound about as loud; `--check` only
+measures. Each sound plays the same phrase (C3 G3 C4 G4, 1 s each, velocity 100); its loudness is a K-weighted level
+(the ear's curve of ITU-R BS.1770) in 100 ms windows, each note counted by its loudest window (a pluck by its strike,
+a pad once swelled), the four notes power-averaged. The target is the sounds' median; a sound goes no louder than
+3 dB under full scale at its peak (the output is a tanh). Three rounds, as the tanh bends the loud ones. Run it after
+adding or changing a sound. Measured 20 Nov 2026: 50 of the 59 sounds within 0.1 dB of the target (-17.6 dB); the
+others (CLICK, BLEEP, DUB CHORD, DROPS, NOISE, WIND, RUBBER, VINTAGE KEYS, RISER) are held by their peaks or their
+VOLUME at the top.
+
 ## Measurements on the real FM-1 (V0.1, 2026-11-17)
 
 | Preset | Idle | 4 keys | Note |

@@ -558,13 +558,6 @@ static void settings_load(void)
 }
 
 /* A setting made to last (the drum keys, the keys on screen): kept at once, without SAVE */
-static void settings_keep(void)
-{
-    if (plat_store_save(OBJ_SETTINGS, &set, sizeof set) == 0) {
-        stored_hash[STORED_SETTINGS] = bytes_hash(&set, sizeof set);
-    }
-}
-
 /* SAVE: the settings and the whole live set as it is heard (MIDI changes included). */
 /* A target whose flash writes each pause the audio (the SMK-37) wraps the whole SAVE in one pause: one short clean
  * silence instead of a choppy one */
@@ -572,6 +565,38 @@ static void settings_keep(void)
 #define APP_SAVE_BEGIN()
 #define APP_SAVE_END()
 #endif
+
+/* A setting made to last (HELP AT START, the drum keys...): written at once, the audio paused around it as SAVE does;
+ * a write refused (the flash busy) is tried again a little later, up to KEEP_TRIES times (keep_tick, every frame) */
+#define KEEP_TRIES 8u
+#define KEEP_RETRY_MS 300u
+static uint8_t keep_left;
+static uint32_t keep_at;
+
+static int keep_now(void)
+{
+    APP_SAVE_BEGIN();
+    int r = plat_store_save(OBJ_SETTINGS, &set, sizeof set);
+    APP_SAVE_END();
+    if (r == 0) {
+        stored_hash[STORED_SETTINGS] = bytes_hash(&set, sizeof set);
+    }
+    return r == 0;
+}
+
+static void settings_keep(void)
+{
+    keep_left = keep_now() ? 0u : KEEP_TRIES;
+    keep_at = plat_ms();
+}
+
+static void keep_tick(void)
+{
+    if (keep_left && plat_ms() - keep_at >= KEEP_RETRY_MS) {
+        keep_left = keep_now() ? 0u : (uint8_t)(keep_left - 1u);
+        keep_at = plat_ms();
+    }
+}
 
 /* SAVE in steps, a fifth of a second apart (about a second in all): the settings, the live set (one or two objects),
  * the USER sounds, the map; each only if it changed. A flash write holds the CPU (and, on some targets, the audio)
@@ -604,17 +629,40 @@ static void settings_save_start(void)
     }
     saving.step = 1;
     saving.ok = 1;
+#ifdef APP_SAVE_ONE_GO
+    out_hold = 1;                               /* the sound fades out first (one frame or so), the writes come */
+    saving.at = plat_ms() - SAVE_STEP_MS + 40u; /* after it, all in one go: one clean short silence, then it */
+#else                                           /* fades back in */
     saving.at = plat_ms() - SAVE_STEP_MS;      /* the first step at once */
+#endif
 }
 
 static int settings_saving(void) { return saving.step != 0; }
 
 /* from app_frame: the next step when its time comes; 1 when the save just ended (saving.ok: how) */
+static int settings_save_step(void);
 static int settings_save_tick(void)
 {
     if (!saving.step || plat_ms() - saving.at < SAVE_STEP_MS) {
         return 0;
     }
+#ifdef APP_SAVE_ONE_GO                          /* (a target whose flash writes stop the sound anyway: the SMK-37) */
+    int done = 0;
+    APP_SAVE_BEGIN();
+    while (!done) {
+        done = settings_save_step();
+    }
+    APP_SAVE_END();
+    out_hold = 0;
+    return 1;
+#else
+    return settings_save_step();
+#endif
+}
+
+/* one step of SAVE: 1 when it is over */
+static int settings_save_step(void)
+{
     saving.at = plat_ms();
     switch (saving.step) {
     case 1:

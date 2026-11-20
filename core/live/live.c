@@ -401,6 +401,18 @@ static float follow_source(ols_live_t *L, uint32_t n)
     return 1.0f - L->pump * 0.85f * amount;
 }
 
+/* the slicer: how far track t is cut at the end of this chunk (the second half of every slice; chunks end on ticks,
+ * so the edges fall in time), moved a part of the way each chunk: ~2 ms an edge */
+static float slice_cut_next(ols_live_t *L, int t, uint32_t n)
+{
+    uint32_t tick = L->clock.running ? L->clock.tick : L->clock.free_tick, len = L->slice_len ? L->slice_len : 24u;
+    float target = ((L->slice_mask >> t) & 1u) && (tick % len) >= len / 2u ? 0.95f : 0.0f;
+    float k = (float)n * 0.012f;
+    float c = L->slice_cut[t];
+    c += (target - c) * (k > 1.0f ? 1.0f : k);
+    return c < 0.0005f && target == 0.0f ? 0.0f : c;
+}
+
 static void render_tracks(ols_live_t *L, float *out_l, float *out_r, uint32_t n)
 {
     for (uint32_t i = 0; i < n; i++) {
@@ -411,8 +423,9 @@ static void render_tracks(ols_live_t *L, float *out_l, float *out_r, uint32_t n)
     float duck0 = L->duck_gain, duck1 = 1.0f;
     if (source >= 0) {
         ols_track_t *tr = &L->track[source];
-        float g = tr->gain * L->master;
-        mix_track(L, tr, out_l, out_r, n, g, g);
+        float g = tr->gain * L->master, c0 = L->slice_cut[source], c1 = slice_cut_next(L, source, n);
+        L->slice_cut[source] = c1;
+        mix_track(L, tr, out_l, out_r, n, g * (1.0f - c0), g * (1.0f - c1));
         duck1 = follow_source(L, n);
     }
     for (int t = 0; t < L->track_count; t++) {
@@ -420,8 +433,9 @@ static void render_tracks(ols_live_t *L, float *out_l, float *out_r, uint32_t n)
             continue;
         }
         ols_track_t *tr = &L->track[t];
-        float g = tr->gain * L->master;
-        mix_track(L, tr, out_l, out_r, n, g * duck0, g * duck1);
+        float g = tr->gain * L->master, c0 = L->slice_cut[t], c1 = slice_cut_next(L, t, n);
+        L->slice_cut[t] = c1;
+        mix_track(L, tr, out_l, out_r, n, g * duck0 * (1.0f - c0), g * duck1 * (1.0f - c1));
     }
     L->duck_gain = duck1;
 }
