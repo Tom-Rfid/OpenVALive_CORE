@@ -47,6 +47,7 @@
 #define FIRST_KEY_NOTE 53           /* key 0 is F3 */
 #define ENCODER_STEP (1.0f / 64.0f) /* one detent = 1/64 of the range */
 #define WHITE_KEYS 16
+#define SEL_AVOL 16                             /* SEL + A VOL armed (valid on release): its role's w */
 /* HOME + white key, HOME let go first: the set-up screens, from the 2nd F (white key 8: F4 on the FM-1), clear of the
  * right hand on the buttons */
 #define HOME_SOUNDS 7
@@ -212,7 +213,7 @@ static const char *armed_name(uint8_t role, int w)
     if (role == KEY_ARMED_SEL) {                /* the tracks layer's set-up keys */
         static const char *const SEL_NAME[11] = { "CLEAR", "QUANTIZE", "CLOCK IN", "CLOCK OUT", "EUCLID 3", "EUCLID 4",
                                                   "EUCLID 5", "EUCLID 6", "EUCLID 7", "EUCLID 8", "FULL MIDI" };
-        return w >= 5 && w <= 15 ? SEL_NAME[w - 5] : "";
+        return w >= 5 && w <= 15 ? SEL_NAME[w - 5] : (w == SEL_AVOL ? "A VOL" : "");
     }
     if (role == KEY_ARMED_FX) {
         return w == 14 ? "DRUMS ORIGINAL" : (w == 15 ? "DRUMS GM" : (ui.on_a ? "A RESET" : "TRACK RESET"));
@@ -267,6 +268,8 @@ static void creative_key(uint32_t k, int w, int armable)
     }
     creative_gesture(w, touch_vel(k));
 }
+
+static void avol_key(void);
 
 static void scene_key(int w)
 {
@@ -501,6 +504,8 @@ static void layer_released(uint8_t role)
             scene_key(ui.key_fx[k]);
         } else if (role == KEY_ARMED_HOME) {
             home_key(ui.key_fx[k]);
+        } else if (role == KEY_ARMED_SEL && ui.key_fx[k] == SEL_AVOL) {
+            avol_key();
         } else if (role == KEY_ARMED_SEL) {
             track_key(ui.key_fx[k]);
         } else if (ui.key_fx[k] == 0) {
@@ -890,7 +895,9 @@ static void key_pressed(uint32_t k, uint32_t buttons)
     }
     if (button_held(buttons, BTN_TRACKS)) {
         if (w >= 5 && button_held(held, BTN_TRACKS)) {
-            arm_key(k, w, KEY_ARMED_SEL);       /* CLEAR .. CONTROLLER: SEL let go first takes it (valid on release) */
+            arm_key(k, w, KEY_ARMED_SEL);       /* CLEAR .. FULL MIDI: SEL let go first takes it (valid on release) */
+        } else if (k == KEY_AVOL && button_held(held, BTN_TRACKS)) {
+            arm_key(k, SEL_AVOL, KEY_ARMED_SEL);   /* A VOL too */
         } else if (w >= 0) {
             track_key(w);
         } else if (k == KEY_MUTE_ALL) {
@@ -1158,11 +1165,8 @@ static void save_released(void)
     if (ui.save_used) {
         return;
     }
-    if (settings_save()) {
-        app_say("SAVED", "LIVE SET");
-    } else {
-        app_say("SAVE", "FAILED");
-    }
+    settings_save_start();                      /* in steps over a second (app_frame) */
+    app_say("SAVING", "LIVE SET");
 }
 
 /* ARP tapped with A selected (no key, short): A's arpeggio, OFF UP DOWN UP/DOWN RANDOM in turn */
@@ -1797,17 +1801,44 @@ static uint32_t white_mask(int from, int to)
     return m;
 }
 
+/* the keys that, under the layer held, are valid on release (the button let go first takes them): pink on a screen
+ * keyboard */
+static uint32_t keys_armable(uint32_t buttons)
+{
+    if (button_held(buttons, B_GLO)) {
+        return white_mask(0, 16);
+    }
+    if (button_held(buttons, B_ARP)) {
+        return ui.on_a ? 0u : white_mask(0, 15);
+    }
+    if (button_held(buttons, BTN_PERFORM)) {
+        return ui.on_a ? 0u : white_mask(0, FX_KEYS);
+    }
+    if (button_held(buttons, BTN_TRACKS)) {
+        return white_mask(5, 16) | 1u << KEY_AVOL;
+    }
+    if (button_held(buttons, B_HOME)) {
+        return white_mask(0, 3) | white_mask(HOME_SOUNDS, HOME_OPTIONS + 1);
+    }
+    if (button_held(buttons, BTN_PAGES)) {
+        return white_mask(0, 1) | white_mask(APP_WHEEL ? 13 : 14, 16);
+    }
+    return 0;
+}
+
 /* the buttons that hold a layer on the keys */
 #define LAYER_BUTTONS_ALL ((1u << B_ARP) | (1u << B_GLO) | (1u << BTN_PERFORM) | (1u << BTN_TRACKS) | (1u << B_SAVE) \
                            | (1u << B_HOME) | (1u << BTN_PAGES))
 
 /* a breath, 0 .. 256 and back over a second (a smoothstep each way: close to a sine, without one) */
-static uint32_t breath_256(void)
+static uint32_t breath_over(uint32_t period_ms)
 {
-    uint32_t t = plat_ms() % 1000u;
-    uint32_t x = t < 500u ? t * 256u / 500u : (1000u - t) * 256u / 500u;    /* 0 .. 256 .. 0 */
+    uint32_t half = period_ms / 2u, t = plat_ms() % period_ms;
+    uint32_t x = t < half ? t * 256u / half : (period_ms - t) * 256u / half;   /* 0 .. 256 .. 0 */
     return x * x * (768u - 2u * x) / 65536u;                               /* 3x^2 - 2x^3, in 256ths */
 }
+
+static uint32_t breath_256(void) { return breath_over(1000u); }
 
 /* the keys' lights: lit, dim (it does something now), and which of them blink (*blink, may be 0) */
 static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t *dim, uint32_t *blink_mask)
@@ -1875,11 +1906,10 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
             }
         }
     } else if (button_held(buttons, B_HOME)) {
-        /* PANIC, RESTART, STOP lit; the three set-up screens (SOUNDS, LOOP EDIT, OPTIONS) blink slowly, violet on a
-         * screen keyboard; a key held: lit */
+        /* PANIC, RESTART, STOP and the three set-up screens (SOUNDS, LOOP EDIT, OPTIONS: blue on a screen keyboard)
+         * offered, breathing, as every key a layer offers */
         ui.keys_conf = white_mask(HOME_SOUNDS, HOME_OPTIONS + 1);
-        *lit |= white_mask(0, 3);
-        *dim = white_mask(0, 3) | ui.keys_conf;     /* (the set-up ones breathe, as every key a layer offers) */
+        *dim = white_mask(0, 3) | ui.keys_conf;
     } else if (button_held(buttons, BTN_PAGES)) {
         *dim = white_mask(0, 1) | white_mask(APP_WHEEL ? 13 : 14, 16);   /* the line's reset; the wheel; the drum keys */
         *lit |= 1u << WHITE_KEY[set.drum_map == DRUM_MAP_GM ? 15 : 14];
@@ -1913,12 +1943,15 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
 
 static uint32_t button_lit(uint32_t buttons)
 {
-    uint32_t lit = buttons;
-    if (set_dirty || live.changes != saved_changes) {
-        lit |= 1u << B_SAVE;
+    uint32_t lit = buttons | (1u << BTN_PAGES) | (1u << BTN_TRACKS);   /* FX and SEL always lit */
+    if (settings_saving()) {
+        lit = (plat_ms() / 125u) & 1u ? lit | (1u << B_SAVE) : lit & ~(1u << B_SAVE);   /* saving: SAVE blinks */
+    } else if (set_dirty || live.changes != saved_changes) {
+        lit |= 1u << B_SAVE;                    /* something to save (not a mute: that is played) */
     }
     if (live.clock.running) {
         lit |= 1u << B_PLAY;
+        lit |= 1u << B_EDIT;                    /* playing: EDIT (CAPTURE) offered */
     }
     if (live.recording) {
         lit |= 1u << B_REC;
@@ -1978,15 +2011,16 @@ static void show_lights(uint32_t keys, uint32_t buttons)
     plat_play_red(live.recording);
     plat_lights(lit_b, lit_k, dim_b, dim_k & ~lit_k, 1);
 #ifdef APP_DIM_LEVELS
-    /* a layer button held: the keys it offers breathe (up and down over a second: the dim pulse swept, the mid level
-     * at the top); otherwise the dim ones steady at the brightest glow */
+    /* ARP, SEQ and GLO (the layers) breathe on the dim level, over 2 s; the other buttons offered stay at the mid
+     * level. A layer button held: the keys it offers breathe too, over a second (the mid level at the top) */
+    uint32_t breathers = dim_b & ((1u << B_ARP) | (1u << BTN_PERFORM) | (1u << B_GLO));
     if (buttons & LAYER_BUTTONS_ALL) {
         uint32_t b = breath_256();
         plat_dim_ns(500u + 3500u * b / 256u);
-        plat_lights_mid(0, b > 170u ? dim_k & ~lit_k : 0u);
+        plat_lights_mid(dim_b & ~breathers, b > 170u ? dim_k & ~lit_k : 0u);
     } else {
-        plat_dim_ns(4000u);
-        plat_lights_mid(0, 0);
+        plat_dim_ns(500u + 3500u * breath_over(2000u) / 256u);
+        plat_lights_mid(dim_b & ~breathers, dim_k & ~lit_k);
     }
 #endif
 }

@@ -161,6 +161,12 @@ void app_frame(void)
     }
     ui.activity = 0;
     input();
+    if (settings_save_tick()) {                   /* SAVE ended (it goes in steps) */
+        app_say(saving.ok ? "SAVED" : "SAVE", saving.ok ? "LIVE SET" : "FAILED");
+        if (saving.ok) {
+            ui.msg_style = MSG_TAKEN;
+        }
+    }
     if (ui.splash_until) {                        /* the boot screen: until its time, or the first touch */
         ui.touched |= ui.activity;
         if (now < ui.splash_until && (!ui.touched || ui.splash_until - now > 2500u)) {   /* (the first 0.5 s: noise;

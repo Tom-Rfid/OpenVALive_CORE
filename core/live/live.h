@@ -176,7 +176,7 @@ typedef struct {
     float swing;               /* 0..1: 1 pushes every off-beat 16th by two thirds of a step */
     float master;              /* mix gain */
     uint32_t rng;
-    uint32_t changes;          /* counts every change of patterns, mutes or scenes (UI: redraw, save) */
+    uint32_t changes;          /* counts every change to save: patterns, sounds, scenes (not mutes, the track chosen, the transport) */
 
     /* capture: the last notes played, always recorded */
     ols_capture_note_t cap[OLS_CAPTURE_NOTES];

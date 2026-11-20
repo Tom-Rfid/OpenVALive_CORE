@@ -108,7 +108,6 @@ OLS_COLD void ols_live_command(ols_live_t *L, ols_live_cmd_t cmd, uint8_t b, uin
                 L->rec_from = (L->metronome && !L->clock.external) ? OLS_TICKS_PER_BAR : 0u;
             }
         }
-        L->changes++;
         break;
     case LIVE_CAPTURE:
         ols_live_capture(L);
@@ -130,7 +129,6 @@ OLS_COLD void ols_live_command(ols_live_t *L, ols_live_cmd_t cmd, uint8_t b, uin
         if (L->clock.running && !L->clock.external) {
             ols_live_play(L);                   /* tick 0 again; MIDI START to what follows us */
         }
-        L->changes++;
         break;
     case LIVE_PUNCH:
         if (b && !L->recording && L->clock.running) {
@@ -144,7 +142,6 @@ OLS_COLD void ols_live_command(ols_live_t *L, ols_live_cmd_t cmd, uint8_t b, uin
             L->recording = 0;
             L->punch = 0;
         }
-        L->changes++;
         break;
     case LIVE_UNDO:
         ols_live_undo_track(L, target);

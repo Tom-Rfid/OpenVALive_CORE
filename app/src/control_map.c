@@ -351,7 +351,8 @@ static void map_load(void)
 
 static int map_save(void)
 {
-    if (plat_store_save(OBJ_MAP, &cmap, sizeof cmap) != 0) {
+    static uint32_t stored;                     /* (what the flash holds: written only when it changed) */
+    if (!store_if_changed(OBJ_MAP, &cmap, sizeof cmap, &stored)) {
         return 0;
     }
     mapui.dirty = 0;

@@ -6,6 +6,16 @@
 
 
 
+## 20 November 2026 — SAVE in steps, lights by meaning
+
+- SAVE goes in steps a fifth of a second apart (settings, live set, USER sounds, map), each written only if it
+  changed: no long freeze of the sound and the screen. SAVE blinks while it saves.
+- A mute, the track chosen, RESTART, REC / punch no longer count as changes to save (`live.changes`): SAVE no longer
+  lights after a mute.
+- Lights: FX and SEL lit; ARP, SEQ, GLO breathe over 2 s (the other buttons offered at the mid level); EDIT lit while
+  playing. Screen keyboard: yellow pressed, violet on, mint offered, pink valid on release, mint / pink both, blue
+  set-up screens, red muted. A VOL valid on release.
+
 ## 20 November 2026 — LOAD / SAVE keys, the screen keyboard shows what is pressed, pad kit, SINGLE / LOOP clips
 
 - GLO and SAVE layers alike: white keys 1–8 **LOAD** (scenes; USER sounds onto the selected line), 9–16 **SAVE**

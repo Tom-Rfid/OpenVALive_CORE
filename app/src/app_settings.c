@@ -440,29 +440,21 @@ static uint32_t project_serialise(void)
     return 0;
 }
 
-static int project_save(void)
-{
-    uint32_t size = project_serialise();
-    if (size == 0u) {
-        return 0;
-    }
-    project_buf[0] = (uint8_t)size;
-    project_buf[1] = (uint8_t)(size >> 8);
-
-    uint32_t in_a = size < CHUNK_A_DATA ? size : CHUNK_A_DATA;
-    if (plat_store_save(OBJ_PROJECT_A, project_buf, in_a + 2u) != 0) {
-        return 0;
-    }
-    if (size > CHUNK_A_DATA) {
-        /* chunk B is the rest, which starts right after chunk A in the buffer */
-        if (plat_store_save(OBJ_PROJECT_B, project_buf + PLAT_STORE_MAX, size - CHUNK_A_DATA) != 0) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
 /* ------------------------------------------------------------ boot and SAVE */
+
+/* what each object held when last read or written (FNV-1a): SAVE writes only what changed */
+enum { STORED_SETTINGS, STORED_PROJECT, STORED_USER, STORED_COUNT };
+static uint32_t stored_hash[STORED_COUNT];
+
+static uint32_t bytes_hash(const void *p, uint32_t n)
+{
+    const uint8_t *b = (const uint8_t *)p;
+    uint32_t h = 2166136261u;
+    for (uint32_t i = 0; i < n; i++) {
+        h = (h ^ b[i]) * 16777619u;
+    }
+    return h;
+}
 
 /* At boot, before audio starts. */
 static void settings_load(void)
@@ -476,12 +468,16 @@ static void settings_load(void)
     map_load();
     project_load();
     saved_changes = live.changes;
+    stored_hash[STORED_SETTINGS] = bytes_hash(&set, sizeof set);
+    stored_hash[STORED_USER] = bytes_hash(user_sounds, sizeof user_sounds);
 }
 
 /* A setting made to last (the drum keys, the keys on screen): kept at once, without SAVE */
 static void settings_keep(void)
 {
-    (void)plat_store_save(OBJ_SETTINGS, &set, sizeof set);
+    if (plat_store_save(OBJ_SETTINGS, &set, sizeof set) == 0) {
+        stored_hash[STORED_SETTINGS] = bytes_hash(&set, sizeof set);
+    }
 }
 
 /* SAVE: the settings and the whole live set as it is heard (MIDI changes included). */
@@ -492,16 +488,93 @@ static void settings_keep(void)
 #define APP_SAVE_END()
 #endif
 
-static int settings_save(void)
+/* SAVE in steps, a fifth of a second apart (about a second in all): the settings, the live set (one or two objects),
+ * the USER sounds, the map; each only if it changed. A flash write holds the CPU (and, on some targets, the audio)
+ * a moment: one at a time, the sound and the screen go on between them. */
+#define SAVE_STEP_MS 200u
+static struct {
+    uint8_t step, ok;                           /* step 0: not saving */
+    uint32_t at, changes, size;
+} saving;
+
+static int store_if_changed(uint32_t obj, const void *p, uint32_t n, uint32_t *hash)
 {
+    uint32_t h = bytes_hash(p, n);
+    if (hash && h == *hash) {
+        return 1;                               /* the same as in the flash: nothing to write */
+    }
     APP_SAVE_BEGIN();
-    int ok = plat_store_save(OBJ_SETTINGS, &set, sizeof set) == 0 && project_save()
-             && plat_store_save(OBJ_USER_SOUNDS, user_sounds, sizeof user_sounds) == 0 && map_save();
+    int ok = plat_store_save(obj, p, n) == 0;
     APP_SAVE_END();
-    if (!ok) {
+    if (ok && hash) {
+        *hash = h;
+    }
+    return ok;
+}
+
+static void settings_save_start(void)
+{
+    if (saving.step) {
+        return;                                 /* (one at a time) */
+    }
+    saving.step = 1;
+    saving.ok = 1;
+    saving.at = plat_ms() - SAVE_STEP_MS;      /* the first step at once */
+}
+
+static int settings_saving(void) { return saving.step != 0; }
+
+/* from app_frame: the next step when its time comes; 1 when the save just ended (saving.ok: how) */
+static int settings_save_tick(void)
+{
+    if (!saving.step || plat_ms() - saving.at < SAVE_STEP_MS) {
         return 0;
     }
-    set_dirty = 0;
-    saved_changes = live.changes;
-    return 1;
+    saving.at = plat_ms();
+    switch (saving.step) {
+    case 1:
+        saving.ok &= (uint8_t)store_if_changed(OBJ_SETTINGS, &set, sizeof set, &stored_hash[STORED_SETTINGS]);
+        set_dirty = 0;
+        break;
+    case 2:                                     /* the live set: copied now, as it is heard */
+        saving.changes = live.changes;
+        saving.size = project_serialise();
+        if (saving.size == 0u) {
+            saving.ok = 0;
+            break;
+        }
+        project_buf[0] = (uint8_t)saving.size;
+        project_buf[1] = (uint8_t)(saving.size >> 8);
+        if (bytes_hash(project_buf, saving.size + 2u) == stored_hash[STORED_PROJECT]) {
+            saving.size = 0;                    /* unchanged: nothing to write */
+            break;
+        }
+        saving.ok &= (uint8_t)store_if_changed(OBJ_PROJECT_A, project_buf,
+                                               (saving.size < CHUNK_A_DATA ? saving.size : CHUNK_A_DATA) + 2u, 0);
+        break;
+    case 3:
+        if (saving.size > CHUNK_A_DATA) {       /* chunk B: the rest, right after chunk A in the buffer */
+            saving.ok &= (uint8_t)store_if_changed(OBJ_PROJECT_B, project_buf + PLAT_STORE_MAX,
+                                                   saving.size - CHUNK_A_DATA, 0);
+        }
+        if (saving.size && saving.ok) {
+            stored_hash[STORED_PROJECT] = bytes_hash(project_buf, saving.size + 2u);
+        }
+        break;
+    case 4:
+        saving.ok &= (uint8_t)store_if_changed(OBJ_USER_SOUNDS, user_sounds, sizeof user_sounds,
+                                               &stored_hash[STORED_USER]);
+        break;
+    default:
+        saving.ok &= (uint8_t)map_save();
+        saving.step = 0;
+        if (saving.ok) {
+            saved_changes = saving.changes;
+        } else {
+            set_dirty = 1;
+        }
+        return 1;
+    }
+    saving.step++;
+    return 0;
 }

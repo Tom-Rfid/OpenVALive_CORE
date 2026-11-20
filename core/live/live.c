@@ -513,7 +513,6 @@ void ols_live_hold_mute(ols_live_t *L, uint8_t mask, int hold)
     } else {
         L->hold_mute = 0;
     }
-    L->changes++;
 }
 
 /* The macros, as offsets by role on every track (engine.h role_offset) and a density. */
@@ -674,7 +673,6 @@ void ols_live_select(ols_live_t *L, int track)
         if (L->recording) {
             ols_live_undo_push(L, track);   /* the take goes on, on this track */
         }
-        L->changes++;
     }
 }
 
@@ -688,7 +686,7 @@ void ols_live_mute(ols_live_t *L, int track, int mute)
     if (mute) {
         live_sequencer_notes_off(L, &L->track[t]);
     }
-    L->changes++;
+    /* (not a change to save: a mute is played, as the track chosen, the transport, a hold) */
 }
 
 void ols_live_midi_realtime(void *live, uint8_t byte)

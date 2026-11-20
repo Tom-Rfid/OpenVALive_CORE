@@ -237,7 +237,7 @@ static void screen_key(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t lit,
         return;
     }
     if (lit && !blink) {
-        cv_rect(x, y, w, h, c == C_PINK ? C_PINK : C_VIO);   /* (a SAVE key lit: pink) */
+        cv_rect(x, y, w, h, C_VIO);
         return;
     }
     if ((dim || blink) && !off) {
@@ -251,19 +251,16 @@ static void screen_key(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t lit,
     cv_rect(x, y, w, h, RGB(52, 52, 60));
 }
 
-/* a key on the screen keyboard, beyond lit / dim / blink: the SAVE keys pink (GLO 9-16, SAVE 9-16); a muted
- * track's key red (SEL); a key held yellow (an action: it shows it is pressed); the set-up keys going red to blue
- * and back, slowly (2 s) */
-static void screen_key_colours(int32_t k, uint32_t bit, uint16_t *c, uint16_t *solid)
+/* a key on the screen keyboard: held yellow; SEL's mute keys red while muted; the set-up screens (HOME) blue; valid on
+ * release (the button let go first takes it) pink, and mint / pink in turn when it also shows something on; something
+ * on violet; offered mint */
+static void screen_key_colours(int32_t k, uint32_t bit, uint32_t lit, uint16_t *c, uint16_t *solid, uint32_t *dim)
 {
     if (k < 0) {
         return;
     }
     int w = white_index((uint32_t)k);
-    if ((button_held(ui.buttons, B_GLO) || button_held(ui.buttons, B_SAVE)) && w >= 8) {
-        *c = C_PINK;
-    }
-    if (button_held(ui.buttons, BTN_TRACKS)) {             /* SEL: the mutes show their state, never yellow */
+    if (button_held(ui.buttons, BTN_TRACKS)) {             /* SEL: the mutes show their state */
         int all = 1;
         for (int t = 0; t < TRACKS; t++) {
             all &= live.track[t].mute != 0;
@@ -272,18 +269,23 @@ static void screen_key_colours(int32_t k, uint32_t bit, uint16_t *c, uint16_t *s
             *solid = C_RED;
             return;
         }
-        if ((w >= 0 && w < TRACKS) || (uint32_t)k == KEY_MUTE_ALL) {
-            return;
-        }
     }
     if (ui.keys & bit) {
         *solid = C_YELLOW;
         return;
     }
     if (ui.keys_conf & bit) {
-        uint32_t t = plat_ms() % 2000u;
-        uint32_t x = t < 1000u ? t * 256u / 1000u : (2000u - t) * 256u / 1000u;
-        *solid = mix565(C_RED, RGB(50, 90, 255), x);
+        *c = RGB(60, 110, 255);
+        *dim |= bit;
+        return;
+    }
+    if (keys_armable(ui.buttons) & bit) {
+        if (lit & bit) {
+            *solid = (plat_ms() / 250u) & 1u ? C_PINK : C_MINT;
+            return;
+        }
+        *c = C_PINK;
+        *dim |= bit;
     }
 }
 
@@ -313,7 +315,7 @@ static int draw_layer_keys(void)
             int32_t k = APP_SCREEN_KEY(i);
             uint32_t bit = k >= 0 ? 1u << k : 0u;
             uint16_t solid = 0, c = C_MINT;
-            screen_key_colours(k, bit, &c, &solid);
+            screen_key_colours(k, bit, lit, &c, &solid, &dim);
             if (!black) {
                 screen_key(x0 + white * ww, top, ww - 1, kh, lit & bit, dim & bit, blink & bit, c, solid);
                 white++;
