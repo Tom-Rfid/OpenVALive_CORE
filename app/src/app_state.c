@@ -369,7 +369,7 @@ static uint8_t project_buf[OLS_PROJECT_MAX + 2u] PLAT_POOL;   /* + the 2-byte si
 
 /* what a key does while a layer button is held */
 enum { KEY_NOTE, KEY_FX, KEY_NONE, KEY_ARMED_ARP, KEY_ARMED_SEQ, KEY_ARMED_GLO, KEY_ARMED_HOME, KEY_ARMED_FX,
-       KEY_ARMED_SEL };   /* ARMED: on a track, ARP / SEQ + key only shows
+       KEY_ARMED_SEL, KEY_ARMED_SAVE };   /* ARMED: on a track, ARP / SEQ + key only shows
                                                                          * the gesture; letting ARP / SEQ go first applies it */
 
 /* the perform effects on the white keys while FX is held: tap = latch, hold = momentary */
@@ -407,7 +407,6 @@ static struct {
     float shadow[TRACKS][OLS_MAX_PARAMS];       /* UI copy of the parameters */
     uint8_t cc_value[KNOB_COUNT];               /* controller mode: the last CC values sent */
     uint8_t pressure_sent;                      /* last key pressure sent (aftertouch), 0..127 */
-    uint8_t save_used;                          /* SAVE held: a key stored a user sound, so no set save on release */
     uint8_t metronome;
     uint8_t xfade;                              /* index in XFADE_BARS */
     float macro[KNOB_COUNT];                    /* MACRO page, 0..1 (0.5 neutral) */

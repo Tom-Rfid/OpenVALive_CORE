@@ -413,7 +413,7 @@ static int user_sounds_migrate(void)
     return 1;
 }
 
-static void user_sounds_load(void)
+static int user_sounds_load(void)              /* 1: as stored */
 {
     int size = plat_store_load(OBJ_USER_SOUNDS, user_sounds, sizeof user_sounds);
     if (size != (int)sizeof user_sounds && !user_sounds_migrate()) {
@@ -422,8 +422,10 @@ static void user_sounds_load(void)
     for (int u = 0; u < OLS_USER_SOUNDS; u++) {
         if (user_sounds[u].valid > 1u || user_sounds[u].kind >= OLS_KIND_COUNT) {
             user_sounds[u].valid = 0;           /* damaged: forget that one */
+            size = 0;
         }
     }
+    return size == (int)sizeof user_sounds;
 }
 
 /* From the main loop while audio runs: the audio side may change the set
@@ -460,16 +462,18 @@ static uint32_t bytes_hash(const void *p, uint32_t n)
 static void settings_load(void)
 {
     int size = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
-    if (!settings_valid(size) && !settings_migrate_vb() && !settings_migrate_va() && !settings_migrate_v9() && !settings_migrate_v8() && !settings_migrate_v7() && !settings_migrate_v6() && !settings_migrate_v5() && !settings_migrate_v4()
+    int as_stored = settings_valid(size);       /* (migrated or new: the next SAVE writes them) */
+    if (!as_stored && !settings_migrate_vb() && !settings_migrate_va() && !settings_migrate_v9() && !settings_migrate_v8() && !settings_migrate_v7() && !settings_migrate_v6() && !settings_migrate_v5() && !settings_migrate_v4()
         && !settings_migrate_v3() && !settings_migrate_v2() && !settings_migrate_v1()) {
         settings_defaults();
     }
-    user_sounds_load();
+    int user_as_stored = user_sounds_load();
     map_load();
     project_load();
     saved_changes = live.changes;
-    stored_hash[STORED_SETTINGS] = bytes_hash(&set, sizeof set);
-    stored_hash[STORED_USER] = bytes_hash(user_sounds, sizeof user_sounds);
+    stored_hash[STORED_SETTINGS] = bytes_hash(&set, sizeof set) ^ (as_stored ? 0u : 1u);
+    stored_hash[STORED_USER] = bytes_hash(user_sounds, sizeof user_sounds)
+                               ^ (user_as_stored ? 0u : 1u);
 }
 
 /* A setting made to last (the drum keys, the keys on screen): kept at once, without SAVE */

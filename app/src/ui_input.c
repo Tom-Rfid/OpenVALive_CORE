@@ -48,6 +48,7 @@
 #define ENCODER_STEP (1.0f / 64.0f) /* one detent = 1/64 of the range */
 #define WHITE_KEYS 16
 #define SEL_AVOL 16                             /* SEL + A VOL armed (valid on release): its role's w */
+#define SAVE_ALL 16                             /* SAVE + the 1st black key (SAVE ALL) armed: its role's w */
 /* HOME + white key, HOME let go first: the set-up screens, from the 2nd F (white key 8: F4 on the FM-1), clear of the
  * right hand on the buttons */
 #define HOME_SOUNDS 7
@@ -215,6 +216,14 @@ static const char *armed_name(uint8_t role, int w)
                                                   "EUCLID 5", "EUCLID 6", "EUCLID 7", "EUCLID 8", "FULL MIDI" };
         return w >= 5 && w <= 15 ? SEL_NAME[w - 5] : (w == SEL_AVOL ? "A VOL" : "");
     }
+    if (role == KEY_ARMED_SAVE) {               /* SAVE: LOAD USER 1-8, SAVE USER 1-8, SAVE ALL (the live set) */
+        if (w == SAVE_ALL) {
+            return "SAVE ALL";
+        }
+        copy_text(t, w >= 8 ? "SAVE USER " : "LOAD USER ", sizeof t);
+        int_text(w % 8 + 1, t + 10);
+        return t;
+    }
     if (role == KEY_ARMED_FX) {
         return w == 14 ? "DRUMS ORIGINAL" : (w == 15 ? "DRUMS GM" : (ui.on_a ? "A RESET" : "TRACK RESET"));
     }
@@ -252,7 +261,7 @@ static void arm_key(uint32_t k, int w, uint8_t role)
     if (role == KEY_ARMED_ARP) {
         ui.arp_pend = 0;                        /* a new tap replaces the one chosen before */
     }
-    static const uint8_t LET_GO[] = { B_ARP, B_SEQ, B_GLO, B_HOME, B_FX, B_SEL };   /* drawn after an arrow: let go */
+    static const uint8_t LET_GO[] = { B_ARP, B_SEQ, B_GLO, B_HOME, B_FX, B_SEL, B_SAVE };   /* drawn after an arrow: let go */
     app_say(armed_name(role, w), BTN_NAME[LET_GO[role - KEY_ARMED_ARP]]);
     ui.msg_style = MSG_ARMED;
 }
@@ -489,6 +498,8 @@ static void say_taken(void)
 }
 
 /* ARP or SEQ let go: the armed keys still held apply their gesture */
+static void save_layer_key(int w);
+
 static void layer_released(uint8_t role)
 {
     for (uint32_t k = 0; k < NKEYS; k++) {
@@ -504,6 +515,10 @@ static void layer_released(uint8_t role)
             scene_key(ui.key_fx[k]);
         } else if (role == KEY_ARMED_HOME) {
             home_key(ui.key_fx[k]);
+        } else if (role == KEY_ARMED_SAVE) {    /* (its own titles: LOADED / SAVED USER n, SAVING) */
+            save_layer_key(ui.key_fx[k]);
+            ui.given_up = 0;
+            continue;
         } else if (role == KEY_ARMED_SEL && ui.key_fx[k] == SEL_AVOL) {
             avol_key();
         } else if (role == KEY_ARMED_SEL) {
@@ -850,21 +865,12 @@ static void key_pressed(uint32_t k, uint32_t buttons)
     }
 #endif
 
-    if (button_held(buttons, B_SAVE)) {         /* SAVE + key 1-8: LOAD USER 1-8 on the line; 9-16: SAVE it there */
-        if (w >= 0 && w < OLS_USER_SOUNDS) {
-            ui.save_used = 1;
-            load_user_sound(w);
-        } else if (w >= OLS_USER_SOUNDS && w < 2 * OLS_USER_SOUNDS) {
-            int u = w - OLS_USER_SOUNDS;
-            push_event(EV_PRESET, mirror.track, (uint8_t)u, 1, 0, (float)set.octave[mirror.track]);   /* b = 1: keep as user sound u, with the octave */
-            set.preset[mirror.track] = (uint8_t)(OLS_SOUND_FIRST_USER + u);
-            ui.save_used = 1;
-            mark_dirty();
-            char t[8] = "USER ";
-            int_text(u + 1, t + 5);
-            app_say("SAVED", t);
-            ui.msg_style = MSG_TAKEN;
-            ui.msg_until = plat_ms() + 700u;
+    if (button_held(buttons, B_SAVE)) {         /* SAVE + key 1-8: LOAD USER 1-8, 9-16: SAVE USER 1-8, 1st black: SAVE
+                                                 * ALL; each valid on release (SAVE let go first) */
+        if (w >= 0 && w < 2 * OLS_USER_SOUNDS) {
+            arm_key(k, w, KEY_ARMED_SAVE);
+        } else if (k == KEY_MUTE_ALL) {
+            arm_key(k, SAVE_ALL, KEY_ARMED_SAVE);
         }
         return;
     }
@@ -970,6 +976,7 @@ static void key_released(uint32_t k)
     case KEY_ARMED_HOME:
     case KEY_ARMED_FX:
     case KEY_ARMED_SEL:
+    case KEY_ARMED_SAVE:
         ui.given_up = ui.key_role[k];           /* the key let go first: nothing done (said when the button is let go) */
         ui.given_up_w = ui.key_fx[k];
         break;
@@ -1133,9 +1140,8 @@ static void button_pressed(uint32_t b, uint32_t buttons)
         ui.msg_style = MSG_ARMED;
         break;
     case B_SAVE:
-        ui.save_used = 0;                       /* the set is saved on release, unless a key kept a sound */
-        app_say(BTN_NAME[B_SAVE], "TAP: SET");
-        ui.msg_right = "LOAD|SAVE";             /* the keys: USER sounds, LOAD on the left, SAVE on the right */
+        app_say(BTN_NAME[B_SAVE], "HOLD + KEY");
+        ui.msg_right = "SAVE ALL";              /* the 1st black key: the live set */
         break;
     case B_ARP:
         ui.arp_down_at = plat_ms();
@@ -1162,11 +1168,35 @@ static void button_pressed(uint32_t b, uint32_t buttons)
 
 static void save_released(void)
 {
-    if (ui.save_used) {
+    layer_released(KEY_ARMED_SAVE);             /* (SAVE alone saves nothing: SAVE ALL is a key) */
+}
+
+/* SAVE + a key, SAVE let go first: LOAD USER 1-8 (keys 1-8), SAVE USER 1-8 (9-16), SAVE ALL */
+static void save_layer_key(int w)
+{
+    if (w == SAVE_ALL) {
+        settings_save_start();                  /* in steps over a second (app_frame) */
+        app_say("SAVING", "LIVE SET");
         return;
     }
-    settings_save_start();                      /* in steps over a second (app_frame) */
-    app_say("SAVING", "LIVE SET");
+    if (w < OLS_USER_SOUNDS) {
+        load_user_sound(w);
+        if (ui.msg_style != MSG_NOT_TAKEN) {
+            ui.msg_style = MSG_TAKEN;
+            ui.msg_until = plat_ms() + 700u;
+        }
+        return;
+    }
+    int u = w - OLS_USER_SOUNDS;
+    push_event(EV_PRESET, mirror.track, (uint8_t)u, 1, 0, (float)set.octave[mirror.track]);   /* b = 1: keep as user
+                                                 * sound u, with the octave */
+    set.preset[mirror.track] = (uint8_t)(OLS_SOUND_FIRST_USER + u);
+    mark_dirty();
+    char t[8] = "USER ";
+    int_text(u + 1, t + 5);
+    app_say("SAVED", t);
+    ui.msg_style = MSG_TAKEN;
+    ui.msg_until = plat_ms() + 700u;
 }
 
 /* ARP tapped with A selected (no key, short): A's arpeggio, OFF UP DOWN UP/DOWN RANDOM in turn */
@@ -1808,6 +1838,9 @@ static uint32_t keys_armable(uint32_t buttons)
     if (button_held(buttons, B_GLO)) {
         return white_mask(0, 16);
     }
+    if (button_held(buttons, B_SAVE)) {         /* (the LOAD keys show what they hold instead: violet or grey) */
+        return white_mask(OLS_USER_SOUNDS, 2 * OLS_USER_SOUNDS) | (1u << KEY_MUTE_ALL);
+    }
     if (button_held(buttons, B_ARP)) {
         return ui.on_a ? 0u : white_mask(0, 15);
     }
@@ -1916,12 +1949,17 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
         if (APP_WHEEL && set.wheel_pan) {
             *lit |= 1u << WHITE_KEY[13];        /* the wheel pans */
         }
-    } else if (button_held(buttons, B_SAVE)) {  /* SAVE + key 1-8 LOAD USER 1-8, 9-16 SAVE; lit: holds one */
-        *dim = white_mask(0, 2 * OLS_USER_SOUNDS);
+    } else if (button_held(buttons, B_SAVE)) {  /* SAVE + key 1-8 LOAD USER 1-8 (lit: one to load), 9-16 SAVE (lit:
+                                                 * one there already), 1st black SAVE ALL (blinking: something to save) */
+        *dim = white_mask(OLS_USER_SOUNDS, 2 * OLS_USER_SOUNDS) | (1u << KEY_MUTE_ALL);
         for (int u = 0; u < OLS_USER_SOUNDS; u++) {
             if (user_sounds[u].valid) {
                 *lit |= 1u << WHITE_KEY[u] | 1u << WHITE_KEY[OLS_USER_SOUNDS + u];
             }
+        }
+        if (set_dirty || live.changes != saved_changes) {
+            *lit |= (uint32_t)((plat_ms() / 125u) & 1u) << KEY_MUTE_ALL;
+            *bl |= 1u << KEY_MUTE_ALL;
         }
     } else if (button_held(buttons, B_ARP)) {
         *dim = white_mask(0, 15);

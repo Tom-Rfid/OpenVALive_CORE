@@ -6,6 +6,12 @@
 
 
 
+## 20 November 2026 — SAVE ALL is a key
+
+- SAVE alone saves nothing any more: SAVE + the 1st black key = **SAVE ALL** (blinking when something is to be
+  saved). Every SAVE-layer key is valid on release (SAVE let go first): LOAD USER 1–8, SAVE USER 1–8, SAVE ALL.
+- On a screen keyboard: LOAD keys violet when they hold a sound, grey when empty.
+
 ## 20 November 2026 — SAVE in steps, lights by meaning
 
 - SAVE goes in steps a fifth of a second apart (settings, live set, USER sounds, map), each written only if it
