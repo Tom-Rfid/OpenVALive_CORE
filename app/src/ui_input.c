@@ -217,6 +217,11 @@ static const char *armed_name(uint8_t role, int w)
                                                   "EUCLID 5", "EUCLID 6", "EUCLID 7", "EUCLID 8", "FULL MIDI" };
         return w >= 5 && w <= 15 ? SEL_NAME[w - 5] : (w == SEL_AVOL ? "A VOL" : "");
     }
+    if (role == KEY_ARMED_REC) {                /* REC + the leftmost white key: the track's loop reset (cleared) */
+        copy_text(t, "RESET T1", sizeof t);
+        t[7] = (char)('1' + mirror.track);
+        return t;
+    }
     if (role == KEY_ARMED_SAVE) {               /* SAVE: LOAD USER 1-8, SAVE USER 1-8, SAVE ALL (the live set) */
         if (w == SAVE_ALL) {
             return "SAVE ALL";
@@ -262,7 +267,7 @@ static void arm_key(uint32_t k, int w, uint8_t role)
     if (role == KEY_ARMED_ARP) {
         ui.arp_pend = 0;                        /* a new tap replaces the one chosen before */
     }
-    static const uint8_t LET_GO[] = { B_ARP, B_SEQ, B_GLO, B_HOME, B_FX, B_SEL, B_SAVE };   /* drawn after an arrow: let go */
+    static const uint8_t LET_GO[] = { B_ARP, B_SEQ, B_GLO, B_HOME, B_FX, B_SEL, B_SAVE, B_REC };   /* drawn after an arrow: let go */
     app_say(armed_name(role, w), BTN_NAME[LET_GO[role - KEY_ARMED_ARP]]);
     ui.msg_style = MSG_ARMED;
 }
@@ -516,6 +521,8 @@ static void layer_released(uint8_t role)
             scene_key(ui.key_fx[k]);
         } else if (role == KEY_ARMED_HOME) {
             home_key(ui.key_fx[k]);
+        } else if (role == KEY_ARMED_REC) {
+            track_key(5);                       /* the selected track's loop cleared (as SEL's CLEAR: ENV undoes it) */
         } else if (role == KEY_ARMED_SAVE) {    /* (its own titles: LOADED / SAVED USER n, SAVING) */
             save_layer_key(ui.key_fx[k]);
             ui.given_up = 0;
@@ -876,6 +883,11 @@ static void key_pressed(uint32_t k, uint32_t buttons)
         return;
     }
 
+    if (button_held(held, B_REC) && w == 0 && !ui.on_a) {   /* REC + the leftmost white key: RESET the track */
+        ui.rec_used = 1;
+        arm_key(k, 0, KEY_ARMED_REC);
+        return;
+    }
     if (button_held(buttons, B_ARP)) {
         ui.arp_used = 1;                        /* a gesture, not a tap: A's arpeggio stays */
         if (w >= 0) {
@@ -980,6 +992,7 @@ static void key_released(uint32_t k)
     case KEY_ARMED_FX:
     case KEY_ARMED_SEL:
     case KEY_ARMED_SAVE:
+    case KEY_ARMED_REC:
         ui.given_up = ui.key_role[k];           /* the key let go first: nothing done (said when the button is let go) */
         ui.given_up_w = ui.key_fx[k];
         break;
@@ -1023,6 +1036,10 @@ static void change_octave(int32_t delta)
 
 static void button_pressed(uint32_t b, uint32_t buttons)
 {
+    if (b == B_REC) {
+        ui.rec_used = 1;                        /* (a combination taking REC: no record toggle on release; the plain
+                                                 * REC below clears it) */
+    }
     if (button_held(buttons, B_GLO) && b == BTN_VALIDATE) {
         map_open();
         return;
@@ -1096,12 +1113,8 @@ static void button_pressed(uint32_t b, uint32_t buttons)
             app_say("CLOCK IN", "MIDI");        /* the MIDI clock starts and stops */
         }
         break;
-    case B_REC:
-        if (!live.clock.running && !live.recording) {
-            say_not_now("REC");                 /* a take is made while the loops play (PLAY first) */
-            break;
-        }
-        send_live(LIVE_RECORD_TOGGLE, 0, 0, 0.0f, 0);
+    case B_REC:                                 /* on release: record on / off, unless REC + key 1 (RESET) */
+        ui.rec_used = 0;
         break;
     case B_EDIT:                                /* on release: CAPTURE, or the end of a punch */
         ui.punch = 0;
@@ -1234,6 +1247,19 @@ static int swap_a(int t)
     return 1;
 }
 
+/* REC let go: record on / off (a take is made while the loops play: PLAY first), unless it served RESET */
+static void rec_released(void)
+{
+    if (ui.rec_used) {
+        return;
+    }
+    if (!live.clock.running && !live.recording) {
+        say_not_now("REC");
+        return;
+    }
+    send_live(LIVE_RECORD_TOGGLE, 0, 0, 0.0f, 0);
+}
+
 /* EDIT let go: the end of a punch, else CAPTURE */
 static void edit_released(void)
 {
@@ -1316,6 +1342,9 @@ static void scan_buttons(uint32_t buttons)
             seq_released();
         } else if (!(buttons & bit) && (ui.buttons & bit) && b == B_GLO) {
             layer_released(KEY_ARMED_GLO);
+        } else if (!(buttons & bit) && (ui.buttons & bit) && b == B_REC) {
+            layer_released(KEY_ARMED_REC);
+            rec_released();
         } else if (!(buttons & bit) && (ui.buttons & bit) && b == B_EDIT) {
             edit_released();
         } else if (!(buttons & bit) && (ui.buttons & bit) && b == BTN_VALIDATE) {
@@ -1847,6 +1876,9 @@ static uint32_t keys_armable(uint32_t buttons)
     if (button_held(buttons, B_GLO)) {
         return white_mask(0, 16);
     }
+    if (button_held(buttons, B_REC)) {
+        return ui.on_a ? 0u : white_mask(0, 1);
+    }
     if (button_held(buttons, B_SAVE)) {         /* (the LOAD keys show what they hold instead: violet or grey) */
         return white_mask(OLS_USER_SOUNDS, 2 * OLS_USER_SOUNDS) | (1u << KEY_MUTE_ALL);
     }
@@ -1869,7 +1901,7 @@ static uint32_t keys_armable(uint32_t buttons)
 }
 
 /* the buttons that hold a layer on the keys */
-#define LAYER_BUTTONS_ALL ((1u << B_ARP) | (1u << B_GLO) | (1u << BTN_PERFORM) | (1u << BTN_TRACKS) | (1u << B_SAVE) \
+#define LAYER_BUTTONS_ALL ((1u << B_ARP) | (1u << B_GLO) | (1u << BTN_PERFORM) | (1u << BTN_TRACKS) | (1u << B_SAVE) | (1u << B_REC) \
                            | (1u << B_HOME) | (1u << BTN_PAGES))
 
 /* the keys' lights: lit, dim (it does something now), and which of them blink (*blink, may be 0) */
@@ -1937,6 +1969,8 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
          * offered (dim) */
         ui.keys_conf = HOME_SETUP_KEYS;
         *dim = white_mask(0, 3) | ui.keys_conf;
+    } else if (button_held(buttons, B_REC) && !ui.on_a) {   /* REC held: the leftmost white key RESETs the track */
+        *dim = white_mask(0, 1);
     } else if (button_held(buttons, BTN_PAGES)) {
         *dim = white_mask(0, 1) | white_mask(APP_WHEEL ? 13 : 14, 16);   /* the line's reset; the wheel; the drum keys */
         *lit |= 1u << WHITE_KEY[set.drum_map == DRUM_MAP_GM ? 15 : 14];

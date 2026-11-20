@@ -370,7 +370,7 @@ static uint8_t project_buf[OLS_PROJECT_MAX + 2u] PLAT_POOL;   /* + the 2-byte si
 
 /* what a key does while a layer button is held */
 enum { KEY_NOTE, KEY_FX, KEY_NONE, KEY_ARMED_ARP, KEY_ARMED_SEQ, KEY_ARMED_GLO, KEY_ARMED_HOME, KEY_ARMED_FX,
-       KEY_ARMED_SEL, KEY_ARMED_SAVE };   /* ARMED: on a track, ARP / SEQ + key only shows
+       KEY_ARMED_SEL, KEY_ARMED_SAVE, KEY_ARMED_REC };   /* ARMED: on a track, ARP / SEQ + key only shows
                                                                          * the gesture; letting ARP / SEQ go first applies it */
 
 /* the perform effects on the white keys while FX is held: tap = latch, hold = momentary */
@@ -427,6 +427,7 @@ static struct {
     uint8_t swap_track;                         /* the last A <-> track swap: its track + 1 (0: none) */
     uint8_t swap_undone;                        /* 1: ENV put it back (LFO swaps again) */
     uint32_t swap_mark;                         /* live.undo_top at the swap: undoable while nothing newer */
+    uint8_t rec_used;                           /* REC held served a key (RESET): no record toggle on release */
     uint8_t pages_used;                         /* SEL did something else while held: no page turn on release */
     uint32_t splash_until;                      /* the boot screen stays until then, or until a hand touches something */
     uint8_t activity;                           /* something was touched since the last frame */

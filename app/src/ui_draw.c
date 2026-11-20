@@ -296,7 +296,7 @@ static void screen_key_colours(int32_t k, uint32_t bit, uint32_t lit, uint16_t *
 static int draw_layer_keys(void)
 {
     const uint32_t LAYERS = (1u << B_ARP) | (1u << B_GLO) | (1u << BTN_PERFORM) | (1u << BTN_TRACKS) | (1u << B_SAVE)
-                            | (1u << B_HOME) | (1u << BTN_PAGES);
+                            | (1u << B_HOME) | (1u << BTN_PAGES) | (1u << B_REC);
     if (!set.keys_screen || !(ui.buttons & LAYERS)) {
         return 0;
     }
