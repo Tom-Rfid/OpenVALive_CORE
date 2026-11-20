@@ -138,7 +138,7 @@ static void hidden_from(const uint8_t *old, uint32_t old_bytes, uint32_t first)
     }
 }
 
-/* OLSD: the same, without the USER sounds' origins (unknown: they show as "U3 USER") */
+/* OLSD: the same, without the USER sounds' origins (unknown: they show as "U3 -- NA --") */
 static int settings_migrate_vd(void)
 {
     static settings_vd_t old;

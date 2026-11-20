@@ -1595,7 +1595,7 @@ static int32_t family_step(int32_t sound, int32_t step, int for_a)
 }
 
 /* the sound's name with its family: "F1 ACID 303" */
-/* a sound's name: a USER sound with the factory sound it came from, "U3 ACID 303" ("U3 USER" when not known) */
+/* a sound's name: a USER sound with the factory sound it came from, "U3 ACID 303" ("U3 -- NA --" when not known) */
 static const char *sound_name(int32_t sound)
 {
     if (sound < OLS_SOUND_FIRST_USER) {
@@ -1608,7 +1608,7 @@ static const char *sound_name(int32_t sound)
     t[which][0] = 'U';
     t[which][1] = (char)('1' + u);
     t[which][2] = ' ';
-    copy_text(t[which] + 3, set.user_from[u] < OLS_SOUND_COUNT ? ols_sound_name(set.user_from[u]) : "USER", 21);
+    copy_text(t[which] + 3, set.user_from[u] < OLS_SOUND_COUNT ? ols_sound_name(set.user_from[u]) : "-- NA --", 21);
     return t[which];
 }
 
