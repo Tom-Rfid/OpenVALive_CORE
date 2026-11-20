@@ -136,7 +136,7 @@ static void fav_draw_place(void)
             uint16_t fc = fav_colour(fav.family);
             char pos[4] = { (char)('1' + at), '/', (char)('0' + n), 0 };   /* a family: 9 sounds at most */
             cv_text(26, 2, &FONT_XS, pos, fc);         /* under the family names */
-            cv_text(FAV_SQUARES, 2, &FONT_XS, ols_sound_name((uint32_t)list[at]), hidden ? C_RED : C_WHITE);   /* the
+            cv_text(FAV_SQUARES, 2, &FONT_XS, sound_name(list[at]), hidden ? C_RED : C_WHITE);   /* the
                                                  * chosen sound, over the squares (it moves with PRESET) */
             cv_text(232 - text_w(&FONT_XS, hidden ? "HIDDEN" : "ON"), 2, &FONT_XS, hidden ? "HIDDEN" : "ON",
                     hidden ? C_RED : C_GREEN);

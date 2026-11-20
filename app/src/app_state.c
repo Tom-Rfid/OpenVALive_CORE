@@ -206,7 +206,8 @@ static const uint8_t XFADE_BARS[4] = { 0, 1, 2, 4 };      /* a scene change: a c
 
 /* ------------------------------------------------------------ settings */
 
-#define SET_MAGIC 0x4F4C5344u                   /* "OLSD": settings format; any other value loads defaults */
+#define SET_MAGIC 0x4F4C5345u                   /* "OLSE": settings format; any other value loads defaults */
+#define SET_MAGIC_VD 0x4F4C5344u                /* "OLSD": the same without the USER sounds' origins */
 #define SET_MAGIC_VC 0x4F4C5343u                /* "OLSC": 48 sounds (the drum kits and USER 12 lower) */
 #define SET_MAGIC_VB 0x4F4C5342u                /* "OLSB": 36 sounds (the drum kits and USER 12 lower) */
 #define SET_MAGIC_VA 0x4F4C5341u                /* "OLSA": 31 sounds (the drum kits and USER 5 lower), no PERC keys,
@@ -242,8 +243,19 @@ typedef struct {
     uint8_t eq[EQ_BANDS];                       /* the master EQ: BASS MID TREBLE (128 flat) and the MID's frequency */
     uint8_t new_page[TRACKS + 1];               /* a new sound taken on a line: 0 the page stays, else page + 1 */
     uint8_t pad_kit;                            /* the pads' drum kit (DRUMS pads), 0..DR_KIT_COUNT-1 */
+    uint8_t user_from[OLS_USER_SOUNDS];         /* the factory sound each USER sound was made from (its name shows:
+                                                 * "U3 ACID 303"), USER_FROM_NONE unknown */
 } settings_t;
-typedef char settings_size_kept[(sizeof(settings_t) == 48u) ? 1 : -1];   /* (a field more: a new format) */
+typedef char settings_size_kept[(sizeof(settings_t) == 56u) ? 1 : -1];   /* (a field more: a new format) */
+#define USER_FROM_NONE 0xFFu
+
+/* OLSD's settings: the same without `user_from` (48 bytes) */
+typedef struct {
+    uint32_t magic;
+    uint8_t same[43];                           /* octave .. new_page, as now */
+    uint8_t pad_kit;
+} settings_vd_t;
+typedef char settings_vd_size[(sizeof(settings_vd_t) == 48u) ? 1 : -1];
 
 /* OLSC's settings: the same, `hidden` for 48 sounds + USER (7 bytes) */
 typedef struct {

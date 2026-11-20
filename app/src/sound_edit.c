@@ -184,8 +184,8 @@ static void sedit_draw(void)
     int_text(mirror.track + 1, title + 7);
     cv_begin(240, SEDIT_TOP, C_BLACK);
     cv_text(8, 6, &FONT_B, title, C_HI);
-    cv_text(232 - text_w(&FONT_XS, ols_sound_name(set.preset[mirror.track])), 12, &FONT_XS,
-            ols_sound_name(set.preset[mirror.track]), C_GRAY);
+    cv_text(232 - text_w(&FONT_XS, sound_name(set.preset[mirror.track])), 12, &FONT_XS,
+            sound_name(set.preset[mirror.track]), C_GRAY);
     cv_rect(0, SEDIT_TOP - 2, 240, 1, C_LINE);
     cv_blit(0, 0);
 

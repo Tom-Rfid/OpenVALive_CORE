@@ -872,6 +872,7 @@ static int choosing_sound(void)
 
 static int32_t family_step(int32_t sound, int32_t step, int for_a);
 static const char *sound_label(int32_t sound);
+static const char *sound_name(int32_t sound);
 static void preset_turn(int32_t step, int family);
 
 static void load_user_sound(int u);
@@ -1082,7 +1083,7 @@ static void button_pressed(uint32_t b, uint32_t buttons)
             send_preset(mirror.track, set.preset[mirror.track]);
             ui.turned_at = 0;
             new_sound_page(mirror.track, set.preset[mirror.track]);
-            app_say("SOUND", ols_sound_name(set.preset[mirror.track]));
+            app_say("SOUND", sound_name(set.preset[mirror.track]));
             ui.msg_style = MSG_TAKEN;
             return;
         }
@@ -1226,6 +1227,11 @@ static void save_layer_key(int w)
         return;
     }
     int u = w - OLS_USER_SOUNDS;
+    uint8_t from = set.preset[mirror.track];    /* the factory sound it comes from (a USER one: where that one came from) */
+    if (from >= OLS_SOUND_FIRST_USER) {
+        from = set.user_from[(from - OLS_SOUND_FIRST_USER) % OLS_USER_SOUNDS];
+    }
+    set.user_from[u] = from < OLS_SOUND_COUNT ? from : USER_FROM_NONE;
     push_event(EV_PRESET, mirror.track, (uint8_t)u, 1, 0, (float)set.octave[mirror.track]);   /* b = 1: keep as user
                                                  * sound u, with the octave */
     set.preset[mirror.track] = (uint8_t)(OLS_SOUND_FIRST_USER + u);
@@ -1410,7 +1416,7 @@ static void select_line(int32_t to)
     ui.redraw = 1;
     if (to == TRACKS) {
         ui.on_a = 1;
-        app_say("A LIVE", ols_sound_name(set.live_sound));
+        app_say("A LIVE", sound_name(set.live_sound));
         return;
     }
     ui.on_a = 0;
@@ -1423,7 +1429,7 @@ static void select_line(int32_t to)
     ui.turned_at = 0;
     char t[4] = "T";                            /* T1..T4, as in the header: the line does not jump */
     int_text(track + 1, t + 1);
-    app_say(t, ols_sound_name(set.preset[track]));
+    app_say(t, sound_name(set.preset[track]));
 }
 
 static void scan_track_encoder(uint32_t buttons)
@@ -1589,9 +1595,29 @@ static int32_t family_step(int32_t sound, int32_t step, int for_a)
 }
 
 /* the sound's name with its family: "F1 ACID 303" */
+/* a sound's name: a USER sound with the factory sound it came from, "U3 ACID 303" ("U3 USER" when not known) */
+static const char *sound_name(int32_t sound)
+{
+    if (sound < OLS_SOUND_FIRST_USER) {
+        return ols_sound_name((uint32_t)sound);
+    }
+    static char t[2][24];
+    static int which;
+    which ^= 1;                                 /* (two at once in one title) */
+    uint32_t u = (uint32_t)(sound - OLS_SOUND_FIRST_USER) % OLS_USER_SOUNDS;
+    t[which][0] = 'U';
+    t[which][1] = (char)('1' + u);
+    t[which][2] = ' ';
+    copy_text(t[which] + 3, set.user_from[u] < OLS_SOUND_COUNT ? ols_sound_name(set.user_from[u]) : "USER", 21);
+    return t[which];
+}
+
 static const char *sound_label(int32_t sound)
 {
     static char t[24];
+    if (sound >= OLS_SOUND_FIRST_USER) {
+        return sound_name(sound);               /* "U3 ACID 303": the U says USER */
+    }
     t[0] = 'F';
     t[1] = (char)('0' + sound_family(sound));
     t[2] = ' ';

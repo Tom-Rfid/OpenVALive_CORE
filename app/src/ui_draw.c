@@ -522,7 +522,7 @@ static void draw_a(void)
         cv_text(7, 3, &FONT_XS, "A", C_MINT);   /* selected: bold */
     }
     int32_t x = cv_text(STRIP_X, 3, &FONT_XS, "LIVE", ui.on_a ? C_MINT : C_DIM);
-    cv_text(x + 8, 3, &FONT_XS, ols_sound_name(set.live_sound), ui.on_a ? C_WHITE : C_GRAY);
+    cv_text(x + 8, 3, &FONT_XS, sound_name(set.live_sound), ui.on_a ? C_WHITE : C_GRAY);
     if (set.arp_mode != ARP_OFF) {
         char t[16] = "ARP ";
         text_cat(t, ARP_NAME[set.arp_mode]);

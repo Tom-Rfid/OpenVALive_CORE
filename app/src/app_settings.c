@@ -68,6 +68,11 @@ static void apply_midi_channel(void)
 
 static int new_valid(void)
 {
+    for (int u = 0; u < OLS_USER_SOUNDS; u++) {
+        if (set.user_from[u] >= OLS_SOUND_COUNT) {
+            set.user_from[u] = USER_FROM_NONE;  /* (not a reason to drop the settings) */
+        }
+    }
     if (set.pad_kit >= DR_KIT_COUNT) {
         set.pad_kit = 0;                        /* (padding before: not a reason to drop the settings) */
     }
@@ -131,6 +136,22 @@ static void hidden_from(const uint8_t *old, uint32_t old_bytes, uint32_t first)
             set.hidden[now >> 3] = (uint8_t)(set.hidden[now >> 3] | (1u << (now & 7u)));
         }
     }
+}
+
+/* OLSD: the same, without the USER sounds' origins (unknown: they show as "U3 USER") */
+static int settings_migrate_vd(void)
+{
+    static settings_vd_t old;
+    int size = plat_store_load(OBJ_SETTINGS, &old, sizeof old);
+    if (size != (int)sizeof old || old.magic != SET_MAGIC_VD) {
+        return 0;
+    }
+    ols_zero(&set, sizeof set);
+    for (uint32_t i = 0; i < sizeof old; i++) {
+        ((uint8_t *)&set)[i] = ((const uint8_t *)&old)[i];
+    }
+    set.magic = SET_MAGIC;
+    return settings_valid((int)sizeof set);
 }
 
 /* OLSC: 48 sounds (PLATE .. CLICK came after) */
@@ -491,9 +512,14 @@ static void settings_load(void)
 {
     int size = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
     int as_stored = settings_valid(size);       /* (migrated or new: the next SAVE writes them) */
-    if (!as_stored && !settings_migrate_vc() && !settings_migrate_vb() && !settings_migrate_va() && !settings_migrate_v9() && !settings_migrate_v8() && !settings_migrate_v7() && !settings_migrate_v6() && !settings_migrate_v5() && !settings_migrate_v4()
+    if (!as_stored && !settings_migrate_vd() && !settings_migrate_vc() && !settings_migrate_vb() && !settings_migrate_va() && !settings_migrate_v9() && !settings_migrate_v8() && !settings_migrate_v7() && !settings_migrate_v6() && !settings_migrate_v5() && !settings_migrate_v4()
         && !settings_migrate_v3() && !settings_migrate_v2() && !settings_migrate_v1()) {
         settings_defaults();
+    }
+    if (!as_stored) {
+        for (int u = 0; u < OLS_USER_SOUNDS; u++) {
+            set.user_from[u] = USER_FROM_NONE;  /* (an older format: where they came from is not known) */
+        }
     }
     int user_as_stored = user_sounds_load();
     map_load();
