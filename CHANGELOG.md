@@ -6,7 +6,16 @@
 
 
 
-## 21 November 2026 — clips, boot screen, "∞ DIV / FILTER"
+## 20 November 2026 — LOAD / SAVE keys, the screen keyboard shows what is pressed, pad kit, SINGLE / LOOP clips
+
+- GLO and SAVE layers alike: white keys 1–8 **LOAD** (scenes; USER sounds onto the selected line), 9–16 **SAVE**
+  (pink on a screen keyboard). Titles "LOAD n" / "SAVE n". SAVE + keys 1–8 used to save: now 9–16.
+- Screen keyboard: a key held is yellow; SEL's mute keys red while muted; the set-up keys go red to blue over 2 s.
+- OPTION CONTROL: a new sound's page "SAME PAGE" (was KEEP); SEL + 16th key says PLAY MODE LIVE / FULL MIDI.
+- Clips: SINGLE (once) or LOOP (latched, `CLIP_LATCH`). `T_PADS`: the pads' own drum kit (`set.pad_kit`, in the
+  settings' padding: same format).
+
+## 20 November 2026 — clips, boot screen, "∞ DIV / FILTER"
 
 - `app/src/clips.c` (targets with `APP_CLIPS`): 14 clips, phrases taken on a line (a track or A) from its first
   note, length rounded to the beat, at most 4 bars / 48 notes; played back on the audio side (`EV_CLIP`), now or on

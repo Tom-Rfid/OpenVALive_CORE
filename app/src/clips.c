@@ -7,7 +7,9 @@
  * take, starts and stops clips, and only reads `clips` / `crec` to draw.
  *   CLIP_ARM      b = slot, target = the line: the next note on that line starts the take
  *   CLIP_END      the take ends now (its length rounded to the beat); a take not started is given up
- *   CLIP_PLAY     b = slot: from its first note, now (a = CLIP_PLAY) or on the next beat (a = CLIP_PLAY_SYNC)
+ *   CLIP_PLAY     b = slot: once (SINGLE), from its first note, now
+ *   CLIP_PLAY_SYNC  b = slot: looping (LOOP), from the next beat
+ *   CLIP_LATCH    b = slot: the one playing goes on looping (LOOP), where it is
  *   CLIP_STOP     b = slot (its notes let go)
  *   CLIP_DELETE   b = slot
  * The time is the clock's free tick (always counting at the tempo), so clips play with the transport stopped too. */
@@ -18,7 +20,7 @@
 #define CLIP_MAX_TICKS (CLIP_MAX_BARS * OLS_TICKS_PER_BAR)
 #define CLIP_SOUNDING 8u
 
-enum { CLIP_ARM, CLIP_END, CLIP_PLAY, CLIP_PLAY_SYNC, CLIP_STOP, CLIP_DELETE };
+enum { CLIP_ARM, CLIP_END, CLIP_PLAY, CLIP_PLAY_SYNC, CLIP_STOP, CLIP_DELETE, CLIP_LATCH };
 
 typedef struct {
     uint16_t tick, len;
@@ -26,7 +28,7 @@ typedef struct {
 } clip_note_t;
 
 typedef struct {
-    uint8_t used, line, count, playing;
+    uint8_t used, line, count, playing, loop;  /* loop: LOOP (latched) or once (SINGLE) */
     uint8_t sound;                              /* the line's sound when it was taken (its colour) */
     uint16_t length;
     uint32_t origin;                            /* free tick of its first note's first play */
@@ -46,9 +48,31 @@ static struct {
 
 static uint32_t clip_now(void) { return live.clock.free_tick; }
 
+/* the pads' own drum kit (DRUMS pads, T_PADS): a drum engine of its own, its kit chosen on the pads (REC held) */
+static engine_drum_t pad_drum PLAT_POOL;
+
+static void pad_drum_event(const ols_event_t *e)
+{
+    if (e->type == EV_NOTE_ON) {
+        ENGINE_DRUM_API.note_on(&pad_drum, e->a, e->b);
+    } else if (e->type == EV_NOTE_OFF) {
+        ENGINE_DRUM_API.note_off(&pad_drum, e->a);
+    } else if (e->type == EV_PRESET && e->a < DR_KIT_COUNT) {
+        engine_drum_load_kit(&pad_drum, (dr_kit_t)e->a);
+    } else if (e->type == EV_ALL_OFF) {
+        ENGINE_DRUM_API.all_notes_off(&pad_drum);
+    }
+}
+
 static void clip_engine_note(uint8_t line, uint8_t note, uint8_t vel)
 {
-    if (line == T_LIVE) {
+    if (line == T_PADS) {
+        if (vel) {
+            ENGINE_DRUM_API.note_on(&pad_drum, note, vel);
+        } else {
+            ENGINE_DRUM_API.note_off(&pad_drum, note);
+        }
+    } else if (line == T_LIVE) {
         if (vel) {
             engine_va_note_on(&lv, note, vel);
         } else {
@@ -92,7 +116,8 @@ static void clip_note_seen(uint8_t line, uint8_t note, uint8_t vel)
         c->count = 0;
         c->used = 0;
         c->line = line;
-        c->sound = line == T_LIVE ? set.live_sound : set.preset[line];
+        c->sound = line == T_LIVE ? set.live_sound
+                   : (line == T_PADS ? (uint8_t)(OLS_SOUND_FIRST_DRUM + set.pad_kit) : set.preset[line]);
         crec.started = 1;
         crec.start = now;                       /* the take starts at its first note */
     }
@@ -174,6 +199,10 @@ static void clip_event(const ols_event_t *e)
         }
         c->done = 0;
         c->playing = 1;
+        c->loop = e->a == CLIP_PLAY_SYNC;
+        break;
+    case CLIP_LATCH:
+        c->loop = c->playing;
         break;
     case CLIP_STOP:
         clip_silence(c);
@@ -214,7 +243,7 @@ static void clips_advance(void)
             continue;                           /* waiting for its beat */
         }
         uint32_t upto = now - c->origin + 1u;   /* ticks played once this block is done */
-        while (c->done < upto) {                /* every note whose time comes in (done, upto] */
+        while (c->done < upto && (c->loop || c->done < c->length)) {   /* every note due in (done, upto] */
             uint32_t pos = c->done % c->length;
             for (uint32_t i = 0; i < c->count; i++) {
                 if (c->n[i].tick == pos && c->on_count < CLIP_SOUNDING) {
@@ -225,6 +254,9 @@ static void clips_advance(void)
                 }
             }
             c->done++;
+        }
+        if (!c->loop && c->done >= c->length && c->on_count == 0u) {
+            c->playing = 0;                     /* SINGLE: once through, its last note ended */
         }
     }
 }

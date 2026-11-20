@@ -23,6 +23,7 @@ static void settings_fill_new(void)
         set.eq[b] = 128u;
     }
     ols_zero(set.new_page, sizeof set.new_page);
+    set.pad_kit = 0;
 }
 
 static void conf_defaults(void)
@@ -67,6 +68,9 @@ static void apply_midi_channel(void)
 
 static int new_valid(void)
 {
+    if (set.pad_kit >= DR_KIT_COUNT) {
+        set.pad_kit = 0;                        /* (padding before: not a reason to drop the settings) */
+    }
     for (uint32_t j = 0; j < PERC_KEYS; j++) {
         if (set.perc[j] >= DRUM_PERCS) {
             return 0;

@@ -57,6 +57,7 @@ static const uint8_t VOICE_LIMIT[TRACKS] = { 4, 1, 2, 4 };
  * over the loops (not recorded; arpeggiated: ARP tapped), and the gestures (perform effects, CLEAR, UNDO / REDO, the
  * Creative Engine) act on every track; with a track selected they act on that track only. */
 #define T_LIVE 0xFDu                           /* event target: the live voice */
+#define T_PADS 0xFCu                           /* event target: the pads' drum kit (APP_CLIPS targets) */
 #define LIVE_VOICES 3u
 #define LIVE_DEFAULT_SOUND VA_PRESET_LEAD
 
@@ -233,7 +234,10 @@ typedef struct {
     uint8_t perc[PERC_KEYS];                    /* the original drum map's D# and G# keys, each its own (DRUM_PERC) */
     uint8_t eq[EQ_BANDS];                       /* the master EQ: BASS MID TREBLE (128 flat) and the MID's frequency */
     uint8_t new_page[TRACKS + 1];               /* a new sound taken on a line: 0 the page stays, else page + 1 */
+    uint8_t pad_kit;                            /* the pads' drum kit (DRUMS pads), 0..DR_KIT_COUNT-1 (in OLSC's padding:
+                                                 * an older file has 0 there) */
 } settings_t;
+typedef char settings_size_kept[(sizeof(settings_t) == 48u) ? 1 : -1];   /* (a field more: a new format) */
 
 /* OLSA's settings: the same up to `hidden`, 31 sounds then */
 typedef struct {

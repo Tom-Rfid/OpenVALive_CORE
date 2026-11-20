@@ -217,8 +217,8 @@ static const char *armed_name(uint8_t role, int w)
     if (role == KEY_ARMED_FX) {
         return w == 14 ? "DRUMS ORIGINAL" : (w == 15 ? "DRUMS GM" : (ui.on_a ? "A RESET" : "TRACK RESET"));
     }
-    copy_text(t, w >= 8 ? "STORE " : "SCENE ", sizeof t);
-    int_text(w % 8 + 1, t + 6);
+    copy_text(t, w >= 8 ? "SAVE " : "LOAD ", sizeof t);       /* GLO: LOAD 1-8 on the left, SAVE 1-8 on the right */
+    int_text(w % 8 + 1, t + 5);
     return t;
 }
 
@@ -276,7 +276,7 @@ static void scene_key(int w)
 
     if (w >= 8) {
         send_live(LIVE_SCENE_STORE, (uint8_t)slot, 0, 0.0f, 0);
-        app_say("STORED", t);
+        app_say("SAVED", t);
         return;
     }
     if (!live.scene[slot].valid) {
@@ -289,7 +289,7 @@ static void scene_key(int w)
         mirror.scene_last = (int8_t)slot;
     }
     ui.morph = 1.0f;                            /* Morph knob: fully on the scene just recalled */
-    app_say(live.clock.running ? "NEXT BAR" : "RECALL", t);
+    app_say(live.clock.running ? "NEXT BAR" : "LOADED", t);
 }
 
 /* Which tracks a break-type effect takes out. */
@@ -824,6 +824,8 @@ static int32_t family_step(int32_t sound, int32_t step, int for_a);
 static const char *sound_label(int32_t sound);
 static void preset_turn(int32_t step, int family);
 
+static void load_user_sound(int u);
+
 static void key_pressed(uint32_t k, uint32_t buttons)
 {
     ui.msg_until = 0;                           /* another key: the title shown goes at once (a new one may follow) */
@@ -843,15 +845,21 @@ static void key_pressed(uint32_t k, uint32_t buttons)
     }
 #endif
 
-    if (button_held(buttons, B_SAVE)) {
+    if (button_held(buttons, B_SAVE)) {         /* SAVE + key 1-8: LOAD USER 1-8 on the line; 9-16: SAVE it there */
         if (w >= 0 && w < OLS_USER_SOUNDS) {
-            push_event(EV_PRESET, mirror.track, (uint8_t)w, 1, 0, (float)set.octave[mirror.track]);   /* b = 1: keep as user sound w, with the octave */
-            set.preset[mirror.track] = (uint8_t)(OLS_SOUND_FIRST_USER + w);
+            ui.save_used = 1;
+            load_user_sound(w);
+        } else if (w >= OLS_USER_SOUNDS && w < 2 * OLS_USER_SOUNDS) {
+            int u = w - OLS_USER_SOUNDS;
+            push_event(EV_PRESET, mirror.track, (uint8_t)u, 1, 0, (float)set.octave[mirror.track]);   /* b = 1: keep as user sound u, with the octave */
+            set.preset[mirror.track] = (uint8_t)(OLS_SOUND_FIRST_USER + u);
             ui.save_used = 1;
             mark_dirty();
             char t[8] = "USER ";
-            int_text(w + 1, t + 5);
-            app_say("SOUND KEPT", t);
+            int_text(u + 1, t + 5);
+            app_say("SAVED", t);
+            ui.msg_style = MSG_TAKEN;
+            ui.msg_until = plat_ms() + 700u;
         }
         return;
     }
@@ -1119,7 +1127,8 @@ static void button_pressed(uint32_t b, uint32_t buttons)
         break;
     case B_SAVE:
         ui.save_used = 0;                       /* the set is saved on release, unless a key kept a sound */
-        app_say(BTN_NAME[B_SAVE], "TAP: SET  KEY: USER");
+        app_say(BTN_NAME[B_SAVE], "TAP: SET");
+        ui.msg_right = "LOAD|SAVE";             /* the keys: USER sounds, LOAD on the left, SAVE on the right */
         break;
     case B_ARP:
         ui.arp_down_at = plat_ms();
@@ -1501,6 +1510,40 @@ static void scan_preset_encoder(uint32_t buttons)
     preset_turn(turn > 0 ? 1 : -1, 0);
 }
 
+/* SAVE + key 1-8: USER sound u on the selected line (A: a synth one only); a playing loop: it waits for SEL */
+static void load_user_sound(int u)
+{
+    char t[8] = "USER ";
+    int_text(u + 1, t + 5);
+    int32_t sound = OLS_SOUND_FIRST_USER + u;
+    if (!user_sounds[u].valid || (ui.on_a && user_sounds[u].kind != OLS_KIND_VA)) {
+        app_say(t, user_sounds[u].valid ? "NOT ON A" : "EMPTY");
+        ui.msg_style = MSG_NOT_TAKEN;
+        ui.msg_until = plat_ms() + 700u;
+        return;
+    }
+    if (ui.on_a) {
+        set.live_sound = (uint8_t)sound;
+        sound_octave(TRACKS, (uint32_t)sound);
+        mark_dirty();
+        send_preset(T_LIVE, set.live_sound);
+        app_say("LOADED", t);
+        return;
+    }
+    uint8_t tr = mirror.track;
+    if (live.track[tr].pat.count > 0u) {        /* the loop plays: as PRESET, the sound waits for SEL */
+        ui.pend_sound = (int16_t)(sound == set.preset[tr] ? -1 : sound);
+        app_say(t, "SEL: LOAD");
+        ui.redraw = 1;
+        return;
+    }
+    set.preset[tr] = (uint8_t)sound;
+    sound_octave(tr, (uint32_t)sound);
+    mark_dirty();
+    send_preset(tr, set.preset[tr]);
+    app_say("LOADED", t);
+}
+
 /* a new sound taken on a line (0..3, TRACKS = A): the page OPTION CONTROL chose for it (KEEP: none), so the same
  * routine follows each new sound (DRUM EQ only for a drum sound) */
 static void new_sound_page(uint32_t line, int32_t sound)
@@ -1843,11 +1886,11 @@ static void key_lights(uint32_t keys, uint32_t buttons, uint32_t *lit, uint32_t 
         if (APP_WHEEL && set.wheel_pan) {
             *lit |= 1u << WHITE_KEY[13];        /* the wheel pans */
         }
-    } else if (button_held(buttons, B_SAVE)) {  /* SAVE + key 1..8: keep the sound as USER 1..8; lit: holds one */
-        *dim = white_mask(0, OLS_USER_SOUNDS);
+    } else if (button_held(buttons, B_SAVE)) {  /* SAVE + key 1-8 LOAD USER 1-8, 9-16 SAVE; lit: holds one */
+        *dim = white_mask(0, 2 * OLS_USER_SOUNDS);
         for (int u = 0; u < OLS_USER_SOUNDS; u++) {
             if (user_sounds[u].valid) {
-                *lit |= 1u << WHITE_KEY[u];
+                *lit |= 1u << WHITE_KEY[u] | 1u << WHITE_KEY[OLS_USER_SOUNDS + u];
             }
         }
     } else if (button_held(buttons, B_ARP)) {

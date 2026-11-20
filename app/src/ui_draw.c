@@ -229,11 +229,15 @@ static uint16_t mix565(uint16_t a, uint16_t b, uint32_t t)
 /* one key: dark grey (nothing), half filled in mint with a mint outline (it does something now: its fill breathes,
  * a second up and down), violet (on); a blinking one goes between the half-filled and the dark grey */
 static void screen_key(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t lit, uint32_t dim, uint32_t blink,
-                       uint16_t c)
+                       uint16_t c, uint16_t solid)
 {
     int off = blink && ((plat_ms() / 125u) & 1u);
+    if (solid) {                                /* held (yellow), a muted track (red), a set-up key */
+        cv_rect(x, y, w, h, solid);
+        return;
+    }
     if (lit && !blink) {
-        cv_rect(x, y, w, h, C_VIO);
+        cv_rect(x, y, w, h, c == C_PINK ? C_PINK : C_VIO);   /* (a SAVE key lit: pink) */
         return;
     }
     if ((dim || blink) && !off) {
@@ -245,6 +249,42 @@ static void screen_key(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t lit,
         return;
     }
     cv_rect(x, y, w, h, RGB(52, 52, 60));
+}
+
+/* a key on the screen keyboard, beyond lit / dim / blink: the SAVE keys pink (GLO 9-16, SAVE 9-16); a muted
+ * track's key red (SEL); a key held yellow (an action: it shows it is pressed); the set-up keys going red to blue
+ * and back, slowly (2 s) */
+static void screen_key_colours(int32_t k, uint32_t bit, uint16_t *c, uint16_t *solid)
+{
+    if (k < 0) {
+        return;
+    }
+    int w = white_index((uint32_t)k);
+    if ((button_held(ui.buttons, B_GLO) || button_held(ui.buttons, B_SAVE)) && w >= 8) {
+        *c = C_PINK;
+    }
+    if (button_held(ui.buttons, BTN_TRACKS)) {             /* SEL: the mutes show their state, never yellow */
+        int all = 1;
+        for (int t = 0; t < TRACKS; t++) {
+            all &= live.track[t].mute != 0;
+        }
+        if ((w >= 0 && w < TRACKS && live.track[w].mute) || ((uint32_t)k == KEY_MUTE_ALL && all)) {
+            *solid = C_RED;
+            return;
+        }
+        if ((w >= 0 && w < TRACKS) || (uint32_t)k == KEY_MUTE_ALL) {
+            return;
+        }
+    }
+    if (ui.keys & bit) {
+        *solid = C_YELLOW;
+        return;
+    }
+    if (ui.keys_conf & bit) {
+        uint32_t t = plat_ms() % 2000u;
+        uint32_t x = t < 1000u ? t * 256u / 1000u : (2000u - t) * 256u / 1000u;
+        *solid = mix565(C_RED, RGB(50, 90, 255), x);
+    }
 }
 
 static int draw_layer_keys(void)
@@ -272,14 +312,15 @@ static int draw_layer_keys(void)
             }
             int32_t k = APP_SCREEN_KEY(i);
             uint32_t bit = k >= 0 ? 1u << k : 0u;
+            uint16_t solid = 0, c = C_MINT;
+            screen_key_colours(k, bit, &c, &solid);
             if (!black) {
-                screen_key(x0 + white * ww, top, ww - 1, kh, lit & bit, dim & bit, blink & bit,
-                           (ui.keys_conf & bit) ? C_VIO : C_MINT);   /* set-up keys violet */
+                screen_key(x0 + white * ww, top, ww - 1, kh, lit & bit, dim & bit, blink & bit, c, solid);
                 white++;
             } else {
                 int32_t bw = ww * 3 / 5 | 1;
                 cv_rect(x0 + white * ww - bw / 2 - 1, top, bw + 2, kh * 3 / 5 + 1, C_BLACK);
-                screen_key(x0 + white * ww - bw / 2, top, bw, kh * 3 / 5, lit & bit, dim & bit, blink & bit, C_MINT);
+                screen_key(x0 + white * ww - bw / 2, top, bw, kh * 3 / 5, lit & bit, dim & bit, blink & bit, c, solid);
             }
         }
     }

@@ -244,6 +244,15 @@ static void apply_event(const ols_event_t *e)
         live_voice_event(e);
         return;
     }
+#ifdef APP_CLIPS
+    if (e->target == T_PADS) {
+        pad_drum_event(e);
+        return;
+    }
+    if (e->type == EV_ALL_OFF) {
+        ENGINE_DRUM_API.all_notes_off(&pad_drum);
+    }
+#endif
     if (e->type == EV_ALL_OFF) {                /* panic: A too */
         arp.count = 0;
         arp_silence();
@@ -374,6 +383,17 @@ void app_render(int32_t *lr, uint32_t n, uint32_t master_q12)
     }
     ols_live_render(&live, buf_l, buf_r, (int)n);
     live_voice_render(n);
+#ifdef APP_CLIPS
+    for (uint32_t done = 0; done < n;) {        /* the pads' drum kit */
+        uint32_t c = n - done < (uint32_t)OLS_RENDER_CHUNK ? n - done : (uint32_t)OLS_RENDER_CHUNK;
+        ENGINE_DRUM_API.render(&pad_drum, live.tmp_l, live.tmp_r, (int)c);
+        for (uint32_t i = 0; i < c; i++) {
+            buf_l[done + i] += live.tmp_l[i];
+            buf_r[done + i] += live.tmp_r[i];
+        }
+        done += c;
+    }
+#endif
     master_eq_render(n);
     write_output(lr, n, master_q12);
 

@@ -93,6 +93,10 @@ void app_init(void)
     settings_load();
     apply_midi_channel();
     live_voice_sound(set.live_sound);             /* audio not running yet: straight in */
+#ifdef APP_CLIPS
+    engine_drum_init(&pad_drum);                  /* the pads' drum kit */
+    engine_drum_load_kit(&pad_drum, (dr_kit_t)set.pad_kit);
+#endif
     ui.pend_sound = -1;
     arp_mode = set.arp_mode;
     ui.lv_level = 1.0f;

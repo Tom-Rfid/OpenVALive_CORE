@@ -180,7 +180,7 @@ static const char *conf_text(uint32_t c)
     }
     if (c >= CONF_NEW_PAGE && c < CONF_MENU) {
         uint8_t p = set.new_page[c - CONF_NEW_PAGE];
-        return p ? PAGE_NAME[(p - 1u) % PAGE_COUNT] : "KEEP";
+        return p ? PAGE_NAME[(p - 1u) % PAGE_COUNT] : "SAME PAGE";
     }
     if (c == CONF_PLAY_MODE) {                  /* LIVE: the sounds inside; FULL MIDI: the keys and pads only send MIDI */
         return set.controller ? "FULL MIDI" : "LIVE";
