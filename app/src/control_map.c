@@ -645,9 +645,16 @@ static void map_touch(uint32_t slot)
     }
 }
 
+static void map_retarget(uint32_t s, int32_t t);
 static void map_change_target(uint32_t s, int32_t turn)
 {
-    int32_t t = ((int32_t)cmap.target[s] + (turn > 0 ? 1 : -1) + MAP_TARGETS) % MAP_TARGETS;
+    map_retarget(s, ((int32_t)cmap.target[s] + (turn > 0 ? 1 : -1) + MAP_TARGETS) % MAP_TARGETS);
+}
+
+/* slot s now drives target t (the old effect let go; a sensible option for the new kind). Also a target's own
+ * gesture (the SMK-37's LIVE 2 pad that turns what the mod wheel does) */
+static void map_retarget(uint32_t s, int32_t t)
+{
     if (cmap.target[s] >= MAP_FILTER && cmap.target[s] <= MAP_DECAY) {
         send_live(LIVE_OVERRIDE, 0, MAP_TARGET[cmap.target[s]].role, 0.0f, map_scope(s));   /* let the old one go */
     }
