@@ -409,6 +409,8 @@ static float *map_val(uint32_t s)
 /* FX held + a knob, any page but SETUP: the knob turns the selected track's control as usual, and every other
  * track goes toward that value, each at its own pace, to be on it after five detents from FX's press (then it
  * follows). 0: not a control of one track (the knob turns as usual) */
+static float map_current(uint32_t slot);
+static void map_set(uint32_t slot, float v);
 static uint8_t map_align_done[MAP_ALL_SLOTS];
 static uint8_t sound_align_done[KNOB_COUNT];
 static void map_align_reset(void)
