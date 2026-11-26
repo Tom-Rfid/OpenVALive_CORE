@@ -1,5 +1,10 @@
 # Changelog
 
+## 26 November 2026 — a target may shorten the delay buffers
+
+- APP_DELAY_LEN: a target short of RAM gives its tracks shorter delay buffers; the delay knob keeps its span
+  (16382 samples), only the longest times clamp, so every sound stays the same (bit-identical with 16384).
+
 ## 20 November 2026 — the sounds levelled by measure; the slicer on a track; SEL and SEQ rearranged
 
 - Every synth sound levelled by measure (`tools/level_sounds.py`: a K-weighted level, each note by its loudest 100 ms,

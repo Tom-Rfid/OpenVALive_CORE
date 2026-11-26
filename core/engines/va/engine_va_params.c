@@ -137,7 +137,9 @@ void va_update_delay(engine_va_t *e)
     if (e->delay.buf == 0) {
         return;
     }
-    float max_seconds = (float)(e->delay.size - 2) * DSP_INV_SR;
+    /* the knob's span is the same whatever the buffer (16382 samples, 0.37 s at 44.1 kHz): a target with a shorter
+     * buffer (the SMK-37, for RAM) only loses the longest times, clamped by delay_set; the sounds stay the same */
+    float max_seconds = 16382.0f * DSP_INV_SR;
     float time = dsp_expmap(e->p[VA_P_DELAY_TIME], 0.02f, max_seconds);
     float feedback = e->p[VA_P_DELAY_FB] * 0.9f;
     delay_set(&e->delay, time, feedback, e->p[VA_P_DELAY_TONE]);

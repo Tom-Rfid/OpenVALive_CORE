@@ -15,7 +15,11 @@
 /* ------------------------------------------------------------ engines and Live Core */
 
 #define TRACKS OLS_TRACKS                      /* 4 tracks; each owns a VA engine and a drum engine */
+#ifdef APP_DELAY_LEN
+#define DELAY_LEN APP_DELAY_LEN                 /* a target short of RAM: shorter (the longest delay times clamp) */
+#else
 #define DELAY_LEN 16384u                       /* 371 ms of int16 samples = 32 KB per track, in the pool */
+#endif
 
 static int16_t delay_buf[TRACKS][DELAY_LEN] PLAT_POOL;
 static engine_va_t va[TRACKS] PLAT_POOL;
