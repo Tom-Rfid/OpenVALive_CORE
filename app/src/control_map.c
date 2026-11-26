@@ -406,16 +406,29 @@ static float *map_val(uint32_t s)
     return &map_value_t[slot_per_track(s) ? mirror.track : TRACKS][s];
 }
 
-/* FX held + a knob on a control of the selected track: every other track's value comes to the selected one's, in
- * five steps (detents, either way) from FX's press; the selected track's stays. 0: not such a control */
-static float map_current(uint32_t slot);
-static void map_set(uint32_t slot, float v);
+/* FX held + a knob, any page but SETUP: the knob turns the selected track's control as usual, and every other
+ * track goes toward that value, each at its own pace, to be on it after five detents from FX's press (then it
+ * follows). 0: not a control of one track (the knob turns as usual) */
 static uint8_t map_align_done[MAP_ALL_SLOTS];
+static uint8_t sound_align_done[KNOB_COUNT];
 static void map_align_reset(void)
 {
     for (uint32_t s = 0; s < MAP_ALL_SLOTS; s++) {
         map_align_done[s] = 0;
     }
+    for (uint32_t k = 0; k < KNOB_COUNT; k++) {
+        sound_align_done[k] = 0;
+    }
+}
+
+static void align_said(const char *name, uint8_t *done)
+{
+    if (*done < 5u) {
+        (*done)++;
+    }
+    char t[16] = "ALL 1/5";
+    t[4] = (char)('0' + *done);
+    app_say(name, *done >= 5u ? "ALL ON IT" : t);
 }
 
 static int map_align(uint32_t slot, int32_t turn)
@@ -423,27 +436,43 @@ static int map_align(uint32_t slot, int32_t turn)
     if (ui.on_a || !slot_per_track(slot) || (slot >= APP_MAP_SLOTS && slot < MAP_MACRO1)) {
         return 0;
     }
-    (void)turn;
     uint8_t sel = mirror.track;
-    float ref = map_current(slot);
-    uint32_t left = map_align_done[slot] < 5u ? 5u - map_align_done[slot] : 1u;
+    float ref = fm_clampf(map_current(slot) + (float)turn * ENCODER_STEP, 0.0f, 1.0f);
+    map_set(slot, ref);                         /* the selected track, as usual */
+    float left = (float)(map_align_done[slot] < 5u ? 5u - map_align_done[slot] : 1u);
     for (uint8_t u = 0; u < TRACKS; u++) {
         if (u == sel) {
             continue;
         }
         mirror.track = u;                       /* (the target's own track: map_current / map_set read it) */
         float v = map_current(slot);
-        map_set(slot, v + (ref - v) / (float)left);
+        map_set(slot, v + (ref - v) / left);
     }
     mirror.track = sel;
-    if (map_align_done[slot] < 5u) {
-        map_align_done[slot]++;
-    }
-    char t[8] = "1/5";
-    t[0] = (char)('0' + map_align_done[slot]);
-    app_say(MAP_TARGET[cmap.target[slot]].name, map_align_done[slot] >= 5u ? "ALL ALIGNED" : t);
+    align_said(MAP_TARGET[cmap.target[slot]].name, &map_align_done[slot]);
     ui.redraw = 1;
     return 1;
+}
+
+/* the same on the SOUND page: the knob's parameter on every track with the same engine */
+static void sound_align(uint32_t k)
+{
+    uint8_t sel = mirror.track;
+    const ols_engine_api_t *api = track_api(sel);
+    uint16_t id = api->macros[k];
+    float ref = ui.shadow[sel][id];
+    float left = (float)(sound_align_done[k] < 5u ? 5u - sound_align_done[k] : 1u);
+    for (uint8_t u = 0; u < TRACKS; u++) {
+        const ols_track_t *tr = &live.track[u];
+        if (u == sel || track_api(u) != api) {
+            continue;
+        }
+        float v = tr->engine.api->get_param(tr->engine.ctx, id);
+        v += (ref - v) / left;
+        ui.shadow[u][id] = v;
+        send_param(u, id, v);
+    }
+    align_said(api->macro_names[k], &sound_align_done[k]);
 }
 
 /* the option's text: "T2", "ALL", "SEL TRK", "CC 74", the sound knob's name */

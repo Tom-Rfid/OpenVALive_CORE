@@ -971,7 +971,7 @@ static void bold_text(int32_t x, int32_t y, const char *s, uint16_t c)
 static void bar_value(int32_t x, int32_t fill, const char *s)
 {
     cv_rect(x + 1, 17, 50, 14, C_BAR_BG);
-    cv_rect(x + 1, 17, fill, 14, button_held(ui.buttons, BTN_PAGES) ? C_MINT : C_WHITE);   /* FX held: mint (align) */
+    cv_rect(x + 1, 17, fill, 14, button_held(ui.buttons, BTN_PAGES) && set.page != PAGE_SETUP ? C_MINT : C_WHITE);   /* FX held: mint */
     bold_text(x + 1 + (50 - text_w(&FONT_XS, s) - 1) / 2, 18, s, C_BLACK);
 }
 

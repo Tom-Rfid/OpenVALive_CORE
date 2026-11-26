@@ -1122,6 +1122,7 @@ static void hover_cancel(void);                     /* (below) */
 /* a sound taken: the title as it was while it waited ("T1 BLEEP"), green and still, a check mark for +SEL */
 static int map_align(uint32_t slot, int32_t turn);      /* control_map.c */
 static void map_align_reset(void);
+static void sound_align(uint32_t k);
 
 static void say_sound_taken(uint32_t t)
 {
@@ -2025,10 +2026,15 @@ static void scan_knobs(void)
         ui.turned_at = plat_ms();
         mark_dirty();
 
-        if (button_held(ui.buttons, BTN_PAGES) && page_slot(set.page, k) >= 0) {
+        if (button_held(ui.buttons, BTN_PAGES) && set.page != PAGE_SETUP && !ui.on_a) {
             ui.pages_used = 1;                  /* FX held: no page turn on release */
-            if (map_align((uint32_t)page_slot(set.page, k), turn)) {
-                continue;                       /* FX held: the other tracks come to this one's value */
+            if (set.page == PAGE_SOUND && !set.controller) {
+                sound_knob(k, turn);            /* the other tracks follow this one */
+                sound_align(k);
+                continue;
+            }
+            if (page_slot(set.page, k) >= 0 && map_align((uint32_t)page_slot(set.page, k), turn)) {
+                continue;
             }
         }
         if (set.page == PAGE_SOUND && set.controller) {
