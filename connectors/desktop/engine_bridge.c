@@ -163,7 +163,7 @@ float desktop_knob_value(int knob)
     case 7:
         return L->track[app.track].gain / 1.5f;
     case 8: case 9: case 10: case 11:
-        return L->macro[knob - 8];
+        return L->macro[L->current][knob - 8];
     default:
         return L->pump;
     }

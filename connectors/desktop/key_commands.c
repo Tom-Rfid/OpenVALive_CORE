@@ -141,7 +141,7 @@ static void change_knob(float delta)
         float gain = app.live.track[app.track].gain + delta;
         desktop_live(LIVE_GAIN, 0, 0, gain < 0.0f ? 0.0f : (gain > 1.5f ? 1.5f : gain));
     } else if (k < 12) {
-        desktop_live(LIVE_MACRO, (uint8_t)(k - 8), 0, clamp01(app.live.macro[k - 8] + delta));
+        desktop_live(LIVE_MACRO, (uint8_t)(k - 8), 0, clamp01(app.live.macro[app.track][k - 8] + delta));
     } else {
         app.pump = clamp01(app.pump + delta);
         desktop_live(LIVE_PUMP, 0, 0, app.pump);

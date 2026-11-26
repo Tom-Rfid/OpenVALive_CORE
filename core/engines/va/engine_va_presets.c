@@ -557,7 +557,7 @@ static const va_change_t METAL[] = {
     {VA_P_OSC2_FINE, 0.68f}, {VA_P_MIX_OSC2, 0.7f}, {VA_P_FILTER_MODE, FILTER_BP}, {VA_P_CUTOFF, 0.62f},
     {VA_P_RESO, 0.82f}, {VA_P_KEYTRACK, 0.8f}, {VA_P_FENV_AMT, 0.6f}, {VA_P_F_DECAY, 0.6f}, {VA_P_F_SUSTAIN, 0.1f},
     {VA_P_A_ATTACK, 0.0f}, {VA_P_A_DECAY, 0.7f}, {VA_P_A_SUSTAIN, 0.2f}, {VA_P_A_RELEASE, 0.65f},
-    {VA_P_DRIVE, 0.3f}, {VA_P_CHORUS_MIX, 0.3f}, {VA_P_DELAY_MIX, 0.2f}, {VA_P_DELAY_FB, 0.4f}, {VA_P_VOLUME, 0.663f},
+    {VA_P_DRIVE, 0.3f}, {VA_P_CHORUS_MIX, 0.3f}, {VA_P_DELAY_MIX, 0.2f}, {VA_P_DELAY_FB, 0.4f}, {VA_P_VOLUME, 0.629f},   /* -10 % (2 v^2) */
 };
 
 /* Arp: cut for fast hypnotic arpeggios, a saw and a square, a snappy filter, a short body and an echo. */
@@ -714,7 +714,8 @@ static const va_change_t RUBBER[] = {
 
 /* Bleep: the minimal bleep: a round tone, short, high, into a ping-pong of echoes. */
 static const va_change_t BLEEP[] = {
-    {VA_P_OSC1_WAVE, WAVE_TRIANGLE}, {VA_P_MIX_OSC2, 0.0f}, {VA_P_CUTOFF, 0.6f}, {VA_P_RESO, 0.2f},
+    {VA_P_OSC1_WAVE, WAVE_TRIANGLE}, {VA_P_MIX_OSC1, 0.876f}, {VA_P_MIX_OSC2, 0.0f}, {VA_P_CUTOFF, 0.6f},   /* +20 %: its volume
+    * is at the top already, so its oscillator (v^2: 0.8 -> 0.876) */ {VA_P_RESO, 0.2f},
     {VA_P_FENV_AMT, 0.6f}, {VA_P_F_DECAY, 0.25f}, {VA_P_F_SUSTAIN, 0.2f}, {VA_P_A_ATTACK, 0.0f},
     {VA_P_A_DECAY, 0.35f}, {VA_P_A_SUSTAIN, 0.2f}, {VA_P_A_RELEASE, 0.3f}, {VA_P_DELAY_TIME, 0.5f},
     {VA_P_DELAY_FB, 0.55f}, {VA_P_DELAY_MIX, 0.4f}, {VA_P_VOLUME, 1.0f},

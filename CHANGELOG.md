@@ -1,5 +1,15 @@
 # Changelog
 
+## 26 November 2026 — MOOD per track, FX held aligns the tracks, a sound taken in green; BLEEP +20 %, METAL -10 %
+
+- MACRO is now MOOD, and each track has its own (ENERGY, SPACE, TENSION, DENSITY: the Live core keeps them per
+  track; LIVE_MACRO's target is a track or all). The knobs on the selected track (USER's effects on SEL TRK, LEVEL,
+  PAN, MOOD) keep their value per track.
+- FX held + such a knob: the other tracks come to the selected one's value in five detents; the bars are mint while
+  FX is held.
+- A sound taken (SEL): no "SOUND" message; the title as it waited, green, still, a check mark (1.2 s as before).
+- BLEEP 20 % louder (its oscillator: its volume was at the top), METAL 10 % softer.
+
 ## 26 November 2026 — a target may shorten the delay buffers
 
 - APP_DELAY_LEN: a target short of RAM gives its tracks shorter delay buffers; the delay knob keeps its span

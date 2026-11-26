@@ -38,8 +38,10 @@ void ols_live_init(ols_live_t *L, const ols_engine_t *engines, int count, float 
     L->send_notes = 1;
     L->morph_b = 1;
     L->scene_queued = -1;
-    for (int m = 0; m < OLS_MACRO_COUNT; m++) {
-        L->macro[m] = 0.5f;
+    for (int t = 0; t < OLS_TRACKS; t++) {
+        for (int m = 0; m < OLS_MACRO_COUNT; m++) {
+            L->macro[t][m] = 0.5f;
+        }
     }
     L->duck_kind = 0xFF;                     /* no sidechain source until the host says which kind */
     L->duck_gain = 1.0f;
@@ -59,10 +61,10 @@ void ols_live_set_engine(ols_live_t *L, int track, ols_engine_t engine, uint8_t 
     tr->held_count = 0;
     tr->engine = engine;
     tr->kind = kind;
-    /* the macros apply to the new engine too */
+    /* the track's macros apply to the new engine too */
     for (int m = 0; m < OLS_MACRO_COUNT; m++) {
-        if (L->macro[m] != 0.5f) {
-            ols_live_macro(L, m, L->macro[m]);
+        if (L->macro[track][m] != 0.5f) {
+            ols_live_macro(L, track, m, L->macro[track][m]);
             break;
         }
     }
@@ -209,11 +211,11 @@ static void play_track_tick(ols_live_t *L, int t, uint32_t now)
             int plays = n->chance >= 100u || ols_rand_below(&L->rng, 100) < n->chance;
             /* DENSITY below 0 thins the off-beats; above 0 doubles some notes */
             int off_beat = n->tick % OLS_PPQN != 0u;
-            if (L->density < 0.0f && off_beat && ols_rand01(&L->rng) < -L->density * 0.8f) {
+            if (L->density[t] < 0.0f && off_beat && ols_rand01(&L->rng) < -L->density[t] * 0.8f) {
                 plays = 0;
             }
-            set_bit(tr->dense, i, L->density > 0.0f && n->len >= 12u
-                                  && ols_rand01(&L->rng) < L->density * 0.5f);
+            set_bit(tr->dense, i, L->density[t] > 0.0f && n->len >= 12u
+                                  && ols_rand01(&L->rng) < L->density[t] * 0.5f);
             set_skip_bit(tr, i, !plays);
 
             if (tr->suppress_note == n->note && tr->suppress_tick == n->tick) {
@@ -530,34 +532,35 @@ void ols_live_hold_mute(ols_live_t *L, uint8_t mask, int hold)
 }
 
 /* The macros, as offsets by role on every track (engine.h role_offset) and a density. */
-void ols_live_macro(ols_live_t *L, int macro, float value)
+void ols_live_macro(ols_live_t *L, int track, int macro, float value)
 {
     if (macro < 0 || macro >= OLS_MACRO_COUNT) {
         return;
     }
-    L->macro[macro] = dsp_clampf(value, 0.0f, 1.0f);
-
-    float energy = 2.0f * (L->macro[OLS_MACRO_ENERGY] - 0.5f);
-    float space = 2.0f * (L->macro[OLS_MACRO_SPACE] - 0.5f);
-    float tension = 2.0f * (L->macro[OLS_MACRO_TENSION] - 0.5f);
-    float density = 2.0f * (L->macro[OLS_MACRO_DENSITY] - 0.5f);
-
-    float off[OLS_ROLE_COUNT];
-    for (int r = 0; r < OLS_ROLE_COUNT; r++) {
-        off[r] = 0.0f;
-    }
-    off[OLS_ROLE_CUTOFF] = 0.22f * energy;
-    off[OLS_ROLE_DRIVE] = 0.35f * energy;
-    off[OLS_ROLE_DECAY] = -0.12f * energy + 0.12f * space;
-    off[OLS_ROLE_RELEASE] = 0.3f * space;
-    off[OLS_ROLE_DELAY_MIX] = 0.4f * space;
-    off[OLS_ROLE_CHORUS] = 0.3f * space;
-    off[OLS_ROLE_RESO] = 0.35f * tension;
-    off[OLS_ROLE_FENV] = 0.2f * tension;
-    off[OLS_ROLE_CRUSH] = tension > 0.4f ? 0.6f * (tension - 0.4f) : 0.0f;
-    L->density = dsp_clampf(density + 0.5f * energy, -1.0f, 1.0f);
-
     for (int t = 0; t < L->track_count; t++) {
+        if (track != (int)OLS_TRACK_ALL && t != track) {
+            continue;
+        }
+        float *m = L->macro[t];
+        m[macro] = dsp_clampf(value, 0.0f, 1.0f);
+        float energy = 2.0f * (m[OLS_MACRO_ENERGY] - 0.5f);
+        float space = 2.0f * (m[OLS_MACRO_SPACE] - 0.5f);
+        float tension = 2.0f * (m[OLS_MACRO_TENSION] - 0.5f);
+        float density = 2.0f * (m[OLS_MACRO_DENSITY] - 0.5f);
+        float off[OLS_ROLE_COUNT];
+        for (int r = 0; r < OLS_ROLE_COUNT; r++) {
+            off[r] = 0.0f;
+        }
+        off[OLS_ROLE_CUTOFF] = 0.22f * energy;
+        off[OLS_ROLE_DRIVE] = 0.35f * energy;
+        off[OLS_ROLE_DECAY] = -0.12f * energy + 0.12f * space;
+        off[OLS_ROLE_RELEASE] = 0.3f * space;
+        off[OLS_ROLE_DELAY_MIX] = 0.4f * space;
+        off[OLS_ROLE_CHORUS] = 0.3f * space;
+        off[OLS_ROLE_RESO] = 0.35f * tension;
+        off[OLS_ROLE_FENV] = 0.2f * tension;
+        off[OLS_ROLE_CRUSH] = tension > 0.4f ? 0.6f * (tension - 0.4f) : 0.0f;
+        L->density[t] = dsp_clampf(density + 0.5f * energy, -1.0f, 1.0f);
         ols_track_t *tr = &L->track[t];
         if (tr->engine.api->role_offset == 0) {
             continue;

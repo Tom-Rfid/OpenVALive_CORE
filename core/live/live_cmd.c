@@ -233,7 +233,7 @@ OLS_COLD void ols_live_command(ols_live_t *L, ols_live_cmd_t cmd, uint8_t b, uin
         L->xfade_bars = (uint8_t)(b > 8u ? 8u : b);
         break;
     case LIVE_MACRO:
-        ols_live_macro(L, b, v);
+        ols_live_macro(L, target, b, v);
         break;
     case LIVE_PUMP:
         L->pump = v < 0.0f ? 0.0f : (v > 1.0f ? 1.0f : v);

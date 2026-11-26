@@ -916,27 +916,32 @@ static void test_macros_pump_chain(void)
     setup_band();
     ols_bank_select(&live, slots, 3, OLS_SOUND_FIRST_DRUM);
     float cut0 = va[0].d.cutoff_note, drv0 = va[0].d.drive_gain, dec0 = drum[3].decay;
-    ols_live_macro(&live, OLS_MACRO_ENERGY, 1.0f);
+    ols_live_macro(&live, OLS_TRACK_ALL, OLS_MACRO_ENERGY, 1.0f);
     CHECK(va[0].d.cutoff_note > cut0 + 10.0f && va[0].d.drive_gain > drv0 && drum[3].decay < dec0,
           "ENERGY: brighter, more drive, tighter drums");
     CHECK(fabsf(va[0].p[VA_P_CUTOFF] - 0.65f) < 0.001f, "the stored sound does not move (scenes, saves)");
-    CHECK(live.density > 0.4f, "ENERGY also makes the loops denser");
-    ols_live_macro(&live, OLS_MACRO_ENERGY, 0.5f);
+    CHECK(live.density[0] > 0.4f, "ENERGY also makes the loops denser");
+    ols_live_macro(&live, OLS_TRACK_ALL, OLS_MACRO_ENERGY, 0.5f);
+    ols_live_macro(&live, 1, OLS_MACRO_ENERGY, 1.0f);
+    CHECK(live.density[1] > 0.4f && live.density[0] == 0.0f && live.macro[0][OLS_MACRO_ENERGY] == 0.5f,
+          "MOOD: a track's own macros leave the others alone");
+    ols_live_macro(&live, OLS_TRACK_ALL, OLS_MACRO_ENERGY, 1.0f);
+    ols_live_macro(&live, OLS_TRACK_ALL, OLS_MACRO_ENERGY, 0.5f);
     CHECK(fabsf(va[0].d.cutoff_note - cut0) < 0.001f && fabsf(drum[3].decay - dec0) < 0.0001f,
           "back to 50%%: exactly the sound again");
-    ols_live_macro(&live, OLS_MACRO_SPACE, 1.0f);
+    ols_live_macro(&live, OLS_TRACK_ALL, OLS_MACRO_SPACE, 1.0f);
     CHECK(va[0].d.delay_mix > 0.3f, "SPACE: more delay");
-    ols_live_macro(&live, OLS_MACRO_SPACE, 0.5f);
-    ols_live_macro(&live, OLS_MACRO_TENSION, 1.0f);
+    ols_live_macro(&live, OLS_TRACK_ALL, OLS_MACRO_SPACE, 0.5f);
+    ols_live_macro(&live, OLS_TRACK_ALL, OLS_MACRO_TENSION, 1.0f);
     CHECK(va[1].d.reso > 0.5f && va[1].d.crush_levels > 0.0f, "TENSION: resonance and grit");
-    ols_live_macro(&live, OLS_MACRO_TENSION, 0.5f);
+    ols_live_macro(&live, OLS_TRACK_ALL, OLS_MACRO_TENSION, 0.5f);
 
     /* DENSITY at 0: off-beats thinned */
     setup_probes();
     for (int st = 0; st < 16; st++) {
         pattern_add(&live.track[0].pat, (uint32_t)st * 24u, 12, 60, 100);
     }
-    ols_live_macro(&live, OLS_MACRO_DENSITY, 0.0f);
+    ols_live_macro(&live, OLS_TRACK_ALL, OLS_MACRO_DENSITY, 0.0f);
     ols_live_play(&live);
     run(4 * OLS_TICKS_PER_BAR * TICK);
     CHECK(probe[0].on_count < 50 && probe[0].on_count >= 16, "DENSITY 0: fewer notes (%d of 64), beats kept",

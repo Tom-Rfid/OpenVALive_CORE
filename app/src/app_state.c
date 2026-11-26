@@ -149,7 +149,7 @@ enum { MSG_PLAIN, MSG_ARMED, MSG_TAKEN, MSG_NOT_TAKEN, MSG_PRESS };   /* press: 
 /* SEL cycles the pages of the four encoders K1..K4. */
 enum { PAGE_SOUND, PAGE_MACRO, PAGE_LIVE, PAGE_SETUP, PAGE_USER, PAGE_DRUM, PAGE_EQ, PAGE_COUNT };   /* DRUM EQ: drum
                                                  * lines only; EQ: the master tone (numbers kept: new ones last) */
-static const char *const PAGE_NAME[PAGE_COUNT] = { "SOUND", "MACRO", "LIVE", "SETUP", "USER", "DRUM EQ", "EQ" };
+static const char *const PAGE_NAME[PAGE_COUNT] = { "SOUND", "MOOD", "LIVE", "SETUP", "USER", "DRUM EQ", "EQ" };
 
 /* MAP CONTROL and OPTION CONTROL (src/control_map.c, after the UI it serves): the mapped pages, the menus */
 static int map_is_open(void);
@@ -472,7 +472,7 @@ static struct {
     uint8_t pressure_sent;                      /* last key pressure sent (aftertouch), 0..127 */
     uint8_t metronome;
     uint8_t xfade;                              /* index in XFADE_BARS */
-    float macro[KNOB_COUNT];                    /* MACRO page, 0..1 (0.5 neutral) */
+    float macro[TRACKS][KNOB_COUNT];            /* MOOD page, each track its own, 0..1 (0.5 neutral) */
     float pump;                                 /* sidechain depth */
     uint8_t chain_bars;                         /* index in CHAIN_BARS */
     uint8_t sync_after_load;                    /* the saved set is being loaded: re-read it when done */

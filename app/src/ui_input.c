@@ -1119,6 +1119,19 @@ static void change_octave(int32_t delta)
 static void take_end(void);
 static void hover_cancel(void);                     /* (below) */
 
+/* a sound taken: the title as it was while it waited ("T1 BLEEP"), green and still, a check mark for +SEL */
+static int map_align(uint32_t slot, int32_t turn);      /* control_map.c */
+static void map_align_reset(void);
+
+static void say_sound_taken(uint32_t t)
+{
+    char line[24] = "T1 ";
+    line[1] = (char)('1' + t);
+    text_cat(line, sound_label(set.preset[t]));
+    app_say(line, "");
+    ui.msg_style = MSG_TAKEN;
+}
+
 static void button_pressed(uint32_t b, uint32_t buttons)
 {
     if (ui.cap_armed && b != B_EDIT && b != B_OCTDN && b != B_OCTUP && b != B_ENV && b != B_LFO) {
@@ -1148,8 +1161,7 @@ static void button_pressed(uint32_t b, uint32_t buttons)
             send_preset(mirror.track, set.preset[mirror.track]);
             ui.turned_at = 0;
             new_sound_page(mirror.track, set.preset[mirror.track]);
-            app_say("SOUND", sound_name(set.preset[mirror.track]));
-            ui.msg_style = MSG_TAKEN;
+            say_sound_taken(mirror.track);
             return;
         }
     }
@@ -1250,6 +1262,7 @@ static void button_pressed(uint32_t b, uint32_t buttons)
         break;
     case BTN_PAGES:                             /* FX: the page turns on release */
         ui.pages_used = 0;
+        map_align_reset();
         app_say("PAGES", "TAP: NEXT");          /* (its layer: the title while held, as the others) */
         break;
     case B_HOME:
@@ -1862,7 +1875,7 @@ static void preset_turn(int32_t step, int family)
     send_preset(t, set.preset[t]);
     ui.turned_at = 0;                           /* next knob turn re-reads the new sound */
     new_sound_page(t, sound);
-    app_say("SOUND", sound_label(set.preset[t]));
+    say_sound_taken(t);
 }
 
 static void live_sound_knob(uint32_t k, int32_t turn)
@@ -1993,9 +2006,10 @@ static void drum_eq_knob(uint32_t k, int32_t turn)
 /* MACRO page: ENERGY, SPACE, TENSION, DENSITY on every track at once. */
 static void macro_knob(uint32_t k, int32_t turn)
 {
-    ui.macro[k] = fm_clampf(ui.macro[k] + (float)turn * ENCODER_STEP, 0.0f, 1.0f);
-    send_live(LIVE_MACRO, (uint8_t)k, 0, ui.macro[k], 0);
-    say_int(MACRO_NAME[k], (int32_t)(ui.macro[k] * 100.0f + 0.5f), "%");
+    float *m = &ui.macro[mirror.track][k];      /* MOOD: the selected track's own */
+    *m = fm_clampf(*m + (float)turn * ENCODER_STEP, 0.0f, 1.0f);
+    send_live(LIVE_MACRO, (uint8_t)k, 0, *m, mirror.track);
+    say_int(MACRO_NAME[k], (int32_t)(*m * 100.0f + 0.5f), "%");
 }
 
 static void scan_knobs(void)
@@ -2011,6 +2025,12 @@ static void scan_knobs(void)
         ui.turned_at = plat_ms();
         mark_dirty();
 
+        if (button_held(ui.buttons, BTN_PAGES) && page_slot(set.page, k) >= 0) {
+            ui.pages_used = 1;                  /* FX held: no page turn on release */
+            if (map_align((uint32_t)page_slot(set.page, k), turn)) {
+                continue;                       /* FX held: the other tracks come to this one's value */
+            }
+        }
         if (set.page == PAGE_SOUND && set.controller) {
             controller_knob(k, turn);
         } else if (set.page == PAGE_SOUND) {

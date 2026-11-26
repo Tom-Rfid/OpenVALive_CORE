@@ -895,8 +895,8 @@ static void knob_value(uint32_t k, float *bar, int32_t *shown, const char **labe
     }
     if (set.page == PAGE_MACRO) {
         *label = MACRO_NAME[k];
-        *bar = live.macro[k];
-        *shown = (int32_t)(live.macro[k] * 100.0f + 0.5f);
+        *bar = live.macro[t][k];                /* MOOD: the selected track's */
+        *shown = (int32_t)(live.macro[t][k] * 100.0f + 0.5f);
         return;
     }
     if (set.page == PAGE_SOUND && set.controller) {
@@ -971,7 +971,7 @@ static void bold_text(int32_t x, int32_t y, const char *s, uint16_t c)
 static void bar_value(int32_t x, int32_t fill, const char *s)
 {
     cv_rect(x + 1, 17, 50, 14, C_BAR_BG);
-    cv_rect(x + 1, 17, fill, 14, C_WHITE);
+    cv_rect(x + 1, 17, fill, 14, button_held(ui.buttons, BTN_PAGES) ? C_MINT : C_WHITE);   /* FX held: mint (align) */
     bold_text(x + 1 + (50 - text_w(&FONT_XS, s) - 1) / 2, 18, s, C_BLACK);
 }
 

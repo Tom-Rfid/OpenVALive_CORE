@@ -80,7 +80,17 @@ static const uint8_t PAGE_ORDER_DEFAULT[PAGE_COUNT] = {
 };
 
 static control_map_t cmap;
-static float map_value[MAP_ALL_SLOTS];  /* where each control last put its target, 0..1 */
+static float map_value_t[TRACKS + 1][MAP_ALL_SLOTS];   /* where each control last put its target, 0..1: a row per
+                                                         * track for a control on the selected track, the last for
+                                                         * the others */
+static int slot_per_track(uint32_t s);
+static float *map_val(uint32_t s);      /* the slot's value: the selected track's own, or the shared one */
+static void map_val_reset(uint32_t s, float v)
+{
+    for (uint32_t r = 0; r <= TRACKS; r++) {
+        map_value_t[r][s] = v;
+    }
+}
 enum { SCREEN_SOUNDS, SCREEN_MAP, SCREEN_OPTION, SCREENS };   /* the set-up screens, in the MENU row's turn */
 static struct {
     uint8_t open, screen, row, top, dirty, conf_dirty, drawn;
@@ -256,7 +266,7 @@ static void slot_default(uint32_t s)
 {
     cmap.target[s] = SLOT_TARGET[s];
     cmap.arg[s] = SLOT_ARG[s];
-    map_value[s] = SLOT_TARGET[s] == MAP_BEND ? 0.5f : 0.0f;
+    map_val_reset(s, SLOT_TARGET[s] == MAP_BEND ? 0.5f : 0.0f);
 }
 
 static void pages_default(void)
@@ -352,7 +362,7 @@ static void map_load(void)
         map_defaults();
     }
     for (uint32_t s = 0; s < MAP_ALL_SLOTS; s++) {
-        map_value[s] = cmap.target[s] == MAP_BEND ? 0.5f : 0.0f;
+        map_val_reset(s, cmap.target[s] == MAP_BEND ? 0.5f : 0.0f);
     }
 }
 
@@ -381,6 +391,59 @@ static uint8_t map_scope(uint32_t slot)
         return OLS_TRACK_ALL;
     }
     return (a >= 1u && a <= TRACKS) ? (uint8_t)(a - 1u) : mirror.track;
+}
+
+/* a control on the selected track (LEVEL, PAN, an effect on SEL TRK, MOOD): each track keeps its own value */
+static int slot_per_track(uint32_t s)
+{
+    uint8_t t = cmap.target[s], kind = MAP_TARGET[t].arg;
+    return (t >= MAP_ENERGY && t <= MAP_DENSITY) || (kind == ARG_TRACK && cmap.arg[s] == 0u)
+           || (kind == ARG_SCOPE && cmap.arg[s] == SCOPE_SELECTED);
+}
+
+static float *map_val(uint32_t s)
+{
+    return &map_value_t[slot_per_track(s) ? mirror.track : TRACKS][s];
+}
+
+/* FX held + a knob on a control of the selected track: every other track's value comes to the selected one's, in
+ * five steps (detents, either way) from FX's press; the selected track's stays. 0: not such a control */
+static float map_current(uint32_t slot);
+static void map_set(uint32_t slot, float v);
+static uint8_t map_align_done[MAP_ALL_SLOTS];
+static void map_align_reset(void)
+{
+    for (uint32_t s = 0; s < MAP_ALL_SLOTS; s++) {
+        map_align_done[s] = 0;
+    }
+}
+
+static int map_align(uint32_t slot, int32_t turn)
+{
+    if (ui.on_a || !slot_per_track(slot) || (slot >= APP_MAP_SLOTS && slot < MAP_MACRO1)) {
+        return 0;
+    }
+    (void)turn;
+    uint8_t sel = mirror.track;
+    float ref = map_current(slot);
+    uint32_t left = map_align_done[slot] < 5u ? 5u - map_align_done[slot] : 1u;
+    for (uint8_t u = 0; u < TRACKS; u++) {
+        if (u == sel) {
+            continue;
+        }
+        mirror.track = u;                       /* (the target's own track: map_current / map_set read it) */
+        float v = map_current(slot);
+        map_set(slot, v + (ref - v) / (float)left);
+    }
+    mirror.track = sel;
+    if (map_align_done[slot] < 5u) {
+        map_align_done[slot]++;
+    }
+    char t[8] = "1/5";
+    t[0] = (char)('0' + map_align_done[slot]);
+    app_say(MAP_TARGET[cmap.target[slot]].name, map_align_done[slot] >= 5u ? "ALL ALIGNED" : t);
+    ui.redraw = 1;
+    return 1;
 }
 
 /* the option's text: "T2", "ALL", "SEL TRK", "CC 74", the sound knob's name */
@@ -414,7 +477,7 @@ static float map_current(uint32_t slot)
     case MAP_LEVEL:
         return live.track[map_track(slot)].gain / 1.25f;
     case MAP_ENERGY: case MAP_SPACE: case MAP_TENSION: case MAP_DENSITY:
-        return live.macro[cmap.target[slot] - MAP_ENERGY];
+        return live.macro[mirror.track][cmap.target[slot] - MAP_ENERGY];
     case MAP_SWING:
         return live.swing;
     case MAP_PUMP:
@@ -430,7 +493,7 @@ static float map_current(uint32_t slot)
         return ui.shadow[mirror.track][api->macros[(cmap.arg[slot] - 1u) % KNOB_COUNT]];
     }
     default:
-        return map_value[slot];
+        return *map_val(slot);
     }
 }
 
@@ -441,7 +504,7 @@ static void map_set(uint32_t slot, float v)
         return;                                 /* a control this target does not have */
     }
     v = fm_clampf(v, 0.0f, 1.0f);
-    map_value[slot] = v;
+    *map_val(slot) = v;
     uint8_t target = cmap.target[slot];
     const char *name = MAP_TARGET[target].name;
     int32_t pct = (int32_t)(v * 100.0f + 0.5f);
@@ -457,8 +520,8 @@ static void map_set(uint32_t slot, float v)
     }
     case MAP_ENERGY: case MAP_SPACE: case MAP_TENSION: case MAP_DENSITY: {
         uint8_t m = (uint8_t)(target - MAP_ENERGY);
-        ui.macro[m] = v;
-        send_live(LIVE_MACRO, m, 0, v, 0);
+        ui.macro[mirror.track][m] = v;          /* the selected track's MOOD */
+        send_live(LIVE_MACRO, m, 0, v, mirror.track);
         break;
     }
     case MAP_MORPH:
@@ -676,7 +739,7 @@ static void map_retarget(uint32_t s, int32_t t)
         cmap.arg[s] = 0;
         break;
     }
-    map_value[s] = t == MAP_BEND ? 0.5f : 0.0f;
+    map_val_reset(s, t == MAP_BEND ? 0.5f : 0.0f);
 }
 
 static void map_change_arg(uint32_t s, int32_t turn)

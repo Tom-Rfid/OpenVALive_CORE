@@ -111,8 +111,10 @@ static void sync_mirror(void)
     mirror.clock_in = live.clock.external;
     mirror.clock_out = live.send_clock;
     ui.metronome = live.metronome;
-    for (int m = 0; m < KNOB_COUNT; m++) {
-        ui.macro[m] = live.macro[m];
+    for (int t = 0; t < TRACKS; t++) {
+        for (int m = 0; m < KNOB_COUNT; m++) {
+            ui.macro[t][m] = live.macro[t][m];
+        }
     }
     ui.pump = live.pump;
     ui.xfade = 0;
@@ -343,7 +345,7 @@ int app_expect(const char *what, int *got)
     } else if (!strcmp(what, "fav_open")) {
         *got = fav.open;
     } else if (!strcmp(what, "energy")) {
-        *got = (int)(live.macro[OLS_MACRO_ENERGY] * 100.0f + 0.5f);
+        *got = (int)(live.macro[mirror.track][OLS_MACRO_ENERGY] * 100.0f + 0.5f);
     } else if (!strcmp(what, "pump")) {
         *got = (int)(live.pump * 100.0f + 0.5f);
     } else if (!strcmp(what, "chain")) {

@@ -85,7 +85,7 @@ typedef enum {
     LIVE_METRONOME,            /* b = 0 off / 1 on (with it on, REC from stop counts one bar in) */
     LIVE_HOLD_MUTE,            /* b = 1: mute the tracks of mask id now / 0: bring them back on the next bar (breaks) */
     LIVE_XFADE,                /* b = bars a scene change takes (0 = a cut on the next bar) */
-    LIVE_MACRO,                /* b = OLS_MACRO_*, v = 0..1 (0.5 neutral) */
+    LIVE_MACRO,                /* b = OLS_MACRO_*, v = 0..1 (0.5 neutral), target = a track or OLS_TRACK_ALL */
     LIVE_PUMP,                 /* v = sidechain depth 0..1: the drum track ducks the others */
     LIVE_CHAIN,                /* b = 1 on / 0 off: the stored scenes in turn, id = bars each */
     LIVE_TAP,                  /* tap tempo: the tempo follows the last taps */
@@ -223,8 +223,8 @@ typedef struct {
     uint32_t chain_next;       /* transport tick of the next change */
 
     /* instrument macros */
-    float macro[OLS_MACRO_COUNT];
-    float density;             /* -1 .. +1, from DENSITY and ENERGY */
+    float macro[OLS_TRACKS][OLS_MACRO_COUNT];   /* MOOD: each track its own (0.5 neutral) */
+    float density[OLS_TRACKS];           /* -1 .. +1, from DENSITY and ENERGY */
 
     /* sidechain ("pump"): the first track of kind duck_kind ducks the others */
     float pump;                /* depth 0..1 */
@@ -318,7 +318,7 @@ void ols_live_tap(ols_live_t *L);
  * cross-faded over L->xfade_bars bars. */
 void ols_live_scene_go(ols_live_t *L, int slot);
 void ols_live_hold_mute(ols_live_t *L, uint8_t mask, int hold);
-void ols_live_macro(ols_live_t *L, int macro, float value);
+void ols_live_macro(ols_live_t *L, int track, int macro, float value);   /* track: one, or OLS_TRACK_ALL */
 void ols_live_chain(ols_live_t *L, int on, uint32_t bars);
 int  ols_live_track_silent(const ols_live_t *L, int track);   /* muted or held out */
 
