@@ -1126,7 +1126,7 @@ static void sound_align(uint32_t k);
 
 static void say_sound_taken(uint32_t t)
 {
-    char line[24] = "T1 ";
+    char line[28] = "T1  ";                     /* two spaces: the track apart from the family, as in the title */
     line[1] = (char)('1' + t);
     text_cat(line, sound_label(set.preset[t]));
     app_say(line, "");
