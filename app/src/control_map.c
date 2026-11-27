@@ -456,17 +456,22 @@ static int map_align(uint32_t slot, int32_t turn)
     return 1;
 }
 
-/* the same on the SOUND page: the knob's parameter on every track with the same engine */
+/* the same on the SOUND page: the knob's parameter on every track with the same engine, A (the live line, a VA
+ * engine) included: A leads when it is the selected line, else it follows too */
 static void sound_align(uint32_t k)
 {
     uint8_t sel = mirror.track;
-    const ols_engine_api_t *api = track_api(sel);
+    const ols_engine_api_t *api = ui.on_a ? &ENGINE_VA_API : track_api(sel);
     uint16_t id = api->macros[k];
-    float ref = ui.shadow[sel][id];
+    float ref = ui.on_a ? engine_va_get_param(&lv, id) : ui.shadow[sel][id];
     float left = (float)(sound_align_done[k] < 5u ? 5u - sound_align_done[k] : 1u);
+    if (!ui.on_a && api == &ENGINE_VA_API) {
+        float v = engine_va_get_param(&lv, id);
+        send_param(T_LIVE, id, v + (ref - v) / left);
+    }
     for (uint8_t u = 0; u < TRACKS; u++) {
         const ols_track_t *tr = &live.track[u];
-        if (u == sel || track_api(u) != api) {
+        if ((!ui.on_a && u == sel) || track_api(u) != api) {
             continue;
         }
         float v = tr->engine.api->get_param(tr->engine.ctx, id);

@@ -5,7 +5,7 @@
 - MACRO is now MOOD, and each track has its own (ENERGY, SPACE, TENSION, DENSITY: the Live core keeps them per
   track; LIVE_MACRO's target is a track or all). The knobs on the selected track (USER's effects on SEL TRK, LEVEL,
   PAN, MOOD) keep their value per track.
-- FX held + a knob, on every page but SETUP (SOUND included): the knob turns the selected track as usual and every
+- FX held + a knob, on every page but SETUP (SOUND included, A too: it follows, or leads when selected): the knob turns the selected track as usual and every
   other track goes toward that value, each at its own pace, on it after five detents ("ALL 1/5" .. "ALL ON IT"); the
   bars are mint while FX is held (white on SETUP).
 - A sound taken (SEL): no "SOUND" message; the title as it waited, green, still, a check mark (1.2 s as before).

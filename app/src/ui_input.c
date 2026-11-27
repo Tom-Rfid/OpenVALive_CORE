@@ -2026,7 +2026,7 @@ static void scan_knobs(void)
         ui.turned_at = plat_ms();
         mark_dirty();
 
-        if (button_held(ui.buttons, BTN_PAGES) && set.page != PAGE_SETUP && !ui.on_a) {
+        if (button_held(ui.buttons, BTN_PAGES) && set.page != PAGE_SETUP) {
             ui.pages_used = 1;                  /* FX held: no page turn on release */
             if (set.page == PAGE_SOUND && !set.controller) {
                 sound_knob(k, turn);            /* the other tracks follow this one */
