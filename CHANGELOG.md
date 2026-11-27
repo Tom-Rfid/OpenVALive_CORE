@@ -1,6 +1,6 @@
 # Changelog
 
-# v0.1.0 — 27 November 2026 (the release of OpenVALive FM-1 and SMK-37 0.1.0)
+# v0.3.0 — 27 November 2026 (with OpenVALive FM-1 and SMK-37 0.1.0)
 
 ## 26 November 2026 — MOOD per track, FX held aligns the tracks, a sound taken in green; BLEEP +20 %, METAL -10 %
 
